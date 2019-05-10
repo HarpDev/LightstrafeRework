@@ -58,7 +58,7 @@ public class Bow : MonoBehaviour
     {
         if (!ActiveArrow.Fired)
         {
-            ActiveArrow.Fire(Quaternion.LookRotation(vel), vel * Drawback * 200);
+            ActiveArrow.Fire(Quaternion.LookRotation(vel), vel * Drawback * 250);
             ActiveArrow.transform.position = from - vel;
         }
 

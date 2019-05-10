@@ -28,13 +28,15 @@ public class PlayerControls : MonoBehaviour
 
     public Vector3 velocity = new Vector3(0, 0, 0);
 
-    public static GameObject Player { get; set; }
+    public Vector2 startRotation;
 
     private void Start()
     {
-        Player = gameObject;
+        Game.I.Player = this;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        Yaw = startRotation.x;
+        Pitch = startRotation.y;
     }
 
     private Vector3 slamVector;
@@ -50,8 +52,7 @@ public class PlayerControls : MonoBehaviour
     public CharacterController controller;
 
     private const float Tolerance = 0.05f;
-
-    public Text speedText;
+    private const float MaxSpeed = 15;
 
     private bool jumpLock;
 
@@ -67,18 +68,17 @@ public class PlayerControls : MonoBehaviour
         var bobbingVector = new Vector3();
         if (Math.Abs(velocity.magnitude) > Tolerance && isGrounded())
         {
-            bobbingPos += Flatten(velocity).magnitude / 100 * bobbingSpeed;
+            bobbingPos += Flatten(velocity).magnitude * bobbingSpeed * Time.deltaTime * 2;
             while (bobbingPos > Mathf.PI * 2) bobbingPos -= Mathf.PI * 2;
 
             var y = bobbingHeight * Mathf.Sin(bobbingPos * 2);
             var x = bobbingWidth * Mathf.Sin(bobbingPos + 1.8f);
             bobbingVector = new Vector3(x, y, 0);
             camera.transform.localPosition = Vector3.Lerp(camera.transform.localPosition,
-                sprinting ? bobbingVector : new Vector3(), Time.deltaTime);
+                sprinting ? bobbingVector * 3 : new Vector3(), Time.deltaTime);
         }
 
         // Movement
-        speedText.text = velocity.magnitude + "";
 
         var forward = Input.GetAxis("Forward");
         var right = Input.GetAxis("Right");
@@ -98,14 +98,14 @@ public class PlayerControls : MonoBehaviour
             // On ground movement
 
                 var reduction = 8f;
-                reduction -= (velocity.magnitude + 1) / 5;
-                reduction = Mathf.Max(2, reduction);
+                reduction -= Math.Max(velocity.magnitude - MaxSpeed, 0);
+                reduction = Mathf.Max(1, reduction);
                 var reduced = Vector3.Lerp(velocity, new Vector3(),
                     Time.deltaTime * reduction);
                 velocity.x = reduced.x;
                 velocity.z = reduced.z;
 
-                if ((Math.Abs(forward) > Tolerance || Math.Abs(right) > Tolerance) && velocity.magnitude < 10)
+                if ((Math.Abs(forward) > Tolerance || Math.Abs(right) > Tolerance) && velocity.magnitude < MaxSpeed)
                 {
                     var speed = movementSpeed;
                     if (sprinting) speed *= sprintMovementScale;
@@ -141,6 +141,7 @@ public class PlayerControls : MonoBehaviour
         if (Input.GetAxis("Jump") > 0 && isGrounded() && !jumpLock)
         {
             jumpLock = true;
+            if (velocity.magnitude < MaxSpeed) velocity *= 1.5f;
             velocity.y = jumpHeight;
         }
         else if (Input.GetAxis("Jump") < Tolerance && isGrounded() && jumpLock) jumpLock = false;
@@ -159,7 +160,7 @@ public class PlayerControls : MonoBehaviour
         // Collision momentum
         var collideVel = controller.velocity - velocity;
         slamVector += collideVel;
-        slamVector = Vector3.Lerp(slamVector, new Vector3(0, 0, 0), Time.deltaTime * 8);
+        slamVector = Vector3.Lerp(slamVector, new Vector3(), Time.deltaTime * 8);
         slamVectorLerp = Vector3.Lerp(slamVectorLerp, slamVector, Time.deltaTime * 8);
 
         if (controller.velocity.magnitude > Tolerance || isGrounded())
@@ -215,7 +216,7 @@ public class PlayerControls : MonoBehaviour
             bow.transform.localPosition = Vector3.Lerp(bow.transform.localPosition, finalPosition, Time.deltaTime * 20);
             if (Input.GetAxis("Fire1") > 0)
             {
-                if (bow.Drawback < 0.3f) bow.Drawback += Time.deltaTime / 4;
+                if (bow.Drawback < 0.22f) bow.Drawback += Time.deltaTime / 4;
             }
             else if (bow.Drawback > 0)
             {
@@ -227,7 +228,7 @@ public class PlayerControls : MonoBehaviour
 
     public bool isGrounded()
     {
-        return controller.isGrounded || Physics.Raycast(transform.position, Vector3.down, 2f);
+        return controller.isGrounded || Physics.Raycast(transform.position, Vector3.down, 2.1f);
     }
 
     private Vector3 RotateAroundX(Vector3 vec, float amt)

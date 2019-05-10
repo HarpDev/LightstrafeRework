@@ -32,7 +32,7 @@ public class Grapple : MonoBehaviour
                 hooked = false;
                 RaycastHit hit;
                 Physics.Raycast(trans, player.camera.transform.forward, out hit, 100);
-                if (hit.collider != null)
+                if (hit.collider != null && !hit.collider.CompareTag("Ground"))
                 {
                     hookPosition = hit.point;
                     radius = Vector3.Distance(hookPosition, trans);
@@ -58,6 +58,9 @@ public class Grapple : MonoBehaviour
     {
         if (!hooked) return;
         var trans = player.transform.position;
+        
+        var lookHook = Vector3.RotateTowards(new Vector3(1, 0, 0), hookPosition - trans, 200 * Mathf.Deg2Rad, 0.0f);
+        player.velocity += lookHook * Time.deltaTime * 250 / player.velocity.magnitude;
 
         var difference2 = trans + player.velocity - hookPosition;
 
@@ -65,11 +68,8 @@ public class Grapple : MonoBehaviour
         var t2 = Mathf.Acos(difference2.y / r2);
         var p2 = Mathf.Atan2(difference2.z, difference2.x);
 
-        if (r2 < radius)
-        {
-            radius = r2;
-            return;
-        }
+        if (r2 < radius) radius = r2;
+
         var x = radius * Mathf.Sin(t2) * Mathf.Cos(p2);
         var y = radius * Mathf.Cos(t2);
         var z = radius * Mathf.Sin(t2) * Mathf.Sin(p2);

@@ -51,5 +51,12 @@ public class Arrow : MonoBehaviour
         transform.position = hit.point;
         Hit = true;
         GetComponent<Rigidbody>().isKinematic = true;
+        if (hit.collider.CompareTag("Target"))
+        {
+            Game.I.hitmarker.Hit();
+            var target = hit.collider.gameObject.GetComponent<Target>();
+            Destroy(target.targetObject);
+            Game.I.Score += target.value;
+        }
     }
 }
