@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.UI;
 
 public class PlayerControls : MonoBehaviour
@@ -54,7 +55,15 @@ public class PlayerControls : MonoBehaviour
     private const float Tolerance = 0.05f;
     private const float MaxSpeed = 15;
 
-    private bool jumpLock;
+    public float MovementDirectionRadians
+    {
+        get { return Mathf.Atan2(Input.GetAxis("Right"), Input.GetAxis("Forward")); }
+    }
+
+    public bool IsMoving
+    {
+        get { return Math.Abs(Input.GetAxis("Forward")) > Tolerance || Math.Abs(Input.GetAxis("Right")) > Tolerance; }
+    }
 
     private void Update()
     {
@@ -79,16 +88,11 @@ public class PlayerControls : MonoBehaviour
         }
 
         // Movement
-
-        var forward = Input.GetAxis("Forward");
-        var right = Input.GetAxis("Right");
-
-        var t = Mathf.Atan2(right, forward);
+        var t = MovementDirectionRadians;
 
         // Determine sprinting
         if (Input.GetAxis("Sprint") > 0) sprinting = true;
-        if (Mathf.Rad2Deg * t > 90 || Mathf.Rad2Deg * t < -90 ||
-            Math.Abs(forward) < Tolerance && Math.Abs(right) < Tolerance) sprinting = false;
+        if (Mathf.Rad2Deg * t > 90 || Mathf.Rad2Deg * t < -90 || !IsMoving) sprinting = false;
 
         t += Mathf.Deg2Rad * Yaw;
         var direction = new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t));
@@ -97,29 +101,29 @@ public class PlayerControls : MonoBehaviour
         {
             // On ground movement
 
-                var reduction = 8f;
-                reduction -= Math.Max(velocity.magnitude - MaxSpeed, 0);
-                reduction = Mathf.Max(1, reduction);
-                var reduced = Vector3.Lerp(velocity, new Vector3(),
-                    Time.deltaTime * reduction);
-                velocity.x = reduced.x;
-                velocity.z = reduced.z;
+            var reduction = 8f;
+            reduction -= Math.Max(velocity.magnitude - MaxSpeed, 0);
+            reduction = Mathf.Max(1, reduction);
+            var reduced = Vector3.Lerp(velocity, new Vector3(),
+                Time.deltaTime * reduction);
+            velocity.x = reduced.x;
+            velocity.z = reduced.z;
 
-                if ((Math.Abs(forward) > Tolerance || Math.Abs(right) > Tolerance) && velocity.magnitude < MaxSpeed)
-                {
-                    var speed = movementSpeed;
-                    if (sprinting) speed *= sprintMovementScale;
-                    velocity += direction * speed * Time.deltaTime;
-                }
+            if (IsMoving && velocity.magnitude < MaxSpeed)
+            {
+                var speed = movementSpeed;
+                if (sprinting) speed *= sprintMovementScale;
+                velocity += speed * Time.deltaTime * direction;
+            }
         }
         else
         {
             // Air movement
 
-            if (Math.Abs(forward) > Tolerance || Math.Abs(right) > Tolerance)
+            if (IsMoving)
             {
                 var flatVelocity = Flatten(velocity);
-                const float airAcceleration = 8f;
+                const float airAcceleration = 5f;
                 if (flatVelocity.sqrMagnitude > Tolerance)
                 {
                     var strafe = Vector3.Lerp(flatVelocity, flatVelocity.magnitude * direction,
@@ -133,18 +137,14 @@ public class PlayerControls : MonoBehaviour
                     velocity.x = strafe.x;
                     velocity.z = strafe.z;
                 }
-                else velocity += direction * movementSpeed * Time.deltaTime;
+                else velocity += movementSpeed * Time.deltaTime * direction;
             }
         }
 
-        // Handle jump
-        if (Input.GetAxis("Jump") > 0 && isGrounded() && !jumpLock)
-        {
-            jumpLock = true;
-            if (velocity.magnitude < MaxSpeed) velocity *= 1.5f;
-            velocity.y = jumpHeight;
-        }
-        else if (Input.GetAxis("Jump") < Tolerance && isGrounded() && jumpLock) jumpLock = false;
+        // Handle Jump
+        if (Input.GetAxis("Jump") > 0) Jump();
+        if (jumpLock && Input.GetAxis("Jump") < Tolerance) jumpLock = false;
+        if (groundLock && Input.GetAxis("Jump") < Tolerance && isGrounded()) groundLock = false;
 
         // Gravity
         velocity.y -= fallSpeed * Time.deltaTime;
@@ -163,7 +163,7 @@ public class PlayerControls : MonoBehaviour
         slamVector = Vector3.Lerp(slamVector, new Vector3(), Time.deltaTime * 8);
         slamVectorLerp = Vector3.Lerp(slamVectorLerp, slamVector, Time.deltaTime * 8);
 
-        if (controller.velocity.magnitude > Tolerance || isGrounded())
+        if (controller.velocity.magnitude > Tolerance && controller.velocity.magnitude < velocity.magnitude || isGrounded())
             velocity = controller.velocity;
 
         // Handle HUD momentum
@@ -226,39 +226,59 @@ public class PlayerControls : MonoBehaviour
         }
     }
 
+
+    private bool doubleJumpSpent;
+    private bool jumpLock;
+    private bool groundLock;
+
+    public void Jump()
+    {
+        if (jumpLock) return;
+        if (isGrounded() && !groundLock)
+        {
+            jumpLock = true;
+            groundLock = true;
+            velocity.y = jumpHeight;
+            doubleJumpSpent = false;
+        }
+
+        if (!isGrounded() && !doubleJumpSpent)
+        {
+            jumpLock = true;
+            doubleJumpSpent = true;
+            var flat = Flatten(velocity);
+            var magnitude = flat.magnitude;
+            var target = new Vector3(magnitude * Mathf.Sin(MovementDirectionRadians + Yaw * Mathf.Deg2Rad), 0,
+                magnitude * Mathf.Cos(MovementDirectionRadians + Yaw * Mathf.Deg2Rad));
+
+            var factor = magnitude / 30;
+            factor = Mathf.Min(factor, 0.8f);
+            factor = Mathf.Max(factor, 0.4f);
+
+            var lerp = Vector3.Lerp(target, flat, factor);
+
+            if (IsMoving)
+            {
+                velocity.x = lerp.x;
+                velocity.z = lerp.z;
+            }
+
+            if (velocity.y < jumpHeight) velocity.y = jumpHeight;
+        }
+    }
+
+    public void RefreshDoubleJump()
+    {
+        doubleJumpSpent = false;
+    }
+
     public bool isGrounded()
     {
         return controller.isGrounded || Physics.Raycast(transform.position, Vector3.down, 2.1f);
     }
 
-    private Vector3 RotateAroundX(Vector3 vec, float amt)
-    {
-        var y = vec.y * Mathf.Cos(amt) - vec.z * Mathf.Sin(amt);
-        var z = vec.y * Mathf.Sin(amt) + vec.z * Mathf.Cos(amt);
-        return new Vector3(vec.x, y, z);
-    }
-
-    private Vector3 RotateAroundY(Vector3 vec, float amt)
-    {
-        var x = vec.x * Mathf.Cos(amt) + vec.z * Mathf.Sin(amt);
-        var z = -vec.x * Mathf.Sin(amt) + vec.z * Mathf.Cos(amt);
-        return new Vector3(x, vec.y, z);
-    }
-
-    private Vector3 RotateAroundZ(Vector3 vec, float amt)
-    {
-        var x = vec.x * Mathf.Cos(amt) - vec.y * Mathf.Sin(amt);
-        var y = vec.x * Mathf.Sin(amt) + vec.y * Mathf.Cos(amt);
-        return new Vector3(x, y, vec.z);
-    }
-
     private Vector3 Flatten(Vector3 vec)
     {
         return new Vector3(vec.x, 0, vec.z);
-    }
-
-    private Vector3 Lengthen(Vector3 vec)
-    {
-        return new Vector3(0, vec.y, 0);
     }
 }

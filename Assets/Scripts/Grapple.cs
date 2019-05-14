@@ -37,6 +37,7 @@ public class Grapple : MonoBehaviour
                     hookPosition = hit.point;
                     radius = Vector3.Distance(hookPosition, trans);
                     hooked = true;
+                    player.RefreshDoubleJump();
                 }
 
                 if (hooked) rope.enabled = true;
@@ -49,7 +50,10 @@ public class Grapple : MonoBehaviour
         }
         else
         {
-            if (hooked) hooked = false;
+            if (hooked)
+            {
+                hooked = false;
+            }
             if (rope.enabled) rope.enabled = false;
         }
     }
@@ -58,9 +62,6 @@ public class Grapple : MonoBehaviour
     {
         if (!hooked) return;
         var trans = player.transform.position;
-        
-        var lookHook = Vector3.RotateTowards(new Vector3(1, 0, 0), hookPosition - trans, 200 * Mathf.Deg2Rad, 0.0f);
-        player.velocity += lookHook * Time.deltaTime * 250 / player.velocity.magnitude;
 
         var difference = trans + player.velocity - hookPosition;
 
