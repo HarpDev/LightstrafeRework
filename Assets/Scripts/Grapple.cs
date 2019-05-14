@@ -62,17 +62,17 @@ public class Grapple : MonoBehaviour
         var lookHook = Vector3.RotateTowards(new Vector3(1, 0, 0), hookPosition - trans, 200 * Mathf.Deg2Rad, 0.0f);
         player.velocity += lookHook * Time.deltaTime * 250 / player.velocity.magnitude;
 
-        var difference2 = trans + player.velocity - hookPosition;
+        var difference = trans + player.velocity - hookPosition;
 
-        var r2 = difference2.magnitude;
-        var t2 = Mathf.Acos(difference2.y / r2);
-        var p2 = Mathf.Atan2(difference2.z, difference2.x);
+        var r = difference.magnitude;
+        var t = Mathf.Acos(difference.y / r);
+        var p = Mathf.Atan2(difference.z, difference.x);
 
-        if (r2 < radius) radius = r2;
+        if (r < radius) radius = r;
 
-        var x = radius * Mathf.Sin(t2) * Mathf.Cos(p2);
-        var y = radius * Mathf.Cos(t2);
-        var z = radius * Mathf.Sin(t2) * Mathf.Sin(p2);
+        var x = radius * Mathf.Sin(t) * Mathf.Cos(p);
+        var y = radius * Mathf.Cos(t);
+        var z = radius * Mathf.Sin(t) * Mathf.Sin(p);
 
         var lookDir = hookPosition + new Vector3(x, y, z) - trans;
         var look = Vector3.RotateTowards(player.velocity, lookDir, 90 * Mathf.Deg2Rad * Time.deltaTime, 0.0f);
