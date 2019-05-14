@@ -1,21 +1,21 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class PlayerControls : MonoBehaviour
 {
     public new Camera camera;
     public GameObject hud;
+    
+    /* Movement Stuff */
+    public float maxSpeed = 15;
+    public float airAcceleration = 8f;
+    public float gravity = 14f;
     public float movementSpeed = 50;
     public float sprintMovementScale = 1.6f;
     public float jumpHeight = 10f;
-    public float fallSpeed = 14f;
-
-    public float bobbingSpeed = 0.18f;
-    public float bobbingWidth = 0.2f;
-    public float bobbingHeight = 0.2f;
-    private float bobbingPos;
 
     public Grapple grapple;
 
@@ -23,6 +23,11 @@ public class PlayerControls : MonoBehaviour
     public float Pitch { get; set; }
 
     private bool sprinting;
+
+    private const float BobbingSpeed = 0.18f;
+    private const float BobbingWidth = 0.2f;
+    private const float BobbingHeight = 0.2f;
+    private float bobbingPos;
 
     public Bow bow;
     public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
@@ -53,7 +58,6 @@ public class PlayerControls : MonoBehaviour
     public CharacterController controller;
 
     private const float Tolerance = 0.05f;
-    private const float MaxSpeed = 15;
 
     public float MovementDirectionRadians
     {
@@ -64,6 +68,8 @@ public class PlayerControls : MonoBehaviour
     {
         get { return Math.Abs(Input.GetAxis("Forward")) > Tolerance || Math.Abs(Input.GetAxis("Right")) > Tolerance; }
     }
+
+    private Vector3 prevVelocity;
 
     private void Update()
     {
@@ -77,11 +83,11 @@ public class PlayerControls : MonoBehaviour
         var bobbingVector = new Vector3();
         if (Math.Abs(velocity.magnitude) > Tolerance && isGrounded())
         {
-            bobbingPos += Flatten(velocity).magnitude * bobbingSpeed * Time.deltaTime * 2;
+            bobbingPos += Flatten(velocity).magnitude * BobbingSpeed * Time.deltaTime * 2;
             while (bobbingPos > Mathf.PI * 2) bobbingPos -= Mathf.PI * 2;
 
-            var y = bobbingHeight * Mathf.Sin(bobbingPos * 2);
-            var x = bobbingWidth * Mathf.Sin(bobbingPos + 1.8f);
+            var y = BobbingHeight * Mathf.Sin(bobbingPos * 2);
+            var x = BobbingWidth * Mathf.Sin(bobbingPos + 1.8f);
             bobbingVector = new Vector3(x, y, 0);
             camera.transform.localPosition = Vector3.Lerp(camera.transform.localPosition,
                 sprinting ? bobbingVector * 3 : new Vector3(), Time.deltaTime);
@@ -102,14 +108,14 @@ public class PlayerControls : MonoBehaviour
             // On ground movement
 
             var reduction = 8f;
-            reduction -= Math.Max(velocity.magnitude - MaxSpeed, 0);
+            reduction -= Math.Max(velocity.magnitude - maxSpeed, 0);
             reduction = Mathf.Max(1, reduction);
             var reduced = Vector3.Lerp(velocity, new Vector3(),
                 Time.deltaTime * reduction);
             velocity.x = reduced.x;
             velocity.z = reduced.z;
 
-            if (IsMoving && velocity.magnitude < MaxSpeed)
+            if (IsMoving && velocity.magnitude < maxSpeed)
             {
                 var speed = movementSpeed;
                 if (sprinting) speed *= sprintMovementScale;
@@ -122,22 +128,15 @@ public class PlayerControls : MonoBehaviour
 
             if (IsMoving)
             {
-                var flatVelocity = Flatten(velocity);
-                const float airAcceleration = 5f;
-                if (flatVelocity.sqrMagnitude > Tolerance)
-                {
-                    var strafe = Vector3.Lerp(flatVelocity, flatVelocity.magnitude * direction,
-                        airAcceleration / flatVelocity.magnitude * Time.deltaTime);
+                var accelDir = direction;
+                
+                var projVel = Vector3.Dot(velocity, accelDir); // Vector projection of Current velocity onto accelDir.
+                var accelVel = airAcceleration * Time.deltaTime; // Accelerated velocity in direction of movment
 
-                    // Add speed if curving in the air
-                    var strafeDistance =
-                        Mathf.Sqrt(Mathf.Pow(velocity.x - strafe.x, 2) + Mathf.Pow(velocity.z - strafe.z, 2));
-                    strafe += strafe.normalized * strafeDistance / 1.5f;
+                // If necessary, truncate the accelerated velocity so the vector projection does not exceed max_velocity
+                if(projVel + accelVel < maxSpeed / 4)
+                    velocity += accelDir * accelVel;
 
-                    velocity.x = strafe.x;
-                    velocity.z = strafe.z;
-                }
-                else velocity += movementSpeed * Time.deltaTime * direction;
             }
         }
 
@@ -147,7 +146,7 @@ public class PlayerControls : MonoBehaviour
         if (groundLock && Input.GetAxis("Jump") < Tolerance && isGrounded()) groundLock = false;
 
         // Gravity
-        velocity.y -= fallSpeed * Time.deltaTime;
+        velocity.y -= gravity * Time.deltaTime;
         if (Mathf.Abs(velocity.y) < controller.minMoveDistance) velocity.y = -controller.minMoveDistance * 10;
 
         grapple.HandleGrapple();
@@ -158,10 +157,11 @@ public class PlayerControls : MonoBehaviour
         camera.transform.rotation = Quaternion.Euler(new Vector3(Pitch + slamVectorLerp.y, Yaw, 0));
 
         // Collision momentum
-        var collideVel = controller.velocity - velocity;
+        var collideVel = velocity - prevVelocity;
         slamVector += collideVel;
         slamVector = Vector3.Lerp(slamVector, new Vector3(), Time.deltaTime * 8);
         slamVectorLerp = Vector3.Lerp(slamVectorLerp, slamVector, Time.deltaTime * 8);
+        prevVelocity = velocity;
 
         if (controller.velocity.magnitude > Tolerance && controller.velocity.magnitude < velocity.magnitude || isGrounded())
             velocity = controller.velocity;
@@ -264,6 +264,7 @@ public class PlayerControls : MonoBehaviour
             }
 
             if (velocity.y < jumpHeight) velocity.y = jumpHeight;
+            else velocity.y += jumpHeight;
         }
     }
 

@@ -50,10 +50,7 @@ public class Grapple : MonoBehaviour
         }
         else
         {
-            if (hooked)
-            {
-                hooked = false;
-            }
+            if (hooked) hooked = false;
             if (rope.enabled) rope.enabled = false;
         }
     }
