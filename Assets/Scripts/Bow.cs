@@ -54,11 +54,11 @@ public class Bow : MonoBehaviour
         ActiveArrow.gameObject.GetComponent<Rigidbody>().isKinematic = true;
     }
 
-    public void Fire(Vector3 from, Vector3 vel)
+    public void Fire(Vector3 from, Vector3 vel, Vector3 add)
     {
         if (!ActiveArrow.Fired)
         {
-            ActiveArrow.Fire(Quaternion.LookRotation(vel), vel * Drawback * 250);
+            ActiveArrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel + add);
             ActiveArrow.transform.position = from - vel;
         }
 

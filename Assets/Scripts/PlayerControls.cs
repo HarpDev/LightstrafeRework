@@ -16,6 +16,7 @@ public class PlayerControls : MonoBehaviour
     public float movementSpeed = 50;
     public float sprintMovementScale = 1.6f;
     public float jumpHeight = 10f;
+    public float bHopForgiveness = 0.1f;
 
     public Grapple grapple;
 
@@ -71,6 +72,8 @@ public class PlayerControls : MonoBehaviour
 
     private Vector3 prevVelocity;
 
+    private float groundTimer;
+
     private void Update()
     {
         // Mouse motion
@@ -107,23 +110,29 @@ public class PlayerControls : MonoBehaviour
         {
             // On ground movement
 
-            var reduction = 8f;
-            reduction -= Math.Max(velocity.magnitude - maxSpeed, 0);
-            reduction = Mathf.Max(1, reduction);
-            var reduced = Vector3.Lerp(velocity, new Vector3(),
-                Time.deltaTime * reduction);
-            velocity.x = reduced.x;
-            velocity.z = reduced.z;
-
-            if (IsMoving && velocity.magnitude < maxSpeed)
+            groundTimer += Time.deltaTime;
+            if (groundTimer > bHopForgiveness)
             {
-                var speed = movementSpeed;
-                if (sprinting) speed *= sprintMovementScale;
-                velocity += speed * Time.deltaTime * direction;
+                var reduction = 8f;
+                reduction -= Math.Max(velocity.magnitude - maxSpeed, 0);
+                reduction = Mathf.Max(1, reduction);
+                var reduced = Vector3.Lerp(velocity, new Vector3(),
+                    Time.deltaTime * reduction);
+                velocity.x = reduced.x;
+                velocity.z = reduced.z;
+
+                if (IsMoving && velocity.magnitude < maxSpeed)
+                {
+                    var speed = movementSpeed;
+                    if (sprinting) speed *= sprintMovementScale;
+                    velocity += speed * Time.deltaTime * direction;
+                }
             }
         }
         else
         {
+            groundTimer = 0;
+            
             // Air movement
 
             if (IsMoving)
@@ -136,7 +145,6 @@ public class PlayerControls : MonoBehaviour
                 // If necessary, truncate the accelerated velocity so the vector projection does not exceed max_velocity
                 if(projVel + accelVel < maxSpeed / 4)
                     velocity += accelDir * accelVel;
-
             }
         }
 
@@ -221,7 +229,7 @@ public class PlayerControls : MonoBehaviour
             else if (bow.Drawback > 0)
             {
                 var trans = camera.transform;
-                bow.Fire(trans.position, trans.forward);
+                bow.Fire(trans.position, trans.forward, velocity);
             }
         }
     }
@@ -255,7 +263,7 @@ public class PlayerControls : MonoBehaviour
             factor = Mathf.Min(factor, 0.8f);
             factor = Mathf.Max(factor, 0.4f);
 
-            var lerp = Vector3.Lerp(target, flat, factor);
+            var lerp = Vector3.Lerp(target, flat, 0.6f);
 
             if (IsMoving)
             {
@@ -263,7 +271,7 @@ public class PlayerControls : MonoBehaviour
                 velocity.z = lerp.z;
             }
 
-            if (velocity.y < jumpHeight) velocity.y = jumpHeight;
+            if (velocity.y < 0) velocity.y = jumpHeight;
             else velocity.y += jumpHeight;
         }
     }

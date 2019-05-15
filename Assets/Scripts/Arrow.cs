@@ -56,7 +56,7 @@ public class Arrow : MonoBehaviour
             Game.I.hitmarker.Hit();
             var target = hit.collider.gameObject.GetComponent<Target>();
             Destroy(target.targetObject);
-            Game.I.Score += target.value;
+            Game.I.Score += Mathf.RoundToInt(target.value * Game.I.Player.velocity.magnitude);
         }
     }
 }
