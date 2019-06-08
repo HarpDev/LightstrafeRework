@@ -8,7 +8,7 @@ public class PlayerControls : MonoBehaviour
 {
     public new Camera camera;
     public GameObject hud;
-    
+
     /* Movement Stuff */
     public float maxSpeed = 15;
     public float airAcceleration = 8f;
@@ -132,18 +132,18 @@ public class PlayerControls : MonoBehaviour
         else
         {
             groundTimer = 0;
-            
+
             // Air movement
 
             if (IsMoving)
             {
                 var accelDir = direction;
-                
+
                 var projVel = Vector3.Dot(velocity, accelDir); // Vector projection of Current velocity onto accelDir.
                 var accelVel = airAcceleration * Time.deltaTime; // Accelerated velocity in direction of movment
 
                 // If necessary, truncate the accelerated velocity so the vector projection does not exceed max_velocity
-                if(projVel + accelVel < maxSpeed / 4)
+                if (projVel + accelVel < maxSpeed / 4)
                     velocity += accelDir * accelVel;
             }
         }
@@ -171,7 +171,8 @@ public class PlayerControls : MonoBehaviour
         slamVectorLerp = Vector3.Lerp(slamVectorLerp, slamVector, Time.deltaTime * 8);
         prevVelocity = velocity;
 
-        if (controller.velocity.magnitude > Tolerance && controller.velocity.magnitude < velocity.magnitude || isGrounded())
+        if (controller.velocity.magnitude > Tolerance && controller.velocity.magnitude < velocity.magnitude ||
+            isGrounded())
             velocity = controller.velocity;
 
         // Handle HUD momentum
@@ -254,22 +255,6 @@ public class PlayerControls : MonoBehaviour
         {
             jumpLock = true;
             doubleJumpSpent = true;
-            var flat = Flatten(velocity);
-            var magnitude = flat.magnitude;
-            var target = new Vector3(magnitude * Mathf.Sin(MovementDirectionRadians + Yaw * Mathf.Deg2Rad), 0,
-                magnitude * Mathf.Cos(MovementDirectionRadians + Yaw * Mathf.Deg2Rad));
-
-            var factor = magnitude / 30;
-            factor = Mathf.Min(factor, 0.8f);
-            factor = Mathf.Max(factor, 0.4f);
-
-            var lerp = Vector3.Lerp(target, flat, 0.6f);
-
-            if (IsMoving)
-            {
-                velocity.x = lerp.x;
-                velocity.z = lerp.z;
-            }
 
             if (velocity.y < 0) velocity.y = jumpHeight;
             else velocity.y += jumpHeight;

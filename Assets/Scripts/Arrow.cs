@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
+
     public bool Fired { get; set; }
     public bool Hit { get; set; }
 
@@ -15,6 +16,8 @@ public class Arrow : MonoBehaviour
     public Transform nockPosition;
     public new Rigidbody rigidbody;
     public TrailRenderer trail;
+    
+    public Hitmarker hitmarker { get; set; }
 
     private void Start()
     {
@@ -53,7 +56,8 @@ public class Arrow : MonoBehaviour
         GetComponent<Rigidbody>().isKinematic = true;
         if (hit.collider.CompareTag("Target"))
         {
-            Game.I.hitmarker.Hit();
+            if (hitmarker != null)
+                hitmarker.Hit();
             var target = hit.collider.gameObject.GetComponent<Target>();
             Destroy(target.targetObject);
             Game.I.Score += Mathf.RoundToInt(target.value * Game.I.Player.velocity.magnitude);

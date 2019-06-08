@@ -1,16 +1,12 @@
 ﻿
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class Game : MonoBehaviour
 {
     
     public static Game I;
-
-    public Hitmarker hitmarker;
-
-    public Text speedText;
-    public Text scoreText;
 
     public int Score { get; set; }
     public PlayerControls Player { get; set; }
@@ -29,9 +25,8 @@ public class Game : MonoBehaviour
         }
     }
 
-    private void Update()
+    public void StartLevel()
     {
-        speedText.text = "Speed: " + (int)Player.velocity.magnitude;
-        scoreText.text = "Score: " + Score;
+        SceneManager.LoadScene("Level1");
     }
 }

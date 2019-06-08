@@ -16,6 +16,7 @@ public class Bow : MonoBehaviour
     public float yVelocityLimit = 0.4f;
     public float hVelocityReduction = 260;
     public float hVelocityLimit = 0.1f;
+    public Hitmarker hitmarker;
 
     public Arrow ActiveArrow { get; set; }
 
@@ -52,6 +53,7 @@ public class Bow : MonoBehaviour
     {
         ActiveArrow = Instantiate(arrowPrefab.gameObject).GetComponent<Arrow>();
         ActiveArrow.gameObject.GetComponent<Rigidbody>().isKinematic = true;
+        ActiveArrow.hitmarker = hitmarker;
     }
 
     public void Fire(Vector3 from, Vector3 vel, Vector3 add)
