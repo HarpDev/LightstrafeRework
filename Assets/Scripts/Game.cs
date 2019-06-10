@@ -8,7 +8,8 @@ public class Game : MonoBehaviour
     
     public static Game I;
 
-    public int Score { get; set; }
+    public static int Score { get; set; }
+    public static int HighScore { get; set; }
     public PlayerControls Player { get; set; }
 
     private void Awake()
@@ -25,8 +26,16 @@ public class Game : MonoBehaviour
         }
     }
 
-    public void StartLevel()
+    public static void StartLevel()
     {
+        Score = 0;
         SceneManager.LoadScene("Level1");
+    }
+
+    public static void StartMenu()
+    {
+        SceneManager.LoadScene("Menu");
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 }

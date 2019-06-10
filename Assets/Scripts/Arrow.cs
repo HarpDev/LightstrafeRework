@@ -17,12 +17,7 @@ public class Arrow : MonoBehaviour
     public new Rigidbody rigidbody;
     public TrailRenderer trail;
     
-    public Hitmarker hitmarker { get; set; }
-
-    private void Start()
-    {
-        trail.enabled = false;
-    }
+    public Hitmarker Hitmarker { get; set; }
 
     private void Update()
     {
@@ -56,11 +51,11 @@ public class Arrow : MonoBehaviour
         GetComponent<Rigidbody>().isKinematic = true;
         if (hit.collider.CompareTag("Target"))
         {
-            if (hitmarker != null)
-                hitmarker.Hit();
+            if (Hitmarker != null)
+                Hitmarker.Hit();
             var target = hit.collider.gameObject.GetComponent<Target>();
             Destroy(target.targetObject);
-            Game.I.Score += Mathf.RoundToInt(target.value * Game.I.Player.velocity.magnitude);
+            Game.Score += Mathf.RoundToInt(target.value + Game.I.Player.velocity.magnitude);
         }
     }
 }

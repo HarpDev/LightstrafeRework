@@ -10,6 +10,6 @@ public class ScoreDisplay : MonoBehaviour
     // Update is called once per frame
     private void Update()
     {
-        scoreText.text = prefix + Game.I.Score;
+        scoreText.text = prefix + Game.Score;
     }
 }

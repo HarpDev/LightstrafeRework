@@ -1,4 +1,5 @@
 ﻿
+using System;
 using UnityEngine;
 
 public class CollideDetector : MonoBehaviour
@@ -6,6 +7,11 @@ public class CollideDetector : MonoBehaviour
     public Arrow arrow;
 
     private Vector3 prevPosition;
+
+    private void Start()
+    {
+        prevPosition = transform.position;
+    }
 
     private void Update()
     {

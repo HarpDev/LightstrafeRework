@@ -7,6 +7,7 @@ public class Bow : MonoBehaviour
     public GameObject top;
     public GameObject bottom;
     public Arrow arrowPrefab;
+    public Arrow arrowModel;
 
     public LineRenderer bowString;
 
@@ -18,53 +19,34 @@ public class Bow : MonoBehaviour
     public float hVelocityLimit = 0.1f;
     public Hitmarker hitmarker;
 
-    public Arrow ActiveArrow { get; set; }
-
     public float Drawback { get; set; }
-
-    private void Start()
-    {
-        if (Application.isPlaying) NockArrow();
-    }
 
     private void Update()
     {
         var list = new List<Vector3> {top.transform.localPosition};
 
-        if (Application.isPlaying && !ActiveArrow.Fired)
-        {
-            var trans = transform;
-            var activeTrans = ActiveArrow.gameObject.transform;
-            var position = trans.position;
-            activeTrans.position = position + trans.up * (boltPosition.z - Drawback * 1.5f) +
-                                   trans.forward * boltPosition.y + trans.right * boltPosition.x;
-            activeTrans.rotation = trans.rotation;
+        var trans = transform;
+        var activeTrans = arrowModel.transform;
+        var position = trans.position;
+        activeTrans.position = position + trans.up * (boltPosition.z - Drawback * 1.5f) +
+                               trans.forward * boltPosition.y + trans.right * boltPosition.x;
+        activeTrans.rotation = trans.rotation;
 
-            var relative = transform.InverseTransformPoint(ActiveArrow.nockPosition.position);
-            list.Add(relative);
-        }
+        var relative = transform.InverseTransformPoint(arrowModel.nockPosition.position);
+        list.Add(relative);
 
         list.Add(bottom.transform.localPosition);
         bowString.positionCount = list.Count;
         bowString.SetPositions(list.ToArray());
     }
 
-    private void NockArrow()
-    {
-        ActiveArrow = Instantiate(arrowPrefab.gameObject).GetComponent<Arrow>();
-        ActiveArrow.gameObject.GetComponent<Rigidbody>().isKinematic = true;
-        ActiveArrow.hitmarker = hitmarker;
-    }
-
     public void Fire(Vector3 from, Vector3 vel, Vector3 add)
     {
-        if (!ActiveArrow.Fired)
-        {
-            ActiveArrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel + add);
-            ActiveArrow.transform.position = from - vel;
-        }
+        var arrow = Instantiate(arrowPrefab.gameObject).GetComponent<Arrow>();
+        arrow.Hitmarker = hitmarker;
+        arrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel + add);
+        arrow.transform.position = from;
 
         Drawback = 0;
-        NockArrow();
     }
 }

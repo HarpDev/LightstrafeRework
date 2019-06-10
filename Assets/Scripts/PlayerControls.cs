@@ -6,29 +6,24 @@ using UnityEngine.UI;
 
 public class PlayerControls : MonoBehaviour
 {
-    public new Camera camera;
-    public GameObject hud;
-
     /* Movement Stuff */
     public float maxSpeed = 15;
-    public float airAcceleration = 8f;
+    public float maxAirSpeed = 5;
+    public float airAcceleration = 50f;
     public float gravity = 14f;
     public float movementSpeed = 50;
     public float sprintMovementScale = 1.6f;
     public float jumpHeight = 10f;
     public float bHopForgiveness = 0.1f;
 
+    public CameraHudMovement cameraHudMovement;
+
     public Grapple grapple;
 
     public float Yaw { get; set; }
     public float Pitch { get; set; }
 
-    private bool sprinting;
-
-    private const float BobbingSpeed = 0.18f;
-    private const float BobbingWidth = 0.2f;
-    private const float BobbingHeight = 0.2f;
-    private float bobbingPos;
+    public bool Sprinting { get; set; }
 
     public Bow bow;
     public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
@@ -46,16 +41,6 @@ public class PlayerControls : MonoBehaviour
         Pitch = startRotation.y;
     }
 
-    private Vector3 slamVector;
-    private Vector3 slamVectorLerp;
-
-    private float prevYaw;
-    private float prevPitch;
-
-    private float hudYawOffset;
-    private float hudPitchOffset;
-    public float hudMovementReduction = 6;
-
     public CharacterController controller;
 
     private const float Tolerance = 0.05f;
@@ -70,8 +55,6 @@ public class PlayerControls : MonoBehaviour
         get { return Math.Abs(Input.GetAxis("Forward")) > Tolerance || Math.Abs(Input.GetAxis("Right")) > Tolerance; }
     }
 
-    private Vector3 prevVelocity;
-
     private float groundTimer;
 
     private void Update()
@@ -82,26 +65,12 @@ public class PlayerControls : MonoBehaviour
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
 
-        // Camera bobbing
-        var bobbingVector = new Vector3();
-        if (Math.Abs(velocity.magnitude) > Tolerance && isGrounded())
-        {
-            bobbingPos += Flatten(velocity).magnitude * BobbingSpeed * Time.deltaTime * 2;
-            while (bobbingPos > Mathf.PI * 2) bobbingPos -= Mathf.PI * 2;
-
-            var y = BobbingHeight * Mathf.Sin(bobbingPos * 2);
-            var x = BobbingWidth * Mathf.Sin(bobbingPos + 1.8f);
-            bobbingVector = new Vector3(x, y, 0);
-            camera.transform.localPosition = Vector3.Lerp(camera.transform.localPosition,
-                sprinting ? bobbingVector * 3 : new Vector3(), Time.deltaTime);
-        }
-
         // Movement
         var t = MovementDirectionRadians;
 
         // Determine sprinting
-        if (Input.GetAxis("Sprint") > 0) sprinting = true;
-        if (Mathf.Rad2Deg * t > 90 || Mathf.Rad2Deg * t < -90 || !IsMoving) sprinting = false;
+        if (Input.GetAxis("Sprint") > 0) Sprinting = true;
+        if (Mathf.Rad2Deg * t > 90 || Mathf.Rad2Deg * t < -90 || !IsMoving) Sprinting = false;
 
         t += Mathf.Deg2Rad * Yaw;
         var direction = new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t));
@@ -109,6 +78,7 @@ public class PlayerControls : MonoBehaviour
         if (isGrounded())
         {
             // On ground movement
+            RefreshDoubleJump();
 
             groundTimer += Time.deltaTime;
             if (groundTimer > bHopForgiveness)
@@ -124,7 +94,7 @@ public class PlayerControls : MonoBehaviour
                 if (IsMoving && velocity.magnitude < maxSpeed)
                 {
                     var speed = movementSpeed;
-                    if (sprinting) speed *= sprintMovementScale;
+                    if (Sprinting) speed *= sprintMovementScale;
                     velocity += speed * Time.deltaTime * direction;
                 }
             }
@@ -143,7 +113,7 @@ public class PlayerControls : MonoBehaviour
                 var accelVel = airAcceleration * Time.deltaTime; // Accelerated velocity in direction of movment
 
                 // If necessary, truncate the accelerated velocity so the vector projection does not exceed max_velocity
-                if (projVel + accelVel < maxSpeed / 4)
+                if (projVel + accelVel < maxAirSpeed / 4)
                     velocity += accelDir * accelVel;
             }
         }
@@ -162,31 +132,10 @@ public class PlayerControls : MonoBehaviour
         // Movement happens here
         controller.Move(velocity * Time.deltaTime);
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
-        camera.transform.rotation = Quaternion.Euler(new Vector3(Pitch + slamVectorLerp.y, Yaw, 0));
-
-        // Collision momentum
-        var collideVel = velocity - prevVelocity;
-        slamVector += collideVel;
-        slamVector = Vector3.Lerp(slamVector, new Vector3(), Time.deltaTime * 8);
-        slamVectorLerp = Vector3.Lerp(slamVectorLerp, slamVector, Time.deltaTime * 8);
-        prevVelocity = velocity;
 
         if (controller.velocity.magnitude > Tolerance && controller.velocity.magnitude < velocity.magnitude ||
             isGrounded())
             velocity = controller.velocity;
-
-        // Handle HUD momentum
-        var yawMovement = prevYaw - Yaw;
-        var pitchMovement = prevPitch - Pitch;
-        if (yawMovement > 200) yawMovement = 0;
-        hudYawOffset += yawMovement / hudMovementReduction;
-        hudPitchOffset += pitchMovement / hudMovementReduction;
-        hudYawOffset = Mathf.Lerp(hudYawOffset, 0, 0.05f);
-        hudPitchOffset = Mathf.Lerp(hudPitchOffset, 0, 0.05f);
-        hud.transform.localRotation = Quaternion.Euler(-hudPitchOffset, -hudYawOffset, 0);
-
-        prevYaw = Yaw;
-        prevPitch = Pitch;
 
         // Handle bow position
         if (bow != null)
@@ -220,7 +169,7 @@ public class PlayerControls : MonoBehaviour
 
             var finalPosition = bowPosition + new Vector3(xCalc, -yCalc, zCalc);
 
-            if (isGrounded()) finalPosition += bobbingVector / 12;
+            if (isGrounded()) finalPosition += cameraHudMovement.BobbingVector / 12;
 
             bow.transform.localPosition = Vector3.Lerp(bow.transform.localPosition, finalPosition, Time.deltaTime * 20);
             if (Input.GetAxis("Fire1") > 0)
@@ -229,7 +178,7 @@ public class PlayerControls : MonoBehaviour
             }
             else if (bow.Drawback > 0)
             {
-                var trans = camera.transform;
+                var trans = cameraHudMovement.camera.transform;
                 bow.Fire(trans.position, trans.forward, velocity);
             }
         }
@@ -249,12 +198,18 @@ public class PlayerControls : MonoBehaviour
             groundLock = true;
             velocity.y = jumpHeight;
             doubleJumpSpent = false;
+            var slam = cameraHudMovement.RotationSlamVector;
+            slam.y += 30;
+            cameraHudMovement.RotationSlamVector = slam;
         }
 
         if (!isGrounded() && !doubleJumpSpent)
         {
             jumpLock = true;
             doubleJumpSpent = true;
+            var slam = cameraHudMovement.PositionSlamVector;
+            slam.y += 20;
+            cameraHudMovement.PositionSlamVector = slam;
 
             if (velocity.y < 0) velocity.y = jumpHeight;
             else velocity.y += jumpHeight;
@@ -269,10 +224,5 @@ public class PlayerControls : MonoBehaviour
     public bool isGrounded()
     {
         return controller.isGrounded || Physics.Raycast(transform.position, Vector3.down, 2.1f);
-    }
-
-    private Vector3 Flatten(Vector3 vec)
-    {
-        return new Vector3(vec.x, 0, vec.z);
     }
 }
