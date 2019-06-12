@@ -107,14 +107,18 @@ public class PlayerControls : MonoBehaviour
 
             if (IsMoving)
             {
-                var accelDir = direction;
+                var wishDir = direction;
+                var wishSpeed = wishDir.magnitude;
 
-                var projVel = Vector3.Dot(velocity, accelDir); // Vector projection of Current velocity onto accelDir.
-                var accelVel = airAcceleration * Time.deltaTime; // Accelerated velocity in direction of movment
-
-                // If necessary, truncate the accelerated velocity so the vector projection does not exceed max_velocity
-                if (projVel + accelVel < maxAirSpeed / 4)
-                    velocity += accelDir * accelVel;
+                var currentSpeed = Vector3.Dot(velocity, wishDir);
+                var addSpeed = wishSpeed - currentSpeed;
+                if (addSpeed > 0)
+                {
+                    var accelSpeed = airAcceleration * Time.deltaTime * wishSpeed;
+                    if (accelSpeed > addSpeed)
+                        accelSpeed = addSpeed;
+                    velocity += accelSpeed * wishDir;
+                }
             }
         }
 
@@ -196,6 +200,7 @@ public class PlayerControls : MonoBehaviour
         {
             jumpLock = true;
             groundLock = true;
+            velocity *= 1.1f;
             velocity.y = jumpHeight;
             doubleJumpSpent = false;
             var slam = cameraHudMovement.RotationSlamVector;
@@ -224,5 +229,10 @@ public class PlayerControls : MonoBehaviour
     public bool isGrounded()
     {
         return controller.isGrounded || Physics.Raycast(transform.position, Vector3.down, 2.1f);
+    }
+
+    private static Vector3 Flatten(Vector3 vec)
+    {
+        return new Vector3(vec.x, 0, vec.z);
     }
 }
