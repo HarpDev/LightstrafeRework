@@ -20,7 +20,7 @@ public class ExplosiveArrow : MonoBehaviour
         if (Game.I.Player != null)
         {
             var position = transform.position;
-            var lookDir = Game.I.Player.GetComponent<PlayerControls>().cameraHudMovement.camera.transform.position - position;
+            var lookDir = Game.I.Player.GetComponent<PlayerControls>().camera.transform.position - position;
             var add = Flatten(Vector3.RotateTowards(new Vector3(1, 0, 0), lookDir, 360, 0.0f)).normalized;
             var multiply = 30 - Vector3.Distance(position, Game.I.Player.transform.position) * 2;
             multiply = Mathf.Min(20, multiply);

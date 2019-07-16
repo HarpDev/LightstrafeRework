@@ -17,7 +17,6 @@ public class Bow : MonoBehaviour
     public float yVelocityLimit = 0.4f;
     public float hVelocityReduction = 260;
     public float hVelocityLimit = 0.1f;
-    public Hitmarker hitmarker;
 
     public float Drawback { get; set; }
 
@@ -40,13 +39,18 @@ public class Bow : MonoBehaviour
         bowString.SetPositions(list.ToArray());
     }
 
-    public void Fire(Vector3 from, Vector3 vel, Vector3 add)
+    public void Fire(Vector3 from, Vector3 vel)
     {
         var arrow = Instantiate(arrowPrefab.gameObject).GetComponent<Arrow>();
-        arrow.Hitmarker = hitmarker;
-        arrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel + add);
+        arrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel);
         arrow.transform.position = from;
+        arrow.FiredVelocity = Flatten(Game.I.Player.velocity).magnitude;
 
         Drawback = 0;
+    }
+
+    private static Vector3 Flatten(Vector3 vec)
+    {
+        return new Vector3(vec.x, 0, vec.z);
     }
 }

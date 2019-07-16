@@ -1,6 +1,7 @@
 ﻿
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class Game : MonoBehaviour
@@ -11,6 +12,9 @@ public class Game : MonoBehaviour
     public static int Score { get; set; }
     public static int HighScore { get; set; }
     public PlayerControls Player { get; set; }
+
+    public Hitmarker hitmarker;
+    public Hitmarker critmarker;
 
     private void Awake()
     {

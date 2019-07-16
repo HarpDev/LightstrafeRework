@@ -24,15 +24,15 @@ public class Grapple : MonoBehaviour
 
     private void Update()
     {
-        var trans = player.cameraHudMovement.camera.transform.position + new Vector3(0, yOffset, 0);
+        var trans = player.camera.transform.position + new Vector3(0, yOffset, 0);
         if (Input.GetAxis("Grapple") > 0)
         {
             if (!rope.enabled)
             {
                 hooked = false;
                 RaycastHit hit;
-                Physics.Raycast(trans, player.cameraHudMovement.camera.transform.forward, out hit, 100);
-                if (hit.collider != null && !hit.collider.CompareTag("Ground"))
+                Physics.Raycast(trans, player.camera.transform.forward, out hit, 100);
+                if (hit.collider != null && hit.collider.CompareTag("Grapple"))
                 {
                     hookPosition = hit.point;
                     radius = Vector3.Distance(hookPosition, trans);
@@ -59,7 +59,7 @@ public class Grapple : MonoBehaviour
     {
         if (!hooked) return;
         var trans = player.transform.position;
-        player.cameraHudMovement.camera.transform.localPosition = new Vector3();
+        player.camera.transform.localPosition = new Vector3();
 
         var difference = trans + player.velocity - hookPosition;
 

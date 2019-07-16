@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,7 +18,14 @@ public class Arrow : MonoBehaviour
     public new Rigidbody rigidbody;
     public TrailRenderer trail;
     
-    public Hitmarker Hitmarker { get; set; }
+    public float FiredVelocity { get; set; }
+
+    private Vector3 prevPosition;
+
+    private void Start()
+    {
+        prevPosition = transform.position;
+    }
 
     private void Update()
     {
@@ -26,6 +34,16 @@ public class Arrow : MonoBehaviour
                 Time.deltaTime * 10);
         else if (!Fired && !Hit)
             model.transform.localRotation = Quaternion.Euler(beforeFiredRotation);
+        
+        var trans = transform;
+        var lookDir = trans.position - prevPosition;
+        var vec = Vector3.RotateTowards(new Vector3(1, 0, 0), lookDir, 360, 0.0f);
+        RaycastHit hit;
+        var layermask = ~(1 << 9);
+        Physics.Raycast(prevPosition, vec, out hit, lookDir.magnitude, layermask);
+        if (hit.collider != null) Collide(hit);
+        
+        prevPosition = transform.position;
     }
 
     public void Fire(Quaternion direction, Vector3 velocity)
@@ -51,16 +69,9 @@ public class Arrow : MonoBehaviour
         GetComponent<Rigidbody>().isKinematic = true;
         if (hit.collider.CompareTag("Target"))
         {
-            if (Hitmarker != null)
-                Hitmarker.Hit();
             var target = hit.collider.gameObject.GetComponent<Target>();
-            Destroy(target.targetObject);
-            Game.Score += Mathf.RoundToInt(target.value + Flatten(Game.I.Player.velocity).magnitude);
+            target.Hit();
+            Game.Score += Mathf.RoundToInt(100 + FiredVelocity) * (target.crit ? 2 : 1);
         }
-    }
-
-    private static Vector3 Flatten(Vector3 vec)
-    {
-        return new Vector3(vec.x, 0, vec.z);
     }
 }

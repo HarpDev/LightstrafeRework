@@ -9,8 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 882839760998835014}
-  m_Layer: 0
-  m_Name: target (1)
+  m_Layer: 10
+  m_Name: target
   m_TagString: Target
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -23,7 +23,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 882839760998835065}
-  m_LocalRotation: {x: -0, y: -0.0000004768371, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -34.96, y: -16.9, z: 254.92}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -45,7 +45,7 @@ GameObject:
   - component: {fileID: 882839761341110365}
   - component: {fileID: 882839761341110364}
   - component: {fileID: 882839761341110367}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: sweet spot
   m_TagString: Target
   m_Icon: {fileID: 0}
@@ -137,8 +137,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6aa9c2736f6d0c47a4cda7e3322ac0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  value: 20
-  targetObject: {fileID: 882839760998835065}
+  crit: 1
+  fullTarget: {fileID: 882839760998835065}
 --- !u!1 &882839761595608084
 GameObject:
   m_ObjectHideFlags: 0
@@ -152,7 +152,7 @@ GameObject:
   - component: {fileID: 882839761595608080}
   - component: {fileID: 882839761595608083}
   - component: {fileID: 882839761595608082}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: big
   m_TagString: Target
   m_Icon: {fileID: 0}
@@ -244,5 +244,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6aa9c2736f6d0c47a4cda7e3322ac0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  value: 10
-  targetObject: {fileID: 882839760998835065}
+  crit: 0
+  fullTarget: {fileID: 882839760998835065}
