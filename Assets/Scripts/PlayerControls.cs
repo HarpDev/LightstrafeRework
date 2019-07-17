@@ -98,12 +98,13 @@ public class PlayerControls : MonoBehaviour
                 land.Play();
 
             groundTimer += Time.deltaTime;
-            var movementMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer - 0.1f));
+            var frictionMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer - 0.1f));
 
-            ApplyFriction(movementMod);
+            ApplyFriction(frictionMod);
 
             if (IsMoving && movementEnabled)
             {
+                var movementMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer * 3 - 0.1f));
                 GroundMove(movementMod);
             }
         }
