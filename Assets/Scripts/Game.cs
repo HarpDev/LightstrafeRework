@@ -1,4 +1,5 @@
 ﻿
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
@@ -9,6 +10,7 @@ public class Game : MonoBehaviour
     
     public static Game I;
 
+    public static int LevelStartTime { get; set; }
     public static int Score { get; set; }
     public static int HighScore { get; set; }
     public PlayerControls Player { get; set; }
@@ -18,6 +20,7 @@ public class Game : MonoBehaviour
 
     private void Awake()
     {
+        LevelStartTime = Environment.TickCount;
         if (I == null)
         {
             DontDestroyOnLoad(gameObject);
@@ -33,6 +36,7 @@ public class Game : MonoBehaviour
     public static void StartLevel()
     {
         Score = 0;
+        LevelStartTime = Environment.TickCount;
         SceneManager.LoadScene("Level1");
     }
 

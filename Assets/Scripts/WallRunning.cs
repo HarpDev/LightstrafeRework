@@ -92,8 +92,7 @@ public class WallRunning : MonoBehaviour
                 {
                     Debug.Log(Environment.TickCount - frameCount);
                     frameCount = 0;
-                    player.Jump(new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce),
-                        1000, 100);
+                    player.Jump(new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce));
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;

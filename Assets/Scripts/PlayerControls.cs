@@ -98,7 +98,7 @@ public class PlayerControls : MonoBehaviour
                 land.Play();
 
             groundTimer += Time.deltaTime;
-            var movementMod = Mathf.Min(1f, groundTimer);
+            var movementMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer - 0.1f));
 
             ApplyFriction(movementMod);
 
@@ -140,7 +140,7 @@ public class PlayerControls : MonoBehaviour
                 {
                     if (!groundLock)
                     {
-                        if (Jump(new Vector3(0, jumpHeight, 0), 1000, 100))
+                        if (Jump(new Vector3(0, jumpHeight, 0)))
                         {
                             var slam = HudMovement.RotationSlamVector;
                             slam.y += 30;
@@ -150,7 +150,7 @@ public class PlayerControls : MonoBehaviour
                 }
                 else if (!doubleJumpSpent)
                 {
-                    if (Jump(new Vector3(0, jumpHeight, 0), 1000, 100))
+                    if (Jump(new Vector3(0, jumpHeight, 0)))
                     {
                         var slam = HudMovement.RotationSlamVector;
                         slam.y += 30;
@@ -269,7 +269,7 @@ public class PlayerControls : MonoBehaviour
     private bool jumpLock;
     private bool groundLock;
 
-    public bool Jump(Vector3 force, float downfriction, float upfriction)
+    public bool Jump(Vector3 force)
     {
         if (jumpLock) return false;
         jumpLock = true;
