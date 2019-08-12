@@ -69,9 +69,8 @@ public class Arrow : MonoBehaviour
         GetComponent<Rigidbody>().isKinematic = true;
         if (hit.collider.CompareTag("Target"))
         {
-            var target = hit.collider.gameObject.GetComponent<Target>();
+            var target = hit.collider.gameObject.GetComponent<TargetHitbox>();
             target.Hit();
-            Game.Score += Mathf.RoundToInt(100 + FiredVelocity) * (target.crit ? 2 : 1);
         }
     }
 }

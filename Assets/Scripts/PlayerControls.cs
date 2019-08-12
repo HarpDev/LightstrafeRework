@@ -19,10 +19,8 @@ public class PlayerControls : MonoBehaviour
     public float movementSpeed = 50;
     public float sprintMovementScale = 1.6f;
     public float jumpHeight = 10f;
-    public float bHopForgiveness = 0.1f;
 
     public AudioSource jump;
-    public AudioSource doubleJump;
     public AudioSource land;
     public AudioSource ding;
 
@@ -42,7 +40,6 @@ public class PlayerControls : MonoBehaviour
 
     private void Start()
     {
-        Game.I.Player = this;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         Yaw = startRotation.x;

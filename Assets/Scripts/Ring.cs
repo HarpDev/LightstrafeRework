@@ -8,7 +8,7 @@ public class Ring : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         Game.I.Player.ding.Play();
-        Game.Score += Mathf.RoundToInt(100 + Game.I.Player.velocity.magnitude);
+        //Game.Score += Mathf.RoundToInt(100 + Game.I.Player.velocity.magnitude);
         Destroy(gameObject);
     }
 

@@ -88,7 +88,7 @@ CharacterController:
   m_StepOffset: 0.3
   m_SkinWidth: 0.2
   m_MinMoveDistance: 0.0001
-  m_Center: {x: 0, y: -0.7, z: 0}
+  m_Center: {x: 0, y: -0.5, z: 0}
 --- !u!114 &8023130150563290708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -106,15 +106,13 @@ MonoBehaviour:
   deceleration: 10
   friction: 3
   runAcceleration: 6
-  airAcceleration: 20
+  airAcceleration: 30
   gravity: 18
   gravityEnabled: 1
   movementSpeed: 8
   sprintMovementScale: 1.4
   jumpHeight: 10
-  bHopForgiveness: 0.2
   jump: {fileID: 8023130150563290710}
-  doubleJump: {fileID: 8023130150563290711}
   land: {fileID: 8023130150563290712}
   ding: {fileID: 8023130150563290714}
   grapple: {fileID: 8023130150563290707}
@@ -632,7 +630,7 @@ Rigidbody:
   m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 3
 --- !u!114 &8023130150563290713
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -646,10 +644,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 8023130150563290708}
-  deceleration: 10
-  friction: 0.4
+  deceleration: 5
+  friction: 0.1
   jumpForce: 8
-  verticalScale: 6
+  maxWallSpeed: 22
+  noFrictionFrames: 3
 --- !u!1 &8023130150596892150
 GameObject:
   m_ObjectHideFlags: 0
@@ -814,7 +813,7 @@ LineRenderer:
   m_SortingOrder: 0
   m_Positions:
   - {x: 1, y: 0, z: 0}
-  - {x: -0.0000039651027, y: -1.1500843, z: -0.49997792}
+  - {x: -0.0000022980366, y: -1.1500849, z: -0.50005305}
   - {x: -1, y: 0, z: 0}
   m_Parameters:
     serializedVersion: 3
