@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,11 +9,18 @@ public class TargetHitbox : MonoBehaviour
 
     public GameObject fullTarget;
 
-    public Finish finish;
+    private Finish finish;
+    
+    private void Awake()
+    {
+        var f = GameObject.Find("Finish");
+        if (f != null) finish = f.GetComponent<Finish>();
+    }
 
     public void Hit()
     {
-        finish.TargetsHit++;
+        if (finish != null)
+            finish.TargetsHit++;
         Hitmarker.Display(crit);
         Game.I.Player.ding.Play();
         Destroy(fullTarget);

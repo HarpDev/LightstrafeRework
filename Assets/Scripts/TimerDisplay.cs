@@ -1,33 +1,31 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class TimerDisplay : MonoBehaviour
 {
     public Text timerText;
     public string prefix;
-
-    public bool finalTime;
+    public string level;
+    public bool currentLevel;
 
     public bool bestTime;
 
-    // Update is called once per frame
     private void Update()
     {
-        if (!finalTime && !bestTime)
+        Game.LevelTime time;
+        if (!currentLevel)
         {
-            var seconds = (Environment.TickCount - Game.LevelStartTime) / 1000f;
-            timerText.text = prefix + seconds.ToString("0.0");
-        }
-        else if (finalTime && !bestTime)
-        {
-            var seconds = Game.FinalTime / 1000f;
-            timerText.text = prefix + seconds.ToString("0.0");
+            if (!Game.LevelTimes.TryGetValue(level, out time))
+                time = new Game.LevelTime();
         }
         else
         {
-            var seconds = Game.BestTime / 1000f;
-            timerText.text = prefix + seconds.ToString("0.0");
+            if (!Game.LevelTimes.TryGetValue(SceneManager.GetActiveScene().name, out time))
+                time = new Game.LevelTime();
         }
+        var seconds = bestTime ? time.BestTime : time.Time;
+        timerText.text = prefix + seconds.ToString("0.0");
     }
 }

@@ -37,7 +37,6 @@ public class Grapple : MonoBehaviour
                     hookPosition = hit.point;
                     radius = Vector3.Distance(hookPosition, trans);
                     hooked = true;
-                    player.RefreshDoubleJump();
                 }
 
                 if (hooked) rope.enabled = true;

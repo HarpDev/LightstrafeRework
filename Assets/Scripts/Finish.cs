@@ -1,32 +1,67 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.PostProcessing;
 
 public class Finish : MonoBehaviour
 {
-
     public int TargetsHit { get; set; }
     public int totalTargets;
+
+    public GameObject finishMenu;
+
+    private bool finished;
 
     private void Awake()
     {
         TargetsHit = 0;
+        finishMenu.SetActive(false);
+    }
+
+    private float TOLERANCE = 0.01f;
+
+    private float blurCount;
+
+    private void Update()
+    {
+        if (finished && Time.timeScale > 0)
+        {
+            Time.timeScale -= Time.deltaTime * 3;
+            if (Time.timeScale < TOLERANCE) Time.timeScale = 0;
+            Game.I.Player.LookScale = Time.timeScale;
+            Blur blur;
+            Game.I.PostProcessVolume.profile.TryGetSettings(out blur);
+            if (blur.BlurIterations.value < 8)
+            {
+                if (!blur.enabled.value) blur.enabled.value = true;
+                blur.BlurIterations.value = Mathf.RoundToInt(blurCount);
+                blurCount += Time.unscaledDeltaTime * 15;
+            }
+        }
+        else if (Math.Abs(Time.timeScale) < TOLERANCE)
+        {
+            if (!Cursor.visible)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+                finishMenu.SetActive(true);
+            }
+
+            if (TargetsHit < totalTargets)
+            {
+            }
+            else
+            {
+            }
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (TargetsHit < totalTargets)
+        if (other.CompareTag("Player"))
         {
-            Game.RestartLevel();
-        }
-        else if (other.CompareTag("Player"))
-        {
-            Game.FinalTime = Environment.TickCount - Game.LevelStartTime;
-            Game.StartMenu();
-            if (Game.FinalTime < Game.BestTime)
-            {
-                Game.BestTime = Game.FinalTime;
-            }
+            finished = true;
+            Game.EndTimer();
         }
     }
 }

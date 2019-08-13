@@ -28,6 +28,8 @@ public class PlayerControls : MonoBehaviour
 
     public float Yaw { get; set; }
     public float Pitch { get; set; }
+    
+    public float LookScale { get; set; }
 
     public bool Sprinting { get; set; }
 
@@ -40,6 +42,7 @@ public class PlayerControls : MonoBehaviour
 
     private void Start()
     {
+        LookScale = 1;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         Yaw = startRotation.x;
@@ -64,13 +67,13 @@ public class PlayerControls : MonoBehaviour
 
     public float CameraRotation { get; set; }
 
-    private Vector3 wishdir;
+    public Vector3 Wishdir { get; set; }
 
     private void Update()
     {
         // Mouse motion
-        Yaw = (Yaw + Input.GetAxis("Mouse X")) % 360f;
-        Pitch -= Input.GetAxis("Mouse Y");
+        Yaw = (Yaw + Input.GetAxis("Mouse X") * LookScale) % 360f;
+        Pitch -= Input.GetAxis("Mouse Y") * LookScale;
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
 
@@ -85,17 +88,16 @@ public class PlayerControls : MonoBehaviour
         if (Mathf.Rad2Deg * t > 90 || Mathf.Rad2Deg * t < -90 || !IsMoving) Sprinting = false;
 
         t += Mathf.Deg2Rad * Yaw;
-        wishdir = IsMoving ? new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t)) : new Vector3();
+        Wishdir = IsMoving ? new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t)) : new Vector3();
 
         if (isGrounded())
         {
             // On ground movement
-            RefreshDoubleJump();
             if (groundTimer == 0)
                 land.Play();
 
             groundTimer += Time.deltaTime;
-            var frictionMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer - 0.1f));
+            var frictionMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer));
 
             ApplyFriction(frictionMod);
 
@@ -113,22 +115,12 @@ public class PlayerControls : MonoBehaviour
 
             if (IsMoving)
             {
-                var wishSpeed = wishdir.magnitude;
-
-                var currentSpeed = Vector3.Dot(velocity, wishdir);
-                var addSpeed = wishSpeed - currentSpeed;
-                if (addSpeed > 0)
-                {
-                    var accelSpeed = airAcceleration * Time.deltaTime * wishSpeed;
-                    if (accelSpeed > addSpeed)
-                        accelSpeed = addSpeed;
-                    if (movementEnabled) velocity += accelSpeed * wishdir;
-                }
+                AirAccelerate(Wishdir, airAcceleration * Time.deltaTime);
             }
         }
 
         // Handle Jump
-        if (jumpLock && Input.GetAxis("Jump") < Tolerance) jumpLock = false;
+        if (JumpLock && Input.GetAxis("Jump") < Tolerance) JumpLock = false;
         if (groundLock && Input.GetAxis("Jump") < Tolerance && isGrounded()) groundLock = false;
         if (movementEnabled)
         {
@@ -146,16 +138,6 @@ public class PlayerControls : MonoBehaviour
                         }
                     }
                 }
-                else if (!doubleJumpSpent)
-                {
-                    if (Jump(new Vector3(0, jumpHeight, 0)))
-                    {
-                        var slam = HudMovement.RotationSlamVector;
-                        slam.y += 30;
-                        HudMovement.RotationSlamVector = slam;
-                        doubleJumpSpent = true;
-                    }
-                }
             }
         }
 
@@ -169,8 +151,7 @@ public class PlayerControls : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
 
-        if (controller.velocity.magnitude > Tolerance && controller.velocity.magnitude < velocity.magnitude ||
-            isGrounded())
+        if (controller.velocity.magnitude < velocity.magnitude)
             velocity = controller.velocity;
 
         // Handle bow position
@@ -225,7 +206,7 @@ public class PlayerControls : MonoBehaviour
         var speed = movementSpeed;
         if (Sprinting) speed *= sprintMovementScale;
 
-        Accelerate(wishdir, speed * f, runAcceleration);
+        Accelerate(Wishdir, speed * f, runAcceleration * Time.deltaTime);
     }
 
     public void ApplyFriction(float f)
@@ -244,6 +225,21 @@ public class PlayerControls : MonoBehaviour
         velocity.z *= newspeed;
     }
 
+    public void AirAccelerate(Vector3 wishdir, float accel)
+    {
+        var wishSpeed = wishdir.magnitude;
+
+        var currentSpeed = Vector3.Dot(velocity, wishdir);
+        var addSpeed = wishSpeed - currentSpeed;
+        if (addSpeed > 0)
+        {
+            var accelSpeed = accel * wishSpeed;
+            if (accelSpeed > addSpeed)
+                accelSpeed = addSpeed;
+            if (movementEnabled) velocity += accelSpeed * Wishdir;
+        }
+    }
+
     public void Accelerate(Vector3 wishdir, float wishspeed, float accel)
     {
         float addspeed;
@@ -254,23 +250,21 @@ public class PlayerControls : MonoBehaviour
         addspeed = wishspeed - currentspeed;
         if (addspeed <= 0)
             return;
-        accelspeed = accel * Time.deltaTime * wishspeed;
+        accelspeed = accel * wishspeed;
         if (accelspeed > addspeed)
             accelspeed = addspeed;
 
         velocity.x += accelspeed * wishdir.x;
         velocity.z += accelspeed * wishdir.z;
     }
-
-
-    private bool doubleJumpSpent;
-    private bool jumpLock;
+    
+    public bool JumpLock { get; set; }
     private bool groundLock;
 
     public bool Jump(Vector3 force)
     {
-        if (jumpLock) return false;
-        jumpLock = true;
+        if (JumpLock) return false;
+        JumpLock = true;
         groundLock = true;
 
         if (velocity.y < force.y)
@@ -278,19 +272,17 @@ public class PlayerControls : MonoBehaviour
         velocity.x += force.x;
         velocity.z += force.z;
 
+        groundTimestamp = Environment.TickCount - 1000;
         jump.Play();
         return true;
     }
 
-    public void RefreshDoubleJump()
-    {
-        doubleJumpSpent = false;
-    }
+    private int groundTimestamp;
 
     public bool isGrounded()
     {
-        var layermask = ~(1 << 9);
-        return controller.isGrounded || Physics.Raycast(transform.position, Vector3.down, 2.1f, layermask);
+        if (controller.isGrounded) groundTimestamp = Environment.TickCount;
+        return Environment.TickCount - groundTimestamp < 100;
     }
 
     private static Vector3 Flatten(Vector3 vec)
