@@ -109,6 +109,7 @@ public class WallRunning : MonoBehaviour
                 player.velocity += towardsWall / 4;
 
                 DoubleJump.doubleJumpSpent = false;
+                var beforeJumpVelocity = player.velocity;
 
                 var jump = new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce);
                 if (wishJump && player.Jump(jump))
@@ -116,7 +117,7 @@ public class WallRunning : MonoBehaviour
                     var magnitude = Flatten(player.velocity).magnitude;
                     player.velocity.x += player.velocity.normalized.x * (jumpForce / 2);
                     player.velocity.z += player.velocity.normalized.z * (jumpForce / 2);
-                    if (Flatten(player.velocity).magnitude * 2 > maxWallSpeed)
+                    if (Flatten(beforeJumpVelocity).magnitude * 2 > maxWallSpeed)
                     {
                         player.velocity.x = player.velocity.normalized.x * magnitude;
                         player.velocity.z = player.velocity.normalized.z * magnitude;

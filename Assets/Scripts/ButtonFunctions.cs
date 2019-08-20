@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class ButtonFunctions : MonoBehaviour
 {
@@ -11,6 +12,11 @@ public class ButtonFunctions : MonoBehaviour
     public void NextLevel()
     {
         Game.NextLevel();
+    }
+
+    public void Startlevel(string name)
+    {
+        SceneManager.LoadScene(name);
     }
 
 }
