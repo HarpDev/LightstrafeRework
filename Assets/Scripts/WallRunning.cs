@@ -40,20 +40,19 @@ public class WallRunning : MonoBehaviour
     {
         var point = hit.collider.ClosestPoint(player.transform.position);
         if (Mathf.Abs(point.y - hit.controller.transform.position.y) > 0.5f) return;
-        if (!touching)
+        if (!touching && !Game.I.Player.isGrounded())
         {
             wall = hit.collider;
             touching = true;
             player.gravityEnabled = false;
             player.movementEnabled = false;
-            wallTimestamp = Environment.TickCount;
+
+            player.velocity.y += 3;
         }
     }
 
     private bool wishJump;
     private bool jumpLock;
-
-    private int wallTimestamp;
 
     private void FixedUpdate()
     {
@@ -84,11 +83,8 @@ public class WallRunning : MonoBehaviour
 
                 if (frameCount > noFrictionFrames)
                 {
-                    if (Flatten(player.velocity).magnitude * 2 > maxWallSpeed)
-                    {
                         player.velocity.x *= newspeed;
                         player.velocity.z *= newspeed;
-                    }
                 }
 
                 var verticaldrop = control * verticalFriction * scale;
@@ -101,29 +97,16 @@ public class WallRunning : MonoBehaviour
 
                 player.velocity.y *= newverticalspeed;
 
-                if (player.velocity.y < 1)
-                    player.velocity.y += Mathf.Max(0, 1 - (Environment.TickCount - wallTimestamp) / 500f);
-
                 var towardsWall = Flatten(point - player.transform.position).normalized;
 
                 player.velocity += towardsWall / 4;
+                player.velocity += player.velocity.normalized;
 
                 DoubleJump.doubleJumpSpent = false;
-                var beforeJumpVelocity = player.velocity;
 
                 var jump = new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce);
                 if (wishJump && player.Jump(jump))
                 {
-                    var magnitude = Flatten(player.velocity).magnitude;
-                    player.velocity.x += player.velocity.normalized.x * (jumpForce / 2);
-                    player.velocity.z += player.velocity.normalized.z * (jumpForce / 2);
-                    if (Flatten(beforeJumpVelocity).magnitude * 2 > maxWallSpeed)
-                    {
-                        player.velocity.x = player.velocity.normalized.x * magnitude;
-                        player.velocity.z = player.velocity.normalized.z * magnitude;
-                    }
-                    
-
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
@@ -239,7 +222,7 @@ public class WallRunning : MonoBehaviour
             var distance = Flatten(close - position).magnitude - player.controller.radius;
             if (projection >= distance && distance <= approach)
             {
-                if (!approaching)
+                if (!approaching && !Game.I.Player.isGrounded())
                 {
                     approaching = true;
                     approach = distance;

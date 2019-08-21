@@ -28,8 +28,7 @@ public class CameraBobbing : MonoBehaviour
             var y = BobbingHeight * Mathf.Sin(bobbingPos * 2);
             var x = BobbingWidth * Mathf.Sin(bobbingPos + 1.8f);
             BobbingVector = new Vector3(x, y, 0);
-            player.camera.transform.localPosition = Vector3.Lerp(player.camera.transform.localPosition,
-                player.Sprinting ? BobbingVector * 3 : new Vector3(), Time.deltaTime);
+            player.camera.transform.localPosition = Vector3.Lerp(player.camera.transform.localPosition, new Vector3(), Time.deltaTime);
         }
     }
 

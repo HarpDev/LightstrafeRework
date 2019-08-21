@@ -17,7 +17,6 @@ public class PlayerControls : MonoBehaviour
     public float gravity = 14f;
     public bool gravityEnabled = true;
     public float movementSpeed = 50;
-    public float sprintMovementScale = 1.6f;
     public float jumpHeight = 10f;
 
     public AudioSource jump;
@@ -28,10 +27,8 @@ public class PlayerControls : MonoBehaviour
 
     public float Yaw { get; set; }
     public float Pitch { get; set; }
-    
-    public float LookScale { get; set; }
 
-    public bool Sprinting { get; set; }
+    public float LookScale { get; set; }
 
     public Bow bow;
     public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
@@ -82,10 +79,6 @@ public class PlayerControls : MonoBehaviour
 
         // Movement
         var t = MovementDirectionRadians;
-
-        // Determine sprinting
-        if (Input.GetAxis("Sprint") > 0) Sprinting = true;
-        if (Mathf.Rad2Deg * t > 90 || Mathf.Rad2Deg * t < -90 || !IsMoving) Sprinting = false;
 
         t += Mathf.Deg2Rad * Yaw;
         Wishdir = IsMoving ? new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t)) : new Vector3();
@@ -142,17 +135,29 @@ public class PlayerControls : MonoBehaviour
         }
 
         // Gravity
-        if (gravityEnabled) velocity.y -= gravity * Time.deltaTime;
+        if (gravityEnabled)
+        {
+            if (!isGrounded())
+            {
+                velocity.y -= gravity * Time.deltaTime;
+            }
+            else
+            {
+                if (velocity.y > -0.1)
+                    velocity.y -= gravity * Time.deltaTime;
+                if (velocity.y < -0.1)
+                    velocity.y = -0.1f;
+            }
+        }
+
         if (Mathf.Abs(velocity.y) < controller.minMoveDistance) velocity.y = -controller.minMoveDistance * 10;
 
         grapple.HandleGrapple();
 
         // Movement happens here
         controller.Move(velocity * Time.deltaTime);
-        transform.rotation = Quaternion.Euler(0, Yaw, 0);
 
-        if (controller.velocity.magnitude < velocity.magnitude)
-            velocity = controller.velocity;
+        transform.rotation = Quaternion.Euler(0, Yaw, 0);
 
         // Handle bow position
         if (bow != null)
@@ -201,10 +206,29 @@ public class PlayerControls : MonoBehaviour
         }
     }
 
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        
+        if (hit.collider.CompareTag("Skip Block")) Skip();
+        else if (hit.collider.CompareTag("Bounce Block"))
+        {
+            velocity.y = 30;
+            DoubleJump.doubleJumpSpent = false;
+        }
+        else if (hit.collider.CompareTag("Launch Pad")) hit.gameObject.GetComponent<LaunchPad>().Launch();
+        else
+        {
+            var vel = controller.velocity;
+            velocity.x = vel.x;
+            velocity.z = vel.z;
+            if (!isGrounded())
+                velocity.y = vel.y;
+        }
+    }
+
     public void GroundMove(float f)
     {
         var speed = movementSpeed;
-        if (Sprinting) speed *= sprintMovementScale;
 
         Accelerate(Wishdir, speed * f, runAcceleration * Time.deltaTime);
     }
@@ -257,7 +281,7 @@ public class PlayerControls : MonoBehaviour
         velocity.x += accelspeed * wishdir.x;
         velocity.z += accelspeed * wishdir.z;
     }
-    
+
     public bool JumpLock { get; set; }
     private bool groundLock;
 
@@ -272,17 +296,24 @@ public class PlayerControls : MonoBehaviour
         velocity.x += force.x;
         velocity.z += force.z;
 
-        groundTimestamp = Environment.TickCount - 1000;
+        groundTimestamp = 0;
         jump.Play();
         return true;
+    }
+
+    public void Skip()
+    {
+        var wishdir = Wishdir;
+        wishdir.y = 0.4f;
+        velocity = wishdir.normalized * velocity.magnitude;
     }
 
     private int groundTimestamp;
 
     public bool isGrounded()
     {
-        if (controller.isGrounded) groundTimestamp = Environment.TickCount;
-        return Environment.TickCount - groundTimestamp < 100;
+        if (controller.isGrounded && velocity.y < 0) groundTimestamp = Environment.TickCount;
+        return Environment.TickCount - groundTimestamp < 200;
     }
 
     private static Vector3 Flatten(Vector3 vec)
