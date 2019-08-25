@@ -322,11 +322,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.x
       value: 90.00001
       objectReference: {fileID: 0}
-    - target: {fileID: 6119354538802664579, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
-        type: 3}
-      propertyPath: totalTargets
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 1149673579284744245, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -372,6 +367,21 @@ PrefabInstance:
       propertyPath: m_LocalPosition.y
       value: 8.9998
       objectReference: {fileID: 0}
+    - target: {fileID: 1149673579284744242, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_audioClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 9e6ecb5ae0c63aa4b85ef45139122555, type: 3}
+    - target: {fileID: 1149673579284744253, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: grindSound
+      value: 
+      objectReference: {fileID: 233625197}
+    - target: {fileID: 6119354538802664579, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: totalTargets
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6705983167508007044, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
       propertyPath: level
@@ -379,6 +389,12 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d5ad091b3b95f6f4d8790c5241f1ebd0, type: 3}
+--- !u!82 &233625197 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 3191125239460538432, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+    type: 3}
+  m_PrefabInstance: {fileID: 233625196}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &263178364
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1174,6 +1190,11 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 882839761341110353, guid: 8e1dc390386483c449287c02bc8ec5e2,
+        type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 882839761595608084, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_Layer
@@ -1243,11 +1264,6 @@ PrefabInstance:
         type: 3}
       propertyPath: canvas
       value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 882839761341110353, guid: 8e1dc390386483c449287c02bc8ec5e2,
-        type: 3}
-      propertyPath: m_Layer
-      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 882839761341110364, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}

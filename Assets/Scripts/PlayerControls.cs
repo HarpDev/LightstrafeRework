@@ -20,8 +20,11 @@ public class PlayerControls : MonoBehaviour
     public float jumpHeight = 10f;
 
     public AudioSource jump;
+    public AudioSource jumpair;
     public AudioSource land;
     public AudioSource ding;
+
+    public AudioSource grindSound;
 
     public Grapple grapple;
 
@@ -85,6 +88,7 @@ public class PlayerControls : MonoBehaviour
 
         if (isGrounded())
         {
+            grindSound.volume = Mathf.Min(velocity.magnitude / 15, 1);
             // On ground movement
             if (groundTimer == 0)
                 land.Play();
@@ -294,6 +298,7 @@ public class PlayerControls : MonoBehaviour
             velocity.y = force.y;
         velocity.x += force.x;
         velocity.z += force.z;
+        grindSound.volume = 0;
 
         groundTimestamp = 0;
         jump.Play();

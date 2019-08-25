@@ -16,6 +16,8 @@ public class WallRunning : MonoBehaviour
     public float wallSpeed = 2;
     public float verticalFriction = 0.2f;
 
+    public AudioSource wallLand;
+
     public float jumpForce = 10f;
 
     private Collider wall;
@@ -40,6 +42,8 @@ public class WallRunning : MonoBehaviour
             player.movementEnabled = false;
 
             player.velocity.y += 3;
+            player.grindSound.volume = 1;
+            wallLand.Play();
         }
     }
 
@@ -59,6 +63,7 @@ public class WallRunning : MonoBehaviour
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
+                    player.grindSound.volume = 0;
                 }
 
                 var scale = 1f;
@@ -125,6 +130,7 @@ public class WallRunning : MonoBehaviour
 
                     feedbackDisplay.color = c;
                     frameCount = 0;
+                    player.grindSound.volume = 0;
                 }
             }
             catch (Exception)
