@@ -208,7 +208,6 @@ public class PlayerControls : MonoBehaviour
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        
         if (hit.collider.CompareTag("Skip Block")) Skip();
         else if (hit.collider.CompareTag("Bounce Block"))
         {

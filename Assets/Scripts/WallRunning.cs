@@ -13,11 +13,10 @@ public class WallRunning : MonoBehaviour
 
     public float deceleration = 10f;
     public float friction = 0.1f;
+    public float wallSpeed = 2;
     public float verticalFriction = 0.2f;
 
     public float jumpForce = 10f;
-
-    public int maxWallSpeed = 20;
 
     private Collider wall;
     private bool touching;
@@ -28,13 +27,6 @@ public class WallRunning : MonoBehaviour
     public int noFrictionFrames = 2;
 
     private int frameCount;
-
-    private void Awake()
-    {
-        var c = feedbackDisplay.color;
-        c.a = 0;
-        feedbackDisplay.color = c;
-    }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
@@ -99,44 +91,32 @@ public class WallRunning : MonoBehaviour
 
                 var towardsWall = Flatten(point - player.transform.position).normalized;
 
-                player.velocity += towardsWall / 4;
-                player.velocity += player.velocity.normalized;
+                player.velocity += player.velocity.normalized * wallSpeed;
 
                 DoubleJump.doubleJumpSpent = false;
 
                 var jump = new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce);
                 if (wishJump && player.Jump(jump))
                 {
+                    player.velocity.x += player.velocity.normalized.x * (jumpForce / 12);
+                    player.velocity.z += player.velocity.normalized.z * (jumpForce / 12);
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
                     var c = feedbackDisplay.color;
-                    c.a = 1;
                     if (frameCount <= noFrictionFrames)
                     {
                         c.r = 0;
                         c.b = 0;
                         c.g = 1;
-                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 2);
-                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 2);
                     }
                     else if (frameCount == noFrictionFrames + 1)
                     {
-                        c.r = 0;
-                        c.b = 1;
+                        c.r = 1;
+                        c.b = 0;
                         c.g = 1;
-                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 4);
-                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 4);
                     }
                     else if (frameCount == noFrictionFrames + 2)
-                    {
-                        c.r = 0;
-                        c.b = 1;
-                        c.g = 0;
-                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 5);
-                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 5);
-                    }
-                    else
                     {
                         c.r = 1;
                         c.b = 0;
@@ -163,11 +143,10 @@ public class WallRunning : MonoBehaviour
     private void Update()
     {
         var c = feedbackDisplay.color;
-        if (c.a > 0)
-        {
-            c.a -= Time.deltaTime;
-            feedbackDisplay.color = c;
-        }
+        if (c.r < 1) c.r += Time.deltaTime;
+        if (c.g < 1) c.g += Time.deltaTime;
+        if (c.b < 1) c.b += Time.deltaTime;
+        feedbackDisplay.color = c;
 
         if (Input.GetAxis("Jump") > 0 && !wishJump && !jumpLock)
         {

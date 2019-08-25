@@ -110,7 +110,6 @@ MonoBehaviour:
   gravity: 18
   gravityEnabled: 1
   movementSpeed: 11
-  sprintMovementScale: 1.4
   jumpHeight: 10
   jump: {fileID: 8023130150563290710}
   land: {fileID: 8023130150563290712}
@@ -550,11 +549,11 @@ MonoBehaviour:
   player: {fileID: 8023130150563290708}
   feedbackDisplay: {fileID: 0}
   deceleration: 5
-  friction: 0.08
+  friction: 0.2
+  wallSpeed: 2
   verticalFriction: 0.4
-  jumpForce: 8
-  maxWallSpeed: 22
-  noFrictionFrames: 2
+  jumpForce: 10
+  noFrictionFrames: 1
 --- !u!114 &338224179
 MonoBehaviour:
   m_ObjectHideFlags: 0
