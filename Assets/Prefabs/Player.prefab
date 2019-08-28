@@ -109,7 +109,7 @@ MonoBehaviour:
   deceleration: 10
   friction: 3
   runAcceleration: 6
-  airAcceleration: 30
+  airAcceleration: 60
   gravity: 18
   gravityEnabled: 1
   movementSpeed: 11
@@ -842,8 +842,8 @@ MonoBehaviour:
   player: {fileID: 8023130150563290708}
   feedbackDisplay: {fileID: 0}
   deceleration: 5
-  friction: 0.2
-  wallSpeed: 2
+  friction: 0.15
+  wallSpeed: 1.5
   verticalFriction: 0.4
   wallLand: {fileID: 327893616174384368}
   jumpForce: 10

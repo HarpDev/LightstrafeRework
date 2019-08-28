@@ -19,4 +19,9 @@ public class ButtonFunctions : MonoBehaviour
         SceneManager.LoadScene(name);
     }
 
+    public void LevelSelect()
+    {
+        SceneManager.LoadScene("LevelSelect");
+    }
+
 }

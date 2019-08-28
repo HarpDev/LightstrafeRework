@@ -106,6 +106,7 @@ public class PlayerControls : MonoBehaviour
         }
         else
         {
+            if (movementEnabled) grindSound.volume = 0;
             groundTimer = 0;
 
             // Air movement
@@ -294,8 +295,9 @@ public class PlayerControls : MonoBehaviour
         JumpLock = true;
         groundLock = true;
 
-        if (velocity.y < force.y)
-            velocity.y = force.y;
+        if (velocity.y < 0)
+            velocity.y = 0;
+        velocity.y += force.y;
         velocity.x += force.x;
         velocity.z += force.z;
         grindSound.volume = 0;

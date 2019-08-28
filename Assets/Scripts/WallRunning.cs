@@ -47,6 +47,13 @@ public class WallRunning : MonoBehaviour
         }
     }
 
+    private void Awake()
+    {
+        var c = feedbackDisplay.color;
+        c.a = 0;
+        feedbackDisplay.color = c;
+    }
+
     private bool wishJump;
     private bool jumpLock;
 
@@ -55,6 +62,7 @@ public class WallRunning : MonoBehaviour
         if (touching)
         {
             frameCount++;
+            if (frameCount == 0) return;
             try
             {
                 var point = wall.ClosestPoint(player.transform.position);
@@ -64,11 +72,12 @@ public class WallRunning : MonoBehaviour
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
                     player.grindSound.volume = 0;
+                    frameCount = -1;
                 }
 
                 var scale = 1f;
 
-                var speed = player.velocity.magnitude;
+                var speed = Flatten(player.velocity).magnitude;
                 var control = speed < deceleration ? deceleration : speed;
                 var drop = control * friction * scale;
 
@@ -78,25 +87,34 @@ public class WallRunning : MonoBehaviour
                 if (speed > 0)
                     newspeed /= speed;
 
-                if (frameCount > noFrictionFrames)
-                {
-                        player.velocity.x *= newspeed;
-                        player.velocity.z *= newspeed;
-                }
+                var verticalspeed = Mathf.Abs(player.velocity.y);
+                var verticalcontrol = verticalspeed < deceleration ? deceleration : verticalspeed;
+                var verticaldrop = verticalcontrol * verticalFriction * scale;
 
-                var verticaldrop = control * verticalFriction * scale;
-
-                var newverticalspeed = speed - verticaldrop;
+                var newverticalspeed = verticalspeed - verticaldrop;
                 if (newverticalspeed < 0)
                     newverticalspeed = 0;
-                if (speed > 0)
-                    newverticalspeed /= speed;
+                if (verticalspeed > 0)
+                    newverticalspeed /= verticalspeed;
 
                 player.velocity.y *= newverticalspeed;
 
                 var towardsWall = Flatten(point - player.transform.position).normalized;
 
-                player.velocity += player.velocity.normalized * wallSpeed;
+                if (wall.CompareTag("Launch Wall"))
+                {
+                    player.velocity.y += Mathf.Min(frameCount / 5f, 25f);
+                }
+                else
+                {
+                    player.velocity += player.velocity.normalized * wallSpeed;
+                    
+                    if (frameCount > noFrictionFrames)
+                    {
+                        player.velocity.x *= newspeed;
+                        player.velocity.z *= newspeed;
+                    }
+                }
 
                 DoubleJump.doubleJumpSpent = false;
 
@@ -111,25 +129,28 @@ public class WallRunning : MonoBehaviour
                     var c = feedbackDisplay.color;
                     if (frameCount <= noFrictionFrames)
                     {
+                        c.a = 1;
                         c.r = 0;
                         c.b = 0;
                         c.g = 1;
                     }
                     else if (frameCount == noFrictionFrames + 1)
                     {
+                        c.a = 1;
                         c.r = 1;
                         c.b = 0;
                         c.g = 1;
                     }
                     else if (frameCount == noFrictionFrames + 2)
                     {
+                        c.a = 1;
                         c.r = 1;
                         c.b = 0;
                         c.g = 0;
                     }
 
                     feedbackDisplay.color = c;
-                    frameCount = 0;
+                    frameCount = -1;
                     player.grindSound.volume = 0;
                 }
             }
@@ -149,9 +170,7 @@ public class WallRunning : MonoBehaviour
     private void Update()
     {
         var c = feedbackDisplay.color;
-        if (c.r < 1) c.r += Time.deltaTime;
-        if (c.g < 1) c.g += Time.deltaTime;
-        if (c.b < 1) c.b += Time.deltaTime;
+        if (c.a > 0) c.a -= Time.deltaTime;
         feedbackDisplay.color = c;
 
         if (Input.GetAxis("Jump") > 0 && !wishJump && !jumpLock)

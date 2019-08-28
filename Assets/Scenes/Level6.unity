@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.08574816, g: 0.1273888, b: 0.19152501, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -238,11 +238,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.x
       value: 90.00001
       objectReference: {fileID: 0}
-    - target: {fileID: 6119354538802664579, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
-        type: 3}
-      propertyPath: totalTargets
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 1149673579284744245, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -287,6 +282,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalPosition.y
       value: 8.9998
+      objectReference: {fileID: 0}
+    - target: {fileID: 6119354538802664579, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: totalTargets
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6705983167508007044, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
@@ -1006,6 +1006,11 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 882839761341110353, guid: 8e1dc390386483c449287c02bc8ec5e2,
+        type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 882839761595608084, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_Layer
@@ -1014,12 +1019,12 @@ PrefabInstance:
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -207.69
+      value: -203.34
       objectReference: {fileID: 0}
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 192.4
+      value: 183.9
       objectReference: {fileID: 0}
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
@@ -1029,22 +1034,22 @@ PrefabInstance:
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.70710677
+      value: -0.00000047683656
       objectReference: {fileID: 0}
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.7071068
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.0000010115243
+      value: -7.3896434e-13
       objectReference: {fileID: 0}
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.0000010115243
+      value: 0.0000014305115
       objectReference: {fileID: 0}
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
@@ -1064,7 +1069,7 @@ PrefabInstance:
     - target: {fileID: 882839760998835014, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: -90.00001
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 882839761341110367, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
@@ -1075,11 +1080,6 @@ PrefabInstance:
         type: 3}
       propertyPath: canvas
       value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 882839761341110353, guid: 8e1dc390386483c449287c02bc8ec5e2,
-        type: 3}
-      propertyPath: m_Layer
-      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 882839761341110364, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
@@ -1356,6 +1356,11 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 882839761341110353, guid: 8e1dc390386483c449287c02bc8ec5e2,
+        type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 882839761595608084, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
       propertyPath: m_Layer
@@ -1425,11 +1430,6 @@ PrefabInstance:
         type: 3}
       propertyPath: canvas
       value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 882839761341110353, guid: 8e1dc390386483c449287c02bc8ec5e2,
-        type: 3}
-      propertyPath: m_Layer
-      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 882839761341110364, guid: 8e1dc390386483c449287c02bc8ec5e2,
         type: 3}
