@@ -46,7 +46,6 @@ public class Game : MonoBehaviour
             I.find();
             Destroy(gameObject);
         }
-        StartTimer();
     }
 
     private void Update()
@@ -108,7 +107,7 @@ public class Game : MonoBehaviour
 
     public static void StartMenu()
     {
-        SceneManager.LoadScene("Menu");
+        SceneManager.LoadScene("LevelSelect");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }

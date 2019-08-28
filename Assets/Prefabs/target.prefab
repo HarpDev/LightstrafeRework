@@ -44,7 +44,7 @@ GameObject:
   - component: {fileID: 882839761341110362}
   - component: {fileID: 882839761341110365}
   - component: {fileID: 882839761341110364}
-  - component: {fileID: 882839761341110367}
+  - component: {fileID: 1911200137}
   m_Layer: 10
   m_Name: sweet spot
   m_TagString: Target
@@ -122,10 +122,10 @@ MeshCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Convex: 0
+  m_Convex: 1
   m_CookingOptions: 14
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &882839761341110367
+--- !u!114 &1911200137
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -134,7 +134,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 882839761341110353}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a6aa9c2736f6d0c47a4cda7e3322ac0e, type: 3}
+  m_Script: {fileID: 11500000, guid: 882d4739a44ba7947bf40979ffcc9ac8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   crit: 1
@@ -151,7 +151,7 @@ GameObject:
   - component: {fileID: 882839761595608081}
   - component: {fileID: 882839761595608080}
   - component: {fileID: 882839761595608083}
-  - component: {fileID: 882839761595608082}
+  - component: {fileID: 1107139146}
   m_Layer: 10
   m_Name: big
   m_TagString: Target
@@ -229,10 +229,10 @@ MeshCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Convex: 0
+  m_Convex: 1
   m_CookingOptions: 14
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &882839761595608082
+--- !u!114 &1107139146
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -241,7 +241,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 882839761595608084}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a6aa9c2736f6d0c47a4cda7e3322ac0e, type: 3}
+  m_Script: {fileID: 11500000, guid: 882d4739a44ba7947bf40979ffcc9ac8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   crit: 0

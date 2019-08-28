@@ -5,9 +5,10 @@ using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
-
     public bool Fired { get; set; }
     public bool Hit { get; set; }
+
+    public bool grappleArrow;
 
     public GameObject model;
 
@@ -17,7 +18,7 @@ public class Arrow : MonoBehaviour
     public Transform nockPosition;
     public new Rigidbody rigidbody;
     public TrailRenderer trail;
-    
+
     public float FiredVelocity { get; set; }
 
     private Vector3 prevPosition;
@@ -34,7 +35,7 @@ public class Arrow : MonoBehaviour
                 Time.deltaTime * 10);
         else if (!Fired && !Hit)
             model.transform.localRotation = Quaternion.Euler(beforeFiredRotation);
-        
+
         var trans = transform;
         var lookDir = trans.position - prevPosition;
         var vec = Vector3.RotateTowards(new Vector3(1, 0, 0), lookDir, 360, 0.0f);
@@ -42,12 +43,13 @@ public class Arrow : MonoBehaviour
         var layermask = ~(1 << 9);
         Physics.Raycast(prevPosition, vec, out hit, lookDir.magnitude, layermask);
         if (hit.collider != null) Collide(hit);
-        
+
         prevPosition = transform.position;
     }
 
-    public void Fire(Quaternion direction, Vector3 velocity)
+    public void Fire(Quaternion direction, Vector3 velocity, bool grapple)
     {
+        grappleArrow = grapple;
         Fired = true;
         trail.enabled = true;
         model.transform.localRotation = Quaternion.Euler(afterFiredRotation);
@@ -55,7 +57,7 @@ public class Arrow : MonoBehaviour
         rigidbody.velocity = velocity;
         rigidbody.isKinematic = false;
     }
-    
+
     public delegate void ArrowCollide(RaycastHit hit);
 
     public event ArrowCollide OnArrowCollide;
@@ -67,10 +69,19 @@ public class Arrow : MonoBehaviour
         transform.position = hit.point;
         Hit = true;
         GetComponent<Rigidbody>().isKinematic = true;
-        if (hit.collider.CompareTag("Target"))
+        if (grappleArrow)
+        {
+            Game.I.Player.GetComponent<Grapple>().Attach(hit.point);
+        }
+        else if (hit.collider.CompareTag("Target"))
         {
             var target = hit.collider.gameObject.GetComponent<TargetHitbox>();
             target.Hit();
+        }
+        else if (hit.collider.CompareTag("Blast Block"))
+        {
+            var blast = hit.collider.gameObject.GetComponent<BlastBlock>();
+            blast.Hit();
         }
     }
 }

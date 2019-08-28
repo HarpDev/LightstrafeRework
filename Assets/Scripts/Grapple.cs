@@ -13,50 +13,48 @@ public class Grapple : MonoBehaviour
     public float yOffset;
 
     private Vector3 hookPosition;
-    private bool hooked;
+    public bool Hooked { get; set; }
 
     private float radius;
 
     private void Start()
     {
         rope.useWorldSpace = false;
+        rope.enabled = false;
+    }
+
+    public void Attach(Vector3 point)
+    {
+        if (!enabled) return;
+        var trans = player.camera.transform.position + new Vector3(0, yOffset, 0);
+        hookPosition = point;
+        radius = Vector3.Distance(hookPosition, trans);
+        Hooked = true;
+
+        rope.enabled = true;
+    }
+
+    public void Detach()
+    {
+        if (!enabled) return;
+        if (Hooked) Hooked = false;
+        if (rope.enabled) rope.enabled = false;
     }
 
     private void Update()
     {
-        var trans = player.camera.transform.position + new Vector3(0, yOffset, 0);
-        if (Input.GetAxis("Grapple") > 0)
+        if (Hooked)
         {
-            if (!rope.enabled)
-            {
-                hooked = false;
-                RaycastHit hit;
-                Physics.Raycast(trans, player.camera.transform.forward, out hit, 100);
-                if (hit.collider != null && hit.collider.CompareTag("Grapple"))
-                {
-                    hookPosition = hit.point;
-                    radius = Vector3.Distance(hookPosition, trans);
-                    hooked = true;
-                }
-
-                if (hooked) rope.enabled = true;
-            }
-
             var list = new List<Vector3> {new Vector3(0, yOffset, 0), player.transform.InverseTransformPoint(hookPosition)};
 
             rope.positionCount = list.Count;
             rope.SetPositions(list.ToArray());
         }
-        else
-        {
-            if (hooked) hooked = false;
-            if (rope.enabled) rope.enabled = false;
-        }
     }
 
     public void HandleGrapple()
     {
-        if (!hooked) return;
+        if (!Hooked) return;
         var trans = player.transform.position;
         player.camera.transform.localPosition = new Vector3();
 

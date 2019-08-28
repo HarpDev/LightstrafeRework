@@ -39,10 +39,10 @@ public class Bow : MonoBehaviour
         bowString.SetPositions(list.ToArray());
     }
 
-    public void Fire(Vector3 from, Vector3 vel)
+    public void Fire(Vector3 from, Vector3 vel, bool grapple)
     {
         var arrow = Instantiate(arrowPrefab.gameObject).GetComponent<Arrow>();
-        arrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel);
+        arrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel, grapple);
         arrow.transform.position = from;
         arrow.FiredVelocity = Flatten(Game.I.Player.velocity).magnitude;
 
