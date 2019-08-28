@@ -7,7 +7,7 @@ public class PseudoCheckpoint : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        Game.I.Player.ding.Play();
+        Game.I.Player.source.PlayOneShot(Game.I.Player.ding);
         //Game.Score += Mathf.RoundToInt(100 + Game.I.Player.velocity.magnitude);
         Destroy(gameObject);
     }

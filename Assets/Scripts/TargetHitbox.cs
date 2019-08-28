@@ -22,7 +22,7 @@ public class TargetHitbox : MonoBehaviour
         if (finish != null)
             finish.TargetsHit++;
         Hitmarker.Display(crit);
-        Game.I.Player.ding.Play();
+        Game.I.Player.source.PlayOneShot(Game.I.Player.ding);
         Destroy(fullTarget);
     }
 }

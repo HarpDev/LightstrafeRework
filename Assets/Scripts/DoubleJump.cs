@@ -21,7 +21,7 @@ public class DoubleJump : MonoBehaviour
 
                 player.AirAccelerate(player.Wishdir, harshness);
 
-                player.jumpair.Play();
+                player.source.PlayOneShot(player.jumpair);
                 doubleJumpSpent = true;
                 player.JumpLock = true;
             }

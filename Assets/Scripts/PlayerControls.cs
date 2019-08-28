@@ -18,11 +18,14 @@ public class PlayerControls : MonoBehaviour
     public bool gravityEnabled = true;
     public float movementSpeed = 50;
     public float jumpHeight = 10f;
+    
+    public AudioSource source;
 
-    public AudioSource jump;
-    public AudioSource jumpair;
-    public AudioSource land;
-    public AudioSource ding;
+    public AudioClip spring;
+    public AudioClip jump;
+    public AudioClip jumpair;
+    public AudioClip land;
+    public AudioClip ding;
 
     public AudioSource grindSound;
 
@@ -86,12 +89,14 @@ public class PlayerControls : MonoBehaviour
         t += Mathf.Deg2Rad * Yaw;
         Wishdir = IsMoving ? new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t)) : new Vector3();
 
+        grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
+
         if (isGrounded())
         {
             grindSound.volume = Mathf.Min(velocity.magnitude / 15, 1);
             // On ground movement
             if (groundTimer == 0)
-                land.Play();
+                source.PlayOneShot(land);
 
             groundTimer += Time.deltaTime;
             var frictionMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer));
@@ -218,6 +223,7 @@ public class PlayerControls : MonoBehaviour
         {
             velocity.y = 30;
             DoubleJump.doubleJumpSpent = false;
+            source.PlayOneShot(spring);
         }
         else if (hit.collider.CompareTag("Launch Pad")) hit.gameObject.GetComponent<LaunchPad>().Launch();
         else
@@ -303,7 +309,7 @@ public class PlayerControls : MonoBehaviour
         grindSound.volume = 0;
 
         groundTimestamp = 0;
-        jump.Play();
+        source.PlayOneShot(jump);
         return true;
     }
 

@@ -16,7 +16,7 @@ public class WallRunning : MonoBehaviour
     public float wallSpeed = 2;
     public float verticalFriction = 0.2f;
 
-    public AudioSource wallLand;
+    public AudioClip wallLand;
 
     public float jumpForce = 10f;
 
@@ -43,7 +43,7 @@ public class WallRunning : MonoBehaviour
 
             player.velocity.y += 3;
             player.grindSound.volume = 1;
-            wallLand.Play();
+            player.source.PlayOneShot(wallLand);
         }
     }
 
