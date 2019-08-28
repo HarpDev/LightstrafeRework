@@ -7,6 +7,10 @@ public class BlastBlock : MonoBehaviour
 
     public float force = 20;
 
+    public ParticleSystem particle;
+
+    public AudioSource blast;
+
     public void Hit()
     {
         Hitmarker.Display(false);
@@ -22,7 +26,19 @@ public class BlastBlock : MonoBehaviour
         Game.I.Player.velocity += lookat * force;
 
         DoubleJump.doubleJumpSpent = false;
+        blast.Play();
+        particle.Play();
+
+        o.GetComponent<MeshRenderer>().enabled = false;
+        o.GetComponent<BoxCollider>().enabled = false;
         
-        Destroy(o);
+        Invoke("Respawn", 3f);
+    }
+
+    public void Respawn()
+    {
+        var o = gameObject;
+        o.GetComponent<MeshRenderer>().enabled = true;
+        o.GetComponent<BoxCollider>().enabled = true;
     }
 }

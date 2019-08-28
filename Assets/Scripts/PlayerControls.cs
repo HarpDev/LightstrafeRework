@@ -18,7 +18,7 @@ public class PlayerControls : MonoBehaviour
     public bool gravityEnabled = true;
     public float movementSpeed = 50;
     public float jumpHeight = 10f;
-    
+
     public AudioSource source;
 
     public AudioClip spring;
@@ -74,9 +74,6 @@ public class PlayerControls : MonoBehaviour
 
     public Vector3 Wishdir { get; set; }
 
-    private int fireMode;
-    private bool grappleLock;
-
     private void Update()
     {
         if (IsMoving && !firstMove)
@@ -84,6 +81,7 @@ public class PlayerControls : MonoBehaviour
             firstMove = true;
             Game.StartTimer();
         }
+
         // Mouse motion
         Yaw = (Yaw + Input.GetAxis("Mouse X") * LookScale) % 360f;
         Pitch -= Input.GetAxis("Mouse Y") * LookScale;
@@ -139,6 +137,11 @@ public class PlayerControls : MonoBehaviour
         {
             if (Input.GetAxis("Jump") > 0)
             {
+                if (grapple.Hooked)
+                {
+                    grapple.Detach();
+                    JumpLock = true;
+                }
                 if (isGrounded())
                 {
                     if (!groundLock)
@@ -216,30 +219,12 @@ public class PlayerControls : MonoBehaviour
             bow.transform.localPosition = Vector3.Lerp(bow.transform.localPosition, finalPosition, Time.deltaTime * 20);
             if (Input.GetAxis("Fire1") > 0)
             {
-                fireMode = 0;
                 if (bow.Drawback < 0.22f) bow.Drawback += Time.deltaTime / 4;
             }
-
-            if (Input.GetAxis("Grapple") > 0 && !grappleLock && grapple.enabled)
-            {
-                if (grapple.Hooked)
-                {
-                    grapple.Detach();
-                    grappleLock = true;
-                }
-                else
-                {
-                    fireMode = 1;
-                    if (bow.Drawback < 0.22f) bow.Drawback += Time.deltaTime / 4;
-                }
-            } else if (Math.Abs(Input.GetAxis("Grapple")) < Tolerance)
-            {
-                grappleLock = false;
-            }
-            if (Input.GetAxis("Grapple") < Tolerance && Input.GetAxis("Fire1")  < Tolerance && bow.Drawback > 0)
+            else if (bow.Drawback > 0)
             {
                 var trans = camera.transform;
-                bow.Fire(trans.position, trans.forward, fireMode == 1);
+                bow.Fire(trans.position, trans.forward);
             }
         }
     }

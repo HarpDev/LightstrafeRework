@@ -116,19 +116,21 @@ public class WallRunning : MonoBehaviour
                     }
                 }
 
+                if (frameCount == 3) wishJump = true;
+
                 DoubleJump.doubleJumpSpent = false;
 
                 var jump = new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce);
                 if (wishJump && player.Jump(jump))
                 {
-                    player.velocity.x += player.velocity.normalized.x * (jumpForce / 12);
-                    player.velocity.z += player.velocity.normalized.z * (jumpForce / 12);
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
                     var c = feedbackDisplay.color;
                     if (frameCount <= noFrictionFrames)
                     {
+                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 10);
+                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 10);
                         c.a = 1;
                         c.r = 0;
                         c.b = 0;
@@ -136,6 +138,8 @@ public class WallRunning : MonoBehaviour
                     }
                     else if (frameCount == noFrictionFrames + 1)
                     {
+                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 10);
+                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 10);
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
@@ -143,10 +147,17 @@ public class WallRunning : MonoBehaviour
                     }
                     else if (frameCount == noFrictionFrames + 2)
                     {
+                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 12);
+                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 12);
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
                         c.g = 0;
+                    }
+                    else
+                    {
+                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 16);
+                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 16);
                     }
 
                     feedbackDisplay.color = c;

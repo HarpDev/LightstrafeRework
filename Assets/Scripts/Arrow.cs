@@ -8,8 +8,6 @@ public class Arrow : MonoBehaviour
     public bool Fired { get; set; }
     public bool Hit { get; set; }
 
-    public bool grappleArrow;
-
     public GameObject model;
 
     public Vector3 beforeFiredRotation = new Vector3(90, 0, 0);
@@ -47,9 +45,8 @@ public class Arrow : MonoBehaviour
         prevPosition = transform.position;
     }
 
-    public void Fire(Quaternion direction, Vector3 velocity, bool grapple)
+    public void Fire(Quaternion direction, Vector3 velocity)
     {
-        grappleArrow = grapple;
         Fired = true;
         trail.enabled = true;
         model.transform.localRotation = Quaternion.Euler(afterFiredRotation);
@@ -69,11 +66,7 @@ public class Arrow : MonoBehaviour
         transform.position = hit.point;
         Hit = true;
         GetComponent<Rigidbody>().isKinematic = true;
-        if (grappleArrow)
-        {
-            Game.I.Player.GetComponent<Grapple>().Attach(hit.point);
-        }
-        else if (hit.collider.CompareTag("Target"))
+        if (hit.collider.CompareTag("Target"))
         {
             var target = hit.collider.gameObject.GetComponent<TargetHitbox>();
             target.Hit();
@@ -82,6 +75,10 @@ public class Arrow : MonoBehaviour
         {
             var blast = hit.collider.gameObject.GetComponent<BlastBlock>();
             blast.Hit();
+        }
+        else if (hit.collider.CompareTag("Grapple Block"))
+        {
+            Game.I.Player.grapple.Attach(hit.point);
         }
     }
 }

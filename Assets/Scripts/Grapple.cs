@@ -30,6 +30,7 @@ public class Grapple : MonoBehaviour
         hookPosition = point;
         radius = Vector3.Distance(hookPosition, trans);
         Hooked = true;
+        DoubleJump.doubleJumpSpent = false;
 
         rope.enabled = true;
     }

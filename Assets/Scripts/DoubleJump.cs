@@ -14,7 +14,7 @@ public class DoubleJump : MonoBehaviour
     {
         if (player.movementEnabled)
         {
-            if (Input.GetAxis("Jump") > 0 && !doubleJumpSpent && !player.JumpLock && !player.isGrounded())
+            if (Input.GetAxis("Jump") > 0 && !doubleJumpSpent && !player.JumpLock && !player.isGrounded() && !player.grapple.Hooked)
             {
                 if (player.velocity.y < player.jumpHeight)
                     player.velocity.y = player.jumpHeight;

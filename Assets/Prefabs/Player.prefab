@@ -456,11 +456,11 @@ MonoBehaviour:
   player: {fileID: 8023130150563290708}
   feedbackDisplay: {fileID: 0}
   deceleration: 5
-  friction: 0.15
-  wallSpeed: 1.5
+  friction: 0.05
+  wallSpeed: 0.5
   verticalFriction: 0.4
   wallLand: {fileID: 8300000, guid: 93e282d6a3e016543bd36ff54984a173, type: 3}
-  jumpForce: 10
+  jumpForce: 7
   noFrictionFrames: 1
 --- !u!114 &338224179
 MonoBehaviour:
@@ -1057,6 +1057,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5663eb8b04b216d43a4fe87f4b54af25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  grappleArrow: 0
   model: {fileID: 8023130151135111718}
   beforeFiredRotation: {x: 90, y: 0, z: 0}
   afterFiredRotation: {x: 0, y: 0, z: 0}
