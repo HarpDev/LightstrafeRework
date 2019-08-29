@@ -17,6 +17,8 @@ public class Grapple : MonoBehaviour
 
     private float radius;
 
+    public float swingForce;
+
     private void Start()
     {
         rope.useWorldSpace = false;
@@ -31,33 +33,41 @@ public class Grapple : MonoBehaviour
         radius = Vector3.Distance(hookPosition, trans);
         Hooked = true;
         DoubleJump.doubleJumpSpent = false;
-
+        player.gravityEnabled = false;
+        player.movementEnabled = false;
+        HandleGrapple(false);
         rope.enabled = true;
     }
 
     public void Detach()
     {
         if (!enabled) return;
+        player.gravityEnabled = true;
+        player.movementEnabled = true;
         if (Hooked) Hooked = false;
         if (rope.enabled) rope.enabled = false;
+        player.ApplyFriction(0.1f);
     }
 
     private void Update()
     {
         if (Hooked)
         {
-            var list = new List<Vector3> {new Vector3(0, yOffset, 0), player.transform.InverseTransformPoint(hookPosition)};
+            player.velocity += swingForce * Time.deltaTime * player.velocity.normalized;
+            var list = new List<Vector3>
+                {new Vector3(0, yOffset, 0), player.transform.InverseTransformPoint(hookPosition)};
 
             rope.positionCount = list.Count;
             rope.SetPositions(list.ToArray());
         }
     }
 
-    public void HandleGrapple()
+    public void HandleGrapple(bool smooth)
     {
         if (!Hooked) return;
         var trans = player.transform.position;
-        player.camera.transform.localPosition = new Vector3();
+        var transform1 = player.camera.transform;
+        transform1.localPosition = new Vector3();
 
         var difference = trans + player.velocity - hookPosition;
 
@@ -72,8 +82,8 @@ public class Grapple : MonoBehaviour
         var z = radius * Mathf.Sin(t) * Mathf.Sin(p);
 
         var lookDir = hookPosition + new Vector3(x, y, z) - trans;
-        var look = Vector3.RotateTowards(player.velocity, lookDir, 90 * Mathf.Deg2Rad * Time.deltaTime, 0.0f);
+        var look = Vector3.RotateTowards(player.velocity, lookDir, 90 * Mathf.Deg2Rad, 0.0f);
 
-        player.velocity = look;
+        player.velocity = smooth ? look : lookDir;
     }
 }

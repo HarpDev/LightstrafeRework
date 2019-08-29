@@ -109,7 +109,7 @@ public class PlayerControls : MonoBehaviour
             groundTimer += Time.deltaTime;
             var frictionMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer));
 
-            ApplyFriction(frictionMod);
+            ApplyFriction(frictionMod * Time.deltaTime);
 
             if (IsMoving && movementEnabled)
             {
@@ -137,11 +137,6 @@ public class PlayerControls : MonoBehaviour
         {
             if (Input.GetAxis("Jump") > 0)
             {
-                if (grapple.Hooked)
-                {
-                    grapple.Detach();
-                    JumpLock = true;
-                }
                 if (isGrounded())
                 {
                     if (!groundLock)
@@ -175,12 +170,21 @@ public class PlayerControls : MonoBehaviour
 
         if (Mathf.Abs(velocity.y) < controller.minMoveDistance) velocity.y = -controller.minMoveDistance * 10;
 
-        grapple.HandleGrapple();
+        grapple.HandleGrapple(true);
 
         // Movement happens here
         controller.Move(velocity * Time.deltaTime);
 
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
+
+        if (Input.GetAxis("Fire2") > 0)
+        {
+            if (grapple.Hooked)
+            {
+                grapple.Detach();
+                JumpLock = true;
+            }
+        }
 
         // Handle bow position
         if (bow != null)
@@ -260,7 +264,7 @@ public class PlayerControls : MonoBehaviour
     {
         var speed = velocity.magnitude;
         var control = speed < deceleration ? deceleration : speed;
-        var drop = control * friction * Time.deltaTime * f;
+        var drop = control * friction * f;
 
         var newspeed = speed - drop;
         if (newspeed < 0)

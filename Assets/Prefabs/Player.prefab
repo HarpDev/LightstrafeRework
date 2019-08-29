@@ -138,6 +138,7 @@ MonoBehaviour:
   player: {fileID: 8023130150563290708}
   rope: {fileID: 8023130150563290709}
   yOffset: -0.7
+  swingForce: 3
 --- !u!120 &8023130150563290709
 LineRenderer:
   m_ObjectHideFlags: 0
@@ -1057,7 +1058,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5663eb8b04b216d43a4fe87f4b54af25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  grappleArrow: 0
   model: {fileID: 8023130151135111718}
   beforeFiredRotation: {x: 90, y: 0, z: 0}
   afterFiredRotation: {x: 0, y: 0, z: 0}

@@ -116,8 +116,6 @@ public class WallRunning : MonoBehaviour
                     }
                 }
 
-                if (frameCount == 3) wishJump = true;
-
                 DoubleJump.doubleJumpSpent = false;
 
                 var jump = new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce);
