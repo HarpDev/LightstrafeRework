@@ -108,7 +108,7 @@ public class WallRunning : MonoBehaviour
                 }
                 else
                 {
-                    player.velocity += player.velocity.normalized * wallSpeed;
+                    player.velocity += player.velocity.normalized * (wallSpeed + Mathf.Sqrt(Flatten(player.velocity).magnitude) / 5f);
                     
                     if (frameCount > noFrictionFrames)
                     {

@@ -39,6 +39,7 @@ public class Menus : MonoBehaviour
         Blur blur;
         Game.I.PostProcessVolume.profile.TryGetSettings(out blur);
         blur.BlurIterations.value = 8;
+        blur.enabled.value = true;
     }
 
     public void Unpause()
