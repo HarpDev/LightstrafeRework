@@ -49,6 +49,7 @@ public class WallRunning : MonoBehaviour
 
     private void Awake()
     {
+        feedbackDisplay.gameObject.SetActive(true);
         var c = feedbackDisplay.color;
         c.a = 0;
         feedbackDisplay.color = c;

@@ -29,8 +29,6 @@ public class PlayerControls : MonoBehaviour
 
     public AudioSource grindSound;
 
-    public GameObject pauseMenu;
-
     public Grapple grapple;
 
     public float Yaw { get; set; }
@@ -81,35 +79,18 @@ public class PlayerControls : MonoBehaviour
 
     public Vector3 Wishdir { get; set; }
 
-    private bool pauseLock;
-
     private void Update()
     {
+
+        if (Input.GetAxis("Reset") > 0) Game.RestartLevel();
+
+        if (Cursor.visible) return;
+        
         if (IsMoving && !firstMove)
         {
             firstMove = true;
             Game.StartTimer();
         }
-
-        if (Input.GetAxis("Reset") > 0) Game.RestartLevel();
-        if (Input.GetAxis("Pause") > 0 && !pauseLock)
-        {
-            pauseLock = true;
-            if (!Cursor.visible)
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-                pauseMenu.SetActive(true);
-            }
-            else
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-                pauseMenu.SetActive(false);
-            }
-        } else if (Input.GetAxis("Pause") < Tolerance) pauseLock = false;
-
-        if (Cursor.visible) return;
 
         // Mouse motion
         Yaw = (Yaw + Input.GetAxis("Mouse X") * LookScale) % 360f;

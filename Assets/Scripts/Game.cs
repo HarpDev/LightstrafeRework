@@ -20,9 +20,7 @@ public class Game : MonoBehaviour
         public float BestTime { get; set; }
     }
 
-    private static bool timerRunning;
-
-    public static int LevelStartTime { get; set; }
+    private static bool _timerRunning;
     public PlayerControls Player { get; private set; }
     public Canvas Canvas { get; private set; }
     
@@ -50,7 +48,7 @@ public class Game : MonoBehaviour
 
     private void Update()
     {
-        if (timerRunning)
+        if (_timerRunning)
         {
             var level = SceneManager.GetActiveScene().name;
             LevelTime time;
@@ -72,32 +70,31 @@ public class Game : MonoBehaviour
 
     public static void ResetTimer()
     {
-        LevelStartTime = Environment.TickCount;
+        var level = SceneManager.GetActiveScene().name;
+        LevelTime time;
+        if (!LevelTimes.TryGetValue(level, out time))
+            time = LevelTimes[level] = new LevelTime();
+        time.Time = 0;
     }
 
     public static void StopTimer()
     {
-        timerRunning = false;
+        _timerRunning = false;
     }
 
     public static void StartTimer()
     {
-        timerRunning = true;
+        _timerRunning = true;
     }
 
     public static void EndTimer()
     {
-        timerRunning = false;
+        _timerRunning = false;
         var time = LevelTimes[SceneManager.GetActiveScene().name];
         if (time.Time < time.BestTime)
         {
             time.BestTime = time.Time;
         }
-    }
-
-    public static void StartLevel()
-    {
-        SceneManager.LoadScene(0);
     }
 
     public static void RestartLevel()
