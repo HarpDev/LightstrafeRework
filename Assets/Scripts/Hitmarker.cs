@@ -3,8 +3,6 @@ using UnityEngine.UI;
 
 public class Hitmarker : MonoBehaviour
 {
-    public Sprite hitmarker;
-    public Sprite critmarker;
 
     private Image image;
     private Image Image
@@ -16,17 +14,17 @@ public class Hitmarker : MonoBehaviour
         }
     }
 
-    public static void Display(bool crit)
+    public void Display()
     {
-        var hit = Instantiate(Game.I.hitmarker, Game.I.Canvas.transform);
-        if (crit) hit.Image.sprite = hit.critmarker;
-        else hit.Image.sprite = hit.hitmarker;
+        var c = Image.color;
+        c.a = 1f;
+        Image.color = c;
     }
 
-    private void Start()
+    private void Awake()
     {
         var color = Image.color;
-        color.a = 1f;
+        color.a = 0f;
 
         Image.color = color;
     }
@@ -35,7 +33,6 @@ public class Hitmarker : MonoBehaviour
     {
         var color = Image.color;
         if (color.a > 0) color.a -= Time.deltaTime;
-        else Destroy(gameObject);
 
         Image.color = color;
     }

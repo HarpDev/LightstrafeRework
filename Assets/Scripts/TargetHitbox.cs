@@ -11,7 +11,7 @@ public class TargetHitbox : MonoBehaviour
 
     public void Hit()
     {
-        Hitmarker.Display(crit);
+        Game.I.Hitmarker.Display();
         Game.I.Player.source.PlayOneShot(Game.I.Player.ding);
         Destroy(fullTarget);
     }

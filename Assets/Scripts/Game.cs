@@ -25,8 +25,8 @@ public class Game : MonoBehaviour
     public Canvas Canvas { get; private set; }
     
     public PostProcessVolume PostProcessVolume { get; private set; }
-
-    public Hitmarker hitmarker;
+    
+    public Hitmarker Hitmarker { get; private set; }
 
     private void Awake()
     {
@@ -37,7 +37,6 @@ public class Game : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             I = this;
             Application.targetFrameRate = 300;
-            I.find();
         }
         else if (I != this)
         {
@@ -46,8 +45,15 @@ public class Game : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        I.find();
+    }
+
     private void Update()
     {
+        if (!GetComponent<AudioSource>().isPlaying)
+            GetComponent<AudioSource>().Play();
         if (_timerRunning)
         {
             var level = SceneManager.GetActiveScene().name;
@@ -66,6 +72,8 @@ public class Game : MonoBehaviour
         if (canvasObj != null) Canvas = canvasObj.GetComponent<Canvas>();
         var postprocessObj = GameObject.Find("Level");
         if (postprocessObj != null) PostProcessVolume = postprocessObj.GetComponent<PostProcessVolume>();
+        var hitmarkerObj = GameObject.Find("hitmarker");
+        if (hitmarkerObj != null) Hitmarker = hitmarkerObj.GetComponent<Hitmarker>();
     }
 
     public static void ResetTimer()

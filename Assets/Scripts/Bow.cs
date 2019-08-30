@@ -42,6 +42,7 @@ public class Bow : MonoBehaviour
     public void Fire(Vector3 from, Vector3 vel)
     {
         var arrow = Instantiate(arrowPrefab.gameObject).GetComponent<Arrow>();
+        arrow.transform.localScale = new Vector3(1, 1, 1);
         arrow.Fire(Quaternion.LookRotation(vel), Drawback * 250 * vel);
         arrow.transform.position = from;
         arrow.FiredVelocity = Flatten(Game.I.Player.velocity).magnitude;

@@ -13,7 +13,7 @@ public class BlastBlock : MonoBehaviour
 
     public void Hit()
     {
-        Hitmarker.Display(false);
+        Game.I.Hitmarker.Display();
         var o = gameObject;
 
         var lookat = (Game.I.Player.transform.position - o.transform.position).normalized;
