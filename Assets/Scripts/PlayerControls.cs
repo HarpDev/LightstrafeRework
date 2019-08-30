@@ -284,10 +284,13 @@ public class PlayerControls : MonoBehaviour
         else
         {
             var vel = controller.velocity;
-            velocity.x = vel.x;
-            velocity.z = vel.z;
-            if (!isGrounded())
-                velocity.y = vel.y;
+            if (vel.magnitude < velocity.magnitude)
+            {
+                velocity.x = vel.x;
+                velocity.z = vel.z;
+                if (!isGrounded())
+                    velocity.y = vel.y;
+            }
         }
     }
 
