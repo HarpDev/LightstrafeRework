@@ -151,7 +151,7 @@ public class PlayerControls : MonoBehaviour
                 {
                     if (!groundLock)
                     {
-                        if (Jump(new Vector3(0, jumpHeight, 0)))
+                        if (Jump())
                         {
                             var slam = HudMovement.RotationSlamVector;
                             slam.y += 30;
@@ -334,18 +334,15 @@ public class PlayerControls : MonoBehaviour
     public bool JumpLock { get; set; }
     private bool groundLock;
 
-    public bool Jump(Vector3 force)
+    public bool Jump()
     {
         if (JumpLock) return false;
         JumpLock = true;
         groundLock = true;
 
-        if (velocity.y < 0)
-            velocity.y = 0;
+        if (velocity.y < jumpHeight)
+            velocity.y = jumpHeight;
 
-        velocity.y += force.y;
-        velocity.x += force.x;
-        velocity.z += force.z;
         grindSound.volume = 0;
 
         groundTimestamp = 0;

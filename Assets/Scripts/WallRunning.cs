@@ -108,7 +108,8 @@ public class WallRunning : MonoBehaviour
                 }
                 else
                 {
-                    player.velocity += player.velocity.normalized * (wallSpeed + Mathf.Sqrt(Flatten(player.velocity).magnitude) / 5f);
+                    var wallSpeedScale = Mathf.Pow(Flatten(player.velocity).magnitude / 15f + 0.6f, -2) + 1;
+                    player.velocity += player.velocity.normalized * (wallSpeed / 10f * wallSpeedScale);
                     
                     if (frameCount > noFrictionFrames)
                     {
@@ -119,17 +120,20 @@ public class WallRunning : MonoBehaviour
 
                 DoubleJump.doubleJumpSpent = false;
 
-                var jump = new Vector3(-towardsWall.x * jumpForce, player.jumpHeight, -towardsWall.z * jumpForce);
-                if (wishJump && player.Jump(jump))
+                if (wishJump && player.Jump())
                 {
+                    if (wall.CompareTag("Launch Wall")) player.velocity.y += player.jumpHeight;
+                    
+                    var kickScale = Mathf.Pow(Flatten(player.velocity).magnitude / 15f + 1f, -2) + 1;
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
                     var c = feedbackDisplay.color;
                     if (frameCount <= noFrictionFrames)
                     {
-                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 10);
-                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 10);
+                        player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 6);
+                        player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 6);
+                        player.velocity.y += player.jumpHeight / 8;
                         c.a = 1;
                         c.r = 0;
                         c.b = 0;
@@ -137,8 +141,9 @@ public class WallRunning : MonoBehaviour
                     }
                     else if (frameCount == noFrictionFrames + 1)
                     {
-                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 10);
-                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 10);
+                        player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 8);
+                        player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 8);
+                        player.velocity.y += player.jumpHeight / 8;
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
@@ -146,8 +151,9 @@ public class WallRunning : MonoBehaviour
                     }
                     else if (frameCount == noFrictionFrames + 2)
                     {
-                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 12);
-                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 12);
+                        player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 9);
+                        player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 9);
+                        player.velocity.y += player.jumpHeight / 8;
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
@@ -155,8 +161,8 @@ public class WallRunning : MonoBehaviour
                     }
                     else
                     {
-                        player.velocity.x += player.velocity.normalized.x * (jumpForce / 16);
-                        player.velocity.z += player.velocity.normalized.z * (jumpForce / 16);
+                        player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 14);
+                        player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 14);
                     }
 
                     feedbackDisplay.color = c;
