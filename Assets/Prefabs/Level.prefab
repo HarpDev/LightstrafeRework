@@ -1446,7 +1446,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af0d6bdc7e8c1d14091cbbdf1447e820, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  totalTargets: 1
   finishMenu: {fileID: 1149673577777940725}
 --- !u!65 &5844932825021841854
 BoxCollider:
@@ -1625,6 +1624,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8023130150563290708, guid: ce1ac620db3b8b74a940e04d13b6c177,
+        type: 3}
+      propertyPath: pauseMenu
+      value: 
+      objectReference: {fileID: 1149673577777940725}
     - target: {fileID: 8023130150563290713, guid: ce1ac620db3b8b74a940e04d13b6c177,
         type: 3}
       propertyPath: feedbackDisplay

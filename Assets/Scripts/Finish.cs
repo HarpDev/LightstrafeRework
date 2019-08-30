@@ -5,8 +5,6 @@ using UnityEngine.Rendering.PostProcessing;
 
 public class Finish : MonoBehaviour
 {
-    public int TargetsHit { get; set; }
-    public int totalTargets;
 
     public GameObject finishMenu;
 
@@ -14,7 +12,6 @@ public class Finish : MonoBehaviour
 
     private void Awake()
     {
-        TargetsHit = 0;
         finishMenu.SetActive(false);
     }
 
@@ -45,13 +42,6 @@ public class Finish : MonoBehaviour
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
                 finishMenu.SetActive(true);
-            }
-
-            if (TargetsHit < totalTargets)
-            {
-            }
-            else
-            {
             }
         }
     }

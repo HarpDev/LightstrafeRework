@@ -29,6 +29,8 @@ public class PlayerControls : MonoBehaviour
 
     public AudioSource grindSound;
 
+    public GameObject pauseMenu;
+
     public Grapple grapple;
 
     public float Yaw { get; set; }
@@ -48,6 +50,11 @@ public class PlayerControls : MonoBehaviour
     private void Start()
     {
         LookScale = 1;
+
+        firstMove = false;
+        Game.StopTimer();
+        Game.ResetTimer();
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         Yaw = startRotation.x;
@@ -74,6 +81,8 @@ public class PlayerControls : MonoBehaviour
 
     public Vector3 Wishdir { get; set; }
 
+    private bool pauseLock;
+
     private void Update()
     {
         if (IsMoving && !firstMove)
@@ -81,6 +90,26 @@ public class PlayerControls : MonoBehaviour
             firstMove = true;
             Game.StartTimer();
         }
+
+        if (Input.GetAxis("Reset") > 0) Game.RestartLevel();
+        if (Input.GetAxis("Pause") > 0 && !pauseLock)
+        {
+            pauseLock = true;
+            if (!Cursor.visible)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+                pauseMenu.SetActive(true);
+            }
+            else
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                pauseMenu.SetActive(false);
+            }
+        } else if (Input.GetAxis("Pause") < Tolerance) pauseLock = false;
+
+        if (Cursor.visible) return;
 
         // Mouse motion
         Yaw = (Yaw + Input.GetAxis("Mouse X") * LookScale) % 360f;
@@ -233,16 +262,25 @@ public class PlayerControls : MonoBehaviour
         }
     }
 
+    private int bounceTimestamp;
+
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (hit.collider.CompareTag("Skip Block")) Skip();
         else if (hit.collider.CompareTag("Bounce Block"))
         {
-            velocity.y = 30;
-            DoubleJump.doubleJumpSpent = false;
-            source.PlayOneShot(spring);
+            if (Environment.TickCount - bounceTimestamp > 1000)
+            {
+                bounceTimestamp = Environment.TickCount;
+                velocity.y = 30;
+                DoubleJump.doubleJumpSpent = false;
+                source.PlayOneShot(spring);
+            }
         }
-        else if (hit.collider.CompareTag("Launch Pad")) hit.gameObject.GetComponent<LaunchPad>().Launch();
+        else if (hit.collider.CompareTag("Launch Pad"))
+        {
+            if (isGrounded()) hit.gameObject.GetComponent<LaunchPad>().Launch();
+        }
         else
         {
             var vel = controller.velocity;
@@ -262,7 +300,7 @@ public class PlayerControls : MonoBehaviour
 
     public void ApplyFriction(float f)
     {
-        var speed = velocity.magnitude;
+        var speed = Flatten(velocity).magnitude;
         var control = speed < deceleration ? deceleration : speed;
         var drop = control * friction * f;
 
@@ -320,6 +358,7 @@ public class PlayerControls : MonoBehaviour
 
         if (velocity.y < 0)
             velocity.y = 0;
+
         velocity.y += force.y;
         velocity.x += force.x;
         velocity.z += force.z;

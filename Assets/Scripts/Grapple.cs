@@ -17,7 +17,8 @@ public class Grapple : MonoBehaviour
 
     private float radius;
 
-    public float swingForce;
+    public float swingForce = 5f;
+    public float frictionScale = 0.12f;
 
     private void Start()
     {
@@ -46,7 +47,7 @@ public class Grapple : MonoBehaviour
         player.movementEnabled = true;
         if (Hooked) Hooked = false;
         if (rope.enabled) rope.enabled = false;
-        player.ApplyFriction(0.1f);
+        player.ApplyFriction(frictionScale);
     }
 
     private void Update()

@@ -75,6 +75,11 @@ public class Game : MonoBehaviour
         LevelStartTime = Environment.TickCount;
     }
 
+    public static void StopTimer()
+    {
+        timerRunning = false;
+    }
+
     public static void StartTimer()
     {
         timerRunning = true;

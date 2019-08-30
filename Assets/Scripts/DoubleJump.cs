@@ -20,6 +20,8 @@ public class DoubleJump : MonoBehaviour
                     player.velocity.y = player.jumpHeight;
 
                 player.AirAccelerate(player.Wishdir, harshness);
+        
+                HudMovement.RotationSlamVector += new Vector3(0, 30, 0);
 
                 player.source.PlayOneShot(player.jumpair);
                 doubleJumpSpent = true;

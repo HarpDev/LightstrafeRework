@@ -10,6 +10,10 @@ public class LaunchPad : MonoBehaviour
 
     public float force;
 
+    private int launchTimestamp;
+    
+    private int launchCooldown = 1000;
+
     private void Awake()
     {
         mesh = GetComponent<MeshRenderer>();
@@ -23,6 +27,10 @@ public class LaunchPad : MonoBehaviour
 
     public void Launch()
     {
-        Game.I.Player.velocity += transform.forward * force;
+        if (Environment.TickCount - launchTimestamp > launchCooldown)
+        {
+            Game.I.Player.velocity += transform.forward * force;
+            launchTimestamp = Environment.TickCount;
+        }
     }
 }
