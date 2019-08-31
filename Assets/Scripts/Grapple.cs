@@ -10,6 +10,10 @@ public class Grapple : MonoBehaviour
     public PlayerControls player;
     public LineRenderer rope;
 
+    public AudioClip attach;
+    public AudioSource during;
+    public AudioClip release;
+
     public float yOffset;
 
     private Vector3 hookPosition;
@@ -29,6 +33,7 @@ public class Grapple : MonoBehaviour
     {
         rope.useWorldSpace = false;
         rope.enabled = false;
+        during.volume = 0;
     }
 
     public void Attach(Vector3 point)
@@ -43,6 +48,8 @@ public class Grapple : MonoBehaviour
         rope.enabled = true;
         player.ApplyVerticalFriction(attachFrictionScale);
         attachTimestamp = Environment.TickCount;
+        player.source.PlayOneShot(attach);
+        during.volume = 1;
     }
 
     public void Detach()
@@ -53,10 +60,13 @@ public class Grapple : MonoBehaviour
         if (Hooked) Hooked = false;
         if (rope.enabled) rope.enabled = false;
         player.ApplyVerticalFriction(detachFrictionScale);
+        during.volume = 0;
+        player.source.PlayOneShot(release);
     }
 
     private void Update()
     {
+        
         if (!Hooked) return;
 
         var list = new List<Vector3>
@@ -85,6 +95,8 @@ public class Grapple : MonoBehaviour
         value = Mathf.Abs(value);
         value -= 90;
         value /= 90;
+
+        during.pitch = player.velocity.magnitude / 30f;
 
         player.CameraRotation = Mathf.Lerp(player.CameraRotation, velocityProjection * value, Time.deltaTime * 10);
 
