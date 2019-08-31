@@ -14,18 +14,10 @@ public class TimerDisplay : MonoBehaviour
 
     private void Update()
     {
-        Game.LevelTime time;
-        if (!currentLevel)
-        {
-            if (!Game.LevelTimes.TryGetValue(level, out time))
-                time = new Game.LevelTime();
-        }
-        else
-        {
-            if (!Game.LevelTimes.TryGetValue(SceneManager.GetActiveScene().name, out time))
-                time = new Game.LevelTime();
-        }
-        var seconds = bestTime ? time.BestTime : time.Time;
-        timerText.text = prefix + seconds.ToString("0.0");
+        var seconds = bestTime
+            ? Game.GetBestLevelTime(currentLevel ? SceneManager.GetActiveScene().name : level)
+            : Game.CurrentLevelTime;
+        if (seconds < 0) timerText.text = "";
+        else timerText.text = prefix + seconds.ToString("0.0");
     }
 }

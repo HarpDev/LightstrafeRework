@@ -7,17 +7,16 @@ using UnityEngine.SceneManagement;
 public class Game : MonoBehaviour
 {
     public static Game I;
-    
-    public static Dictionary<string, LevelTime> LevelTimes { get; set; }
-    public class LevelTime
+
+    public static float CurrentLevelTime { get; set; }
+    public static void SetBestLevelTime(string level, float time)
     {
-        public LevelTime()
-        {
-            BestTime = Int32.MaxValue;
-        }
-        
-        public float Time { get; set; }
-        public float BestTime { get; set; }
+        PlayerPrefs.SetFloat("BestTime" + level, time);
+    }
+
+    public static float GetBestLevelTime(string level)
+    {
+        return PlayerPrefs.HasKey("BestTime" + level) ? PlayerPrefs.GetFloat("BestTime" + level) : -1f;
     }
 
     private static bool _timerRunning;
@@ -33,7 +32,6 @@ public class Game : MonoBehaviour
         Time.timeScale = 1;
         if (I == null)
         {
-            LevelTimes = new Dictionary<string, LevelTime>();
             DontDestroyOnLoad(gameObject);
             I = this;
             Application.targetFrameRate = 300;
@@ -52,14 +50,7 @@ public class Game : MonoBehaviour
 
     private void Update()
     {
-        if (_timerRunning)
-        {
-            var level = SceneManager.GetActiveScene().name;
-            LevelTime time;
-            if (!LevelTimes.TryGetValue(level, out time))
-                time = LevelTimes[level] = new LevelTime();
-            time.Time += Time.unscaledDeltaTime;
-        }
+        if (_timerRunning) CurrentLevelTime += Time.unscaledDeltaTime;
     }
 
     private void find()
@@ -76,11 +67,7 @@ public class Game : MonoBehaviour
 
     public static void ResetTimer()
     {
-        var level = SceneManager.GetActiveScene().name;
-        LevelTime time;
-        if (!LevelTimes.TryGetValue(level, out time))
-            time = LevelTimes[level] = new LevelTime();
-        time.Time = 0;
+        CurrentLevelTime = 0;
     }
 
     public static void StopTimer()
@@ -96,10 +83,10 @@ public class Game : MonoBehaviour
     public static void EndTimer()
     {
         _timerRunning = false;
-        var time = LevelTimes[SceneManager.GetActiveScene().name];
-        if (time.Time < time.BestTime)
+        var level = SceneManager.GetActiveScene().name;
+        if (CurrentLevelTime < GetBestLevelTime(level) || GetBestLevelTime(level) < 0f)
         {
-            time.BestTime = time.Time;
+            SetBestLevelTime(level, CurrentLevelTime);
         }
     }
 

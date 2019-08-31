@@ -138,8 +138,11 @@ MonoBehaviour:
   player: {fileID: 8023130150563290708}
   rope: {fileID: 8023130150563290709}
   yOffset: -0.7
-  swingForce: 6
-  frictionScale: 0.12
+  swingForce: 35
+  detachFrictionScale: 0.12
+  attachFrictionScale: 0.18
+  maxSwingTimeMillis: 3000
+  maxDistance: 200
 --- !u!120 &8023130150563290709
 LineRenderer:
   m_ObjectHideFlags: 0

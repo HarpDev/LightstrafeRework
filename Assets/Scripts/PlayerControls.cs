@@ -180,8 +180,6 @@ public class PlayerControls : MonoBehaviour
 
         if (Mathf.Abs(velocity.y) < controller.minMoveDistance) velocity.y = -controller.minMoveDistance * 10;
 
-        grapple.HandleGrapple(true);
-
         // Movement happens here
         controller.Move(velocity * Time.deltaTime);
 
@@ -298,6 +296,23 @@ public class PlayerControls : MonoBehaviour
         velocity.z *= newspeed;
     }
 
+    public void ApplyVerticalFriction(float f)
+    {
+        var speed = velocity.magnitude;
+        var control = speed < deceleration ? deceleration : speed;
+        var drop = control * friction * f;
+
+        var newspeed = speed - drop;
+        if (newspeed < 0)
+            newspeed = 0;
+        if (speed > 0)
+            newspeed /= speed;
+
+        velocity.x *= newspeed;
+        velocity.y *= newspeed;
+        velocity.z *= newspeed;
+    }
+
     public void AirAccelerate(Vector3 wishdir, float accel)
     {
         var wishSpeed = wishdir.magnitude;
@@ -340,8 +355,9 @@ public class PlayerControls : MonoBehaviour
         JumpLock = true;
         groundLock = true;
 
-        if (velocity.y < jumpHeight)
-            velocity.y = jumpHeight;
+        if (velocity.y < 0)
+            velocity.y = 0;
+        velocity.y += jumpHeight;
 
         grindSound.volume = 0;
 

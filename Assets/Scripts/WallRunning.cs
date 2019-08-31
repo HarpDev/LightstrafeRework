@@ -33,7 +33,8 @@ public class WallRunning : MonoBehaviour
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         var point = hit.collider.ClosestPoint(player.transform.position);
-        if (Mathf.Abs(point.y - hit.controller.transform.position.y) > 0.5f) return;
+        var compare = point.y - transform.position.y;
+        if (compare < -0.9f || compare > 0) return;
         if (!touching && !Game.I.Player.isGrounded())
         {
             wall = hit.collider;
@@ -67,13 +68,18 @@ public class WallRunning : MonoBehaviour
             try
             {
                 var point = wall.ClosestPoint(player.transform.position);
-                if ((point - transform.position).magnitude >= 0.8f)
+                var position = transform.position;
+                var ycompare = point.y - position.y;
+                var distance = (Flatten(point) - Flatten(position)).magnitude;
+                
+                if (ycompare < -0.9f || ycompare > 0 || distance > player.controller.radius * 2)
                 {
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
                     player.grindSound.volume = 0;
                     frameCount = -1;
+                    return;
                 }
 
                 var scale = 1f;
@@ -122,18 +128,22 @@ public class WallRunning : MonoBehaviour
 
                 if (wishJump && player.Jump())
                 {
-                    if (wall.CompareTag("Launch Wall")) player.velocity.y += player.jumpHeight;
-                    
                     var kickScale = Mathf.Pow(Flatten(player.velocity).magnitude / 15f + 1f, -2) + 1;
                     touching = false;
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
                     var c = feedbackDisplay.color;
+                    
+                    var directionX = player.velocity.x + -towardsWall.x * kickScale * (jumpForce / 10);
+                    var directionY = player.velocity.y;
+                    var directionZ = player.velocity.z + -towardsWall.z * kickScale * (jumpForce / 10);
+                    var dir = new Vector3(directionX, directionY, directionZ).normalized;
+                    
                     if (frameCount <= noFrictionFrames)
                     {
                         player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 6);
                         player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 6);
-                        player.velocity.y += player.jumpHeight / 8;
+                        player.velocity = dir * player.velocity.magnitude;
                         c.a = 1;
                         c.r = 0;
                         c.b = 0;
@@ -143,7 +153,7 @@ public class WallRunning : MonoBehaviour
                     {
                         player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 8);
                         player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 8);
-                        player.velocity.y += player.jumpHeight / 8;
+                        player.velocity = dir * player.velocity.magnitude;
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
@@ -153,7 +163,7 @@ public class WallRunning : MonoBehaviour
                     {
                         player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 9);
                         player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 9);
-                        player.velocity.y += player.jumpHeight / 8;
+                        player.velocity = dir * player.velocity.magnitude;
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
@@ -209,7 +219,7 @@ public class WallRunning : MonoBehaviour
                 value -= 90;
                 value /= 90;
 
-                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 15 * -value, Time.deltaTime * 15);
+                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 15 * -value, Time.deltaTime);
             }
             catch (Exception)
             {
@@ -226,18 +236,20 @@ public class WallRunning : MonoBehaviour
                 approaching = false;
             }
 
-            player.CameraRotation = Mathf.Lerp(player.CameraRotation, 0, Time.deltaTime * 10);
+            player.CameraRotation = Mathf.Lerp(player.CameraRotation, 0, Time.deltaTime * 6);
         }
 
         RaycastHit hit;
         var layermask = ~(1 << 9);
-        var didHit = Physics.Raycast(player.transform.position, Flatten(player.velocity), out hit,
-            20, layermask);
+
+        var pos = player.transform.position;
+        var didHit = Physics.CapsuleCast(pos, pos + new Vector3(0, 1f, 0), player.controller.radius, Flatten(player.velocity).normalized, out hit, 40, layermask);
         if (didHit)
         {
             var position = player.transform.position;
             var close = hit.collider.ClosestPoint(position);
-            var projection = Vector3.Dot(Flatten(player.velocity / 3.5f), Flatten(close - position).normalized);
+            
+            var projection = Vector3.Dot(Flatten(player.velocity) / 3f, Flatten(close - position).normalized);
 
             var distance = Flatten(close - position).magnitude - player.controller.radius;
             if (projection >= distance && distance <= approach)
