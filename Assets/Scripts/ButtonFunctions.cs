@@ -24,4 +24,9 @@ public class ButtonFunctions : MonoBehaviour
         SceneManager.LoadScene("LevelSelect");
     }
 
+    public void QuitGame()
+    {
+        Application.Quit();
+    }
+
 }

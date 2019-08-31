@@ -52,8 +52,6 @@ public class Game : MonoBehaviour
 
     private void Update()
     {
-        if (!GetComponent<AudioSource>().isPlaying)
-            GetComponent<AudioSource>().Play();
         if (_timerRunning)
         {
             var level = SceneManager.GetActiveScene().name;
