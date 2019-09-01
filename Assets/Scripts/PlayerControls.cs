@@ -259,6 +259,9 @@ public class PlayerControls : MonoBehaviour
         else if (hit.collider.CompareTag("Launch Pad"))
         {
             if (isGrounded()) hit.gameObject.GetComponent<LaunchPad>().Launch();
+        } else if (hit.collider.CompareTag("Kill Block"))
+        {
+            Game.RestartLevel();
         }
         else
         {

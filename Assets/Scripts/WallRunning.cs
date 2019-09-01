@@ -234,7 +234,7 @@ public class WallRunning : MonoBehaviour
         var layermask = ~(1 << 9);
 
         var pos = player.transform.position;
-        var didHit = Physics.CapsuleCast(pos - new Vector3(0, 3f, 0), pos + new Vector3(0, 2f, 0),
+        var didHit = Physics.CapsuleCast(pos - new Vector3(0, 2f, 0), pos + new Vector3(0, 1f, 0),
             player.controller.radius, Flatten(player.velocity).normalized, out hit, player.velocity.magnitude / 3f,
             layermask);
         if (didHit && !Game.I.Player.isGrounded() && !touching)
