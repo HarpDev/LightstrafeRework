@@ -86,7 +86,7 @@ public class PlayerControls : MonoBehaviour
 
         if (Cursor.visible) return;
         
-        if (IsMoving && !firstMove)
+        if ((IsMoving || Input.GetAxis("Fire1") > 0) && !firstMove)
         {
             firstMove = true;
             Game.StartTimer();
