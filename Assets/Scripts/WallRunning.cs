@@ -211,7 +211,7 @@ public class WallRunning : MonoBehaviour
                 value -= 90;
                 value /= 90;
 
-                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 15 * -value, Time.deltaTime);
+                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 20 * -value, Time.deltaTime);
             }
             catch (Exception)
             {
@@ -234,10 +234,10 @@ public class WallRunning : MonoBehaviour
         var layermask = ~(1 << 9);
 
         var pos = player.transform.position;
-        var didHit = Physics.CapsuleCast(pos - new Vector3(0, 2f, 0), pos + new Vector3(0, 2f, 0),
+        var didHit = Physics.CapsuleCast(pos - new Vector3(0, 3f, 0), pos + new Vector3(0, 2f, 0),
             player.controller.radius, Flatten(player.velocity).normalized, out hit, player.velocity.magnitude / 3f,
             layermask);
-        if (didHit && !Game.I.Player.isGrounded())
+        if (didHit && !Game.I.Player.isGrounded() && !touching)
         {
             var close = hit.point;
 
@@ -259,7 +259,7 @@ public class WallRunning : MonoBehaviour
                 value -= 90;
                 value /= 90;
 
-                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 25 * rotation * -value, Time.deltaTime * 6);
+                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 20 * rotation * -value, Time.deltaTime * 6);
             }
         }
         else approaching = false;
