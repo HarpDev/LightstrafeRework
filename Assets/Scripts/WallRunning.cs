@@ -71,7 +71,7 @@ public class WallRunning : MonoBehaviour
                 var position = transform.position;
                 var ycompare = point.y - position.y;
                 var distance = (Flatten(point) - Flatten(position)).magnitude;
-                
+
                 if (ycompare < -0.9f || ycompare > 0 || distance > player.controller.radius * 2)
                 {
                     touching = false;
@@ -116,7 +116,7 @@ public class WallRunning : MonoBehaviour
                 {
                     var wallSpeedScale = Mathf.Pow(Flatten(player.velocity).magnitude / 15f + 0.6f, -2) + 1;
                     player.velocity += player.velocity.normalized * (wallSpeed / 10f * wallSpeedScale);
-                    
+
                     if (frameCount > noFrictionFrames)
                     {
                         player.velocity.x *= newspeed;
@@ -133,17 +133,11 @@ public class WallRunning : MonoBehaviour
                     player.gravityEnabled = true;
                     player.movementEnabled = true;
                     var c = feedbackDisplay.color;
-                    
-                    var directionX = player.velocity.x + -towardsWall.x * kickScale * (jumpForce / 10);
-                    var directionY = player.velocity.y;
-                    var directionZ = player.velocity.z + -towardsWall.z * kickScale * (jumpForce / 10);
-                    var dir = new Vector3(directionX, directionY, directionZ).normalized;
-                    
+
                     if (frameCount <= noFrictionFrames)
                     {
                         player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 6);
                         player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 6);
-                        player.velocity = dir * player.velocity.magnitude;
                         c.a = 1;
                         c.r = 0;
                         c.b = 0;
@@ -153,7 +147,6 @@ public class WallRunning : MonoBehaviour
                     {
                         player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 8);
                         player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 8);
-                        player.velocity = dir * player.velocity.magnitude;
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
@@ -163,7 +156,6 @@ public class WallRunning : MonoBehaviour
                     {
                         player.velocity.x += -towardsWall.x * kickScale * (jumpForce / 9);
                         player.velocity.z += -towardsWall.z * kickScale * (jumpForce / 9);
-                        player.velocity = dir * player.velocity.magnitude;
                         c.a = 1;
                         c.r = 1;
                         c.b = 0;
@@ -233,7 +225,6 @@ public class WallRunning : MonoBehaviour
             if (!approaching)
             {
                 approach = 100000f;
-                approaching = false;
             }
 
             player.CameraRotation = Mathf.Lerp(player.CameraRotation, 0, Time.deltaTime * 6);
@@ -243,18 +234,17 @@ public class WallRunning : MonoBehaviour
         var layermask = ~(1 << 9);
 
         var pos = player.transform.position;
-        var didHit = Physics.CapsuleCast(pos, pos + new Vector3(0, 1f, 0), player.controller.radius, Flatten(player.velocity).normalized, out hit, 40, layermask);
-        if (didHit)
+        var didHit = Physics.CapsuleCast(pos - new Vector3(0, 2f, 0), pos + new Vector3(0, 2f, 0),
+            player.controller.radius, Flatten(player.velocity).normalized, out hit, player.velocity.magnitude / 3f,
+            layermask);
+        if (didHit && !Game.I.Player.isGrounded())
         {
-            var position = player.transform.position;
-            var close = hit.collider.ClosestPoint(position);
-            
-            var projection = Vector3.Dot(Flatten(player.velocity) / 3f, Flatten(close - position).normalized);
+            var close = hit.point;
 
-            var distance = Flatten(close - position).magnitude - player.controller.radius;
-            if (projection >= distance && distance <= approach)
+            var distance = Flatten(close - pos).magnitude - player.controller.radius;
+            if (distance <= approach)
             {
-                if (!approaching && !Game.I.Player.isGrounded())
+                if (!approaching)
                 {
                     approaching = true;
                     approach = distance;
@@ -262,7 +252,7 @@ public class WallRunning : MonoBehaviour
 
                 var rotation = (approach - distance) / approach;
 
-                var relativePoint = player.transform.InverseTransformPoint(close);
+                var relativePoint = player.transform.InverseTransformPoint(hit.collider.ClosestPoint(pos));
 
                 var value = Mathf.Atan2(relativePoint.z, relativePoint.x) * Mathf.Rad2Deg;
                 value = Mathf.Abs(value);
@@ -272,6 +262,7 @@ public class WallRunning : MonoBehaviour
                 player.CameraRotation = Mathf.Lerp(player.CameraRotation, 25 * rotation * -value, Time.deltaTime * 6);
             }
         }
+        else approaching = false;
     }
 
     private static Vector3 Flatten(Vector3 vec)

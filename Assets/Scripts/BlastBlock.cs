@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class BlastBlock : MonoBehaviour
 {
-
     public float force = 20;
 
     public ParticleSystem particle;
@@ -22,8 +21,10 @@ public class BlastBlock : MonoBehaviour
         lookat.y = Mathf.RoundToInt(lookat.y);
         lookat.z = Mathf.RoundToInt(lookat.z);
         lookat /= 2;
+
+        var projection = Vector3.Dot(Game.I.Player.velocity, lookat);
         
-        Game.I.Player.velocity += lookat * force;
+        if (projection < force) Game.I.Player.velocity += lookat * (force - projection);
 
         DoubleJump.doubleJumpSpent = false;
         blast.Play();
@@ -31,7 +32,7 @@ public class BlastBlock : MonoBehaviour
 
         o.GetComponent<MeshRenderer>().enabled = false;
         o.GetComponent<BoxCollider>().enabled = false;
-        
+
         Invoke("Respawn", 3f);
     }
 
