@@ -17,7 +17,7 @@ public class PlayerControls : MonoBehaviour
     public float gravity = 14f;
     public bool gravityEnabled = true;
     public float movementSpeed = 50;
-    public float jumpHeight = 10f;
+    public float jumpHeight = 11f;
 
     public AudioSource source;
 
@@ -184,15 +184,6 @@ public class PlayerControls : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
 
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
-
-        if (Input.GetAxis("Fire2") > 0)
-        {
-            if (grapple.Hooked)
-            {
-                grapple.Detach();
-                JumpLock = true;
-            }
-        }
 
         // Handle bow position
         if (bow != null)

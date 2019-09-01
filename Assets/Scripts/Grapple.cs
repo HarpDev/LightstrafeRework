@@ -21,7 +21,7 @@ public class Grapple : MonoBehaviour
 
     public float swingForce = 35f;
     public float detachFrictionScale = 0.12f;
-    public float attachFrictionScale = 0.25f;
+    public float attachFrictionScale = 0.08f;
 
     public int maxSwingTimeMillis = 4000;
 
@@ -39,6 +39,9 @@ public class Grapple : MonoBehaviour
     public void Attach(Vector3 point)
     {
         if (!enabled) return;
+        player.source.PlayOneShot(attach);
+        Game.I.Hitmarker.Display();
+        if (Hooked) return;
         if (Vector3.Distance(point, player.transform.position) > maxDistance) return;
         hookPosition = point;
         Hooked = true;
@@ -48,8 +51,11 @@ public class Grapple : MonoBehaviour
         rope.enabled = true;
         player.ApplyVerticalFriction(attachFrictionScale);
         attachTimestamp = Environment.TickCount;
-        player.source.PlayOneShot(attach);
         during.volume = 1;
+        
+        var towardPoint = (hookPosition - player.transform.position).normalized;
+        var yankProjection = Vector3.Dot(Game.I.Player.velocity, towardPoint);
+        if (yankProjection < 0) Game.I.Player.velocity -= towardPoint * yankProjection;
     }
 
     public void Detach()
@@ -100,7 +106,12 @@ public class Grapple : MonoBehaviour
 
         player.CameraRotation = Mathf.Lerp(player.CameraRotation, velocityProjection * value, Time.deltaTime * 10);
 
-        player.velocity += swingForce * Time.deltaTime * towardPoint;
-        player.velocity += swingForce / 3 * Time.deltaTime * forward;
+        var yankProjection = Vector3.Dot(Game.I.Player.velocity, towardPoint);
+        if (yankProjection < 0) Game.I.Player.velocity -= towardPoint * yankProjection;
+        
+        var returnScale = Mathf.Pow(player.velocity.magnitude / 15f + 0.5f, -2) + 0.9f;
+
+        player.velocity += returnScale * swingForce * Time.deltaTime * towardPoint;
+        player.velocity += returnScale * (swingForce / 3) * Time.deltaTime * player.velocity.normalized;
     }
 }

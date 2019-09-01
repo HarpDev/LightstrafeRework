@@ -110,7 +110,7 @@ MonoBehaviour:
   gravity: 18
   gravityEnabled: 1
   movementSpeed: 11
-  jumpHeight: 10
+  jumpHeight: 11
   source: {fileID: 8023130150563290714}
   spring: {fileID: 8300000, guid: 2e0440a8daccad04ebbe718b5d7e7ca5, type: 3}
   jump: {fileID: 8300000, guid: 9e6ecb5ae0c63aa4b85ef45139122555, type: 3}
@@ -142,11 +142,11 @@ MonoBehaviour:
   during: {fileID: 2380960297985531293}
   release: {fileID: 8300000, guid: 2ba0d66ae3b67c44799bdeaa41874207, type: 3}
   yOffset: -0.7
-  swingForce: 35
+  swingForce: 25
   detachFrictionScale: 0.12
-  attachFrictionScale: 0.18
-  maxSwingTimeMillis: 3000
-  maxDistance: 200
+  attachFrictionScale: 0.08
+  maxSwingTimeMillis: 5000
+  maxDistance: 120
 --- !u!120 &8023130150563290709
 LineRenderer:
   m_ObjectHideFlags: 0
