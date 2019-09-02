@@ -41,14 +41,12 @@ GameObject:
   - component: {fileID: 8023130150563290705}
   - component: {fileID: 8023130150563290706}
   - component: {fileID: 8023130150563290708}
-  - component: {fileID: 8023130150563290707}
   - component: {fileID: 8023130150563290709}
   - component: {fileID: 8023130150563290714}
   - component: {fileID: 5542439263401049636}
   - component: {fileID: 2380960297985531293}
+  - component: {fileID: 2805646102872565045}
   - component: {fileID: 8023130150563290704}
-  - component: {fileID: 8023130150563290713}
-  - component: {fileID: 338224179}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -101,52 +99,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14c440ebe8962bb47a547bfbed810808, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  controller: {fileID: 8023130150563290706}
   camera: {fileID: 8023130152235894417}
   movementEnabled: 1
   deceleration: 10
   friction: 3
-  runAcceleration: 6
+  runAcceleration: 5
   airAcceleration: 60
-  gravity: 18
+  gravity: 0.3
   gravityEnabled: 1
   movementSpeed: 11
   jumpHeight: 11
+  fallSpeed: 60
+  wallFriction: 2
+  wallSpeed: 15
+  wallJumpSpeed: 3
+  wallNoFrictionFrames: 1
+  grappleSwingForce: 1
+  grappleDetachFrictionScale: 0.12
+  wallkickDisplay: {fileID: 0}
+  velocity: {x: 0, y: 0, z: 0}
   source: {fileID: 8023130150563290714}
+  grindSound: {fileID: 5542439263401049636}
+  wallApproach: {fileID: 2805646102872565045}
+  grappleDuring: {fileID: 2380960297985531293}
   spring: {fileID: 8300000, guid: 2e0440a8daccad04ebbe718b5d7e7ca5, type: 3}
   jump: {fileID: 8300000, guid: 9e6ecb5ae0c63aa4b85ef45139122555, type: 3}
   jumpair: {fileID: 8300000, guid: 265a4c60d4d4dca40ab4ca3658956647, type: 3}
   land: {fileID: 8300000, guid: 83637c89c13910447a62c5a0171c8b5e, type: 3}
   ding: {fileID: 8300000, guid: a2d224f9af0df7b48b91992fac96a3da, type: 3}
-  grindSound: {fileID: 5542439263401049636}
-  grapple: {fileID: 8023130150563290707}
-  bow: {fileID: 8023130150596892149}
-  bowPosition: {x: 0.14, y: -0.4, z: 0.5}
-  velocity: {x: 0, y: 0, z: 0}
+  wallLand: {fileID: 8300000, guid: 93e282d6a3e016543bd36ff54984a173, type: 3}
+  wallKick: {fileID: 8300000, guid: a2d224f9af0df7b48b91992fac96a3da, type: 3}
+  wallJump: {fileID: 8300000, guid: 9e6ecb5ae0c63aa4b85ef45139122555, type: 3}
+  grappleAttach: {fileID: 8300000, guid: 50eb0cb4b1932f540a35e69898f19925, type: 3}
+  grappleRelease: {fileID: 8300000, guid: 2ba0d66ae3b67c44799bdeaa41874207, type: 3}
+  grappleTether: {fileID: 8023130150563290709}
+  grappleYOffset: -0.7
+  maxGrappleTimeMillis: 5000
+  maxGrappleDistance: 120
   startRotation: {x: 90, y: 0}
-  controller: {fileID: 8023130150563290706}
---- !u!114 &8023130150563290707
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8023130150563290715}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d66e5574e90bb534e90d84021006ec49, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 8023130150563290708}
-  rope: {fileID: 8023130150563290709}
-  attach: {fileID: 8300000, guid: 50eb0cb4b1932f540a35e69898f19925, type: 3}
-  during: {fileID: 2380960297985531293}
-  release: {fileID: 8300000, guid: 2ba0d66ae3b67c44799bdeaa41874207, type: 3}
-  yOffset: -0.7
-  swingForce: 25
-  detachFrictionScale: 0.12
-  attachFrictionScale: 0.08
-  maxSwingTimeMillis: 5000
-  maxDistance: 120
 --- !u!120 &8023130150563290709
 LineRenderer:
   m_ObjectHideFlags: 0
@@ -530,6 +521,102 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!82 &2805646102872565045
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8023130150563290715}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 8300000, guid: c085e089c75963947a53cb832aa4b438, type: 3}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!54 &8023130150563290704
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -546,41 +633,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 3
---- !u!114 &8023130150563290713
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8023130150563290715}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e748e1434b3c1ba42809a1d2067463a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 8023130150563290708}
-  feedbackDisplay: {fileID: 0}
-  deceleration: 5
-  friction: 0.045
-  wallSpeed: 4
-  verticalFriction: 0.4
-  wallLand: {fileID: 8300000, guid: 93e282d6a3e016543bd36ff54984a173, type: 3}
-  jumpForce: 50
-  noFrictionFrames: 1
---- !u!114 &338224179
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8023130150563290715}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4c2387621b8a3149bcf03fb5b5b3e62, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 8023130150563290708}
-  harshness: 50
 --- !u!1 &8023130150596892150
 GameObject:
   m_ObjectHideFlags: 0
@@ -609,8 +661,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8023130150596892150}
-  m_LocalRotation: {x: 0.70703614, y: 0.13245851, z: -0.009996391, w: 0.6945896}
-  m_LocalPosition: {x: 0.3356895, y: -0.4000017, z: 0.4414984}
+  m_LocalRotation: {x: 0.70441604, y: 0.06162843, z: 0.06162843, w: 0.70441604}
+  m_LocalPosition: {x: 0.4, y: -0.35, z: 0.8}
   m_LocalScale: {x: 0.8000006, y: 0.10000024, z: 0.10000013}
   m_Children:
   - {fileID: 8023130150354116967}
@@ -699,12 +751,14 @@ MonoBehaviour:
   bottom: {fileID: 8023130151782532119}
   arrowPrefab: {fileID: 8023130151858336735}
   arrowModel: {fileID: 8023130151858336735}
+  player: {fileID: 8023130150563290708}
   bowString: {fileID: 8023130150596892148}
   boltPosition: {x: 0, y: -0.05, z: 0.9}
   yVelocityReduction: 100
   yVelocityLimit: 0.5
   hVelocityReduction: 260
   hVelocityLimit: 0.1
+  bowPosition: {x: 0.3, y: -0.35, z: 0.8}
 --- !u!120 &8023130150596892148
 LineRenderer:
   m_ObjectHideFlags: 0
@@ -744,7 +798,7 @@ LineRenderer:
   m_SortingOrder: 0
   m_Positions:
   - {x: 1, y: 0, z: 0}
-  - {x: -0.0000039651027, y: -1.1500843, z: -0.49997792}
+  - {x: 0.0000018987324, y: -1.1501404, z: -0.4999888}
   - {x: -1, y: 0, z: 0}
   m_Parameters:
     serializedVersion: 3
@@ -1110,7 +1164,6 @@ GameObject:
   - component: {fileID: 8023130151858336733}
   - component: {fileID: 8023130151858336734}
   - component: {fileID: 8023130151858336735}
-  - component: {fileID: 8023130151858336732}
   m_Layer: 9
   m_Name: Snipe Arrow
   m_TagString: Arrow
@@ -1125,8 +1178,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8023130151858336704}
-  m_LocalRotation: {x: -0, y: -0, z: -0.0000000074505797, w: 1}
-  m_LocalPosition: {x: 0.0000004842874, y: 8.9998, z: -0.4999804}
+  m_LocalRotation: {x: -0.000000089406946, y: -0.000000022351736, z: -0.000000007450579,
+    w: 1}
+  m_LocalPosition: {x: 0.0000015238754, y: 8.999715, z: -0.49998158}
   m_LocalScale: {x: 1.2, y: 10, z: 10}
   m_Children:
   - {fileID: 8023130151135111717}
@@ -1167,19 +1221,6 @@ MonoBehaviour:
   nockPosition: {fileID: 8023130150759736865}
   rigidbody: {fileID: 8023130151858336734}
   trail: {fileID: 8023130150759736866}
---- !u!114 &8023130151858336732
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8023130151858336704}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 772d38e957e24304ea5909d087c8bea7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  arrow: {fileID: 8023130151858336735}
 --- !u!1 &8023130152235894422
 GameObject:
   m_ObjectHideFlags: 0

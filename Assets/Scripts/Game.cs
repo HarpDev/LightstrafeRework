@@ -8,6 +8,16 @@ public class Game : MonoBehaviour
 {
     public static Game I;
 
+    public static float Sensitivity
+    {
+        get
+        {
+            if (!PlayerPrefs.HasKey("Sensitivity")) PlayerPrefs.SetFloat("Sensitivity", 1);
+            return PlayerPrefs.GetFloat("Sensitivity");
+        }
+        set { PlayerPrefs.SetFloat("Sensitivity", value); }
+    }
+
     public static float CurrentLevelTime { get; set; }
     public static void SetBestLevelTime(string level, float time)
     {
@@ -20,7 +30,7 @@ public class Game : MonoBehaviour
     }
 
     private static bool _timerRunning;
-    public PlayerControls Player { get; private set; }
+    public PlayerMovement Player { get; private set; }
     public Canvas Canvas { get; private set; }
     
     public PostProcessVolume PostProcessVolume { get; private set; }
@@ -38,14 +48,14 @@ public class Game : MonoBehaviour
         }
         else if (I != this)
         {
-            I.find();
+            I.Find();
             Destroy(gameObject);
         }
     }
 
     private void Start()
     {
-        I.find();
+        I.Find();
     }
 
     private void Update()
@@ -53,10 +63,10 @@ public class Game : MonoBehaviour
         if (_timerRunning) CurrentLevelTime += Time.unscaledDeltaTime;
     }
 
-    private void find()
+    private void Find()
     {
         var playerObj = GameObject.Find("Player");
-        if (playerObj != null) Player = playerObj.GetComponent<PlayerControls>();
+        if (playerObj != null) Player = playerObj.GetComponent<PlayerMovement>();
         var canvasObj = GameObject.Find("Canvas");
         if (canvasObj != null) Canvas = canvasObj.GetComponent<Canvas>();
         var postprocessObj = GameObject.Find("Level");

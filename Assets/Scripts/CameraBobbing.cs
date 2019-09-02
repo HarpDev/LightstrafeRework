@@ -4,7 +4,7 @@ using UnityEngine;
 public class CameraBobbing : MonoBehaviour
 {
 
-    public PlayerControls player;
+    public PlayerMovement player;
     
     private const float Tolerance = 0.05f;
     
@@ -20,7 +20,7 @@ public class CameraBobbing : MonoBehaviour
     {
 
         // Camera bobbing
-        if (Math.Abs(player.velocity.magnitude) > Tolerance && player.isGrounded())
+        if (Math.Abs(player.velocity.magnitude) > Tolerance && player.IsGrounded)
         {
             bobbingPos += Flatten(player.velocity).magnitude * BobbingSpeed * Time.deltaTime * 2;
             while (bobbingPos > Mathf.PI * 2) bobbingPos -= Mathf.PI * 2;

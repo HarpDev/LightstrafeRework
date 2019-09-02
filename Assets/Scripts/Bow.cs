@@ -8,6 +8,7 @@ public class Bow : MonoBehaviour
     public GameObject bottom;
     public Arrow arrowPrefab;
     public Arrow arrowModel;
+    public PlayerMovement player;
 
     public LineRenderer bowString;
 
@@ -17,6 +18,8 @@ public class Bow : MonoBehaviour
     public float yVelocityLimit = 0.4f;
     public float hVelocityReduction = 260;
     public float hVelocityLimit = 0.1f;
+    
+    public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
 
     public float Drawback { get; set; }
 
@@ -37,6 +40,47 @@ public class Bow : MonoBehaviour
         list.Add(bottom.transform.localPosition);
         bowString.positionCount = list.Count;
         bowString.SetPositions(list.ToArray());
+        
+        var bowAngle = player.velocity.y * 1.8f - 10;
+
+        bowAngle -= Drawback * 85;
+
+        bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
+        transform.localRotation = Quaternion.Lerp(transform.localRotation,
+            Quaternion.Euler(new Vector3(90 - bowAngle, -90, -90)), Time.deltaTime * 6);
+
+        var yCalc = player.velocity.y / yVelocityReduction;
+
+        yCalc -= Drawback / 1.5f;
+
+        yCalc = Mathf.Max(yCalc, -yVelocityLimit);
+        yCalc = Mathf.Min(yCalc, yVelocityLimit / 6);
+
+        var xCalc = player.velocity.x / hVelocityReduction;
+
+        xCalc = Mathf.Max(xCalc, bowPosition.x);
+        xCalc = Mathf.Min(xCalc, hVelocityLimit);
+
+        var zCalc = player.velocity.z / hVelocityReduction;
+
+        zCalc += Drawback / 3;
+
+        zCalc = Mathf.Max(zCalc, -hVelocityLimit);
+        zCalc = Mathf.Min(zCalc, hVelocityLimit);
+
+        var finalPosition = bowPosition + new Vector3(xCalc, -yCalc, zCalc);
+
+        if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector / 12;
+
+        transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * 20);
+        if (Input.GetAxis("Fire1") > 0)
+        {
+            if (Drawback < 0.22f) Drawback += Time.deltaTime / 4;
+        }
+        else if (Drawback > 0)
+        {
+            Fire(player.camera.transform.position, player.camera.transform.forward);
+        }
     }
 
     public void Fire(Vector3 from, Vector3 vel)

@@ -4,7 +4,7 @@ using UnityEngine;
 public class HudMovement : MonoBehaviour
 {
 
-    public PlayerControls player;
+    public PlayerMovement player;
     
     private float hudYawOffset;
     private float hudPitchOffset;

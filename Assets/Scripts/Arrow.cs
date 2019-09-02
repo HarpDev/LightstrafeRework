@@ -78,7 +78,7 @@ public class Arrow : MonoBehaviour
         }
         else if (hit.collider.CompareTag("Grapple Block"))
         {
-            Game.I.Player.grapple.Attach(hit.point);
+            Game.I.Player.AttachGrapple(hit.point);
         }
     }
 }

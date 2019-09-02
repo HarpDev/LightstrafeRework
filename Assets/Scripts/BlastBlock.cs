@@ -21,12 +21,10 @@ public class BlastBlock : MonoBehaviour
         lookat.y = Mathf.RoundToInt(lookat.y);
         lookat.z = Mathf.RoundToInt(lookat.z);
         lookat /= 2;
-
-        var projection = Vector3.Dot(Game.I.Player.velocity, lookat);
         
-        if (projection < force) Game.I.Player.velocity += lookat * (force - projection);
+        Game.I.Player.Accelerate(lookat.normalized, force, force);
 
-        DoubleJump.doubleJumpSpent = false;
+        PlayerMovement.DoubleJumpAvailable = true;
         blast.Play();
         particle.Play();
 
