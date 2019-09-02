@@ -19,13 +19,15 @@ public class Grapple : MonoBehaviour
     private Vector3 hookPosition;
     public bool Hooked { get; set; }
 
-    public float swingForce = 35f;
+    public float swingForce = 25f;
     public float detachFrictionScale = 0.12f;
     public float attachFrictionScale = 0.08f;
 
-    public int maxSwingTimeMillis = 4000;
+    public int maxSwingTimeMillis = 5000;
 
-    public int maxDistance = 200;
+    public int maxDistance = 120;
+
+    public float airAcceleration = 8;
 
     private int attachTimestamp;
 
@@ -36,6 +38,8 @@ public class Grapple : MonoBehaviour
         during.volume = 0;
     }
 
+    private float prevAirAcceleration;
+
     public void Attach(Vector3 point)
     {
         if (!enabled) return;
@@ -45,7 +49,8 @@ public class Grapple : MonoBehaviour
         if (Vector3.Distance(point, player.transform.position) > maxDistance) return;
         hookPosition = point;
         Hooked = true;
-        player.movementEnabled = false;
+        prevAirAcceleration = player.airAcceleration;
+        player.airAcceleration = airAcceleration;
         player.gravityEnabled = false;
         DoubleJump.doubleJumpSpent = false;
         rope.enabled = true;
@@ -55,13 +60,13 @@ public class Grapple : MonoBehaviour
         
         var towardPoint = (hookPosition - player.transform.position).normalized;
         var yankProjection = Vector3.Dot(Game.I.Player.velocity, towardPoint);
-        if (yankProjection < 0) Game.I.Player.velocity -= towardPoint * yankProjection;
+        Game.I.Player.velocity -= towardPoint * yankProjection;
     }
 
     public void Detach()
     {
         if (!enabled) return;
-        player.movementEnabled = true;
+        player.airAcceleration = prevAirAcceleration;
         player.gravityEnabled = true;
         if (Hooked) Hooked = false;
         if (rope.enabled) rope.enabled = false;
@@ -72,7 +77,6 @@ public class Grapple : MonoBehaviour
 
     private void Update()
     {
-        
         if (!Hooked) return;
 
         var list = new List<Vector3>

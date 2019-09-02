@@ -11,12 +11,12 @@ public class Game : MonoBehaviour
     public static float CurrentLevelTime { get; set; }
     public static void SetBestLevelTime(string level, float time)
     {
-        PlayerPrefs.SetFloat("BestTime" + level, time);
+        PlayerPrefs.SetFloat("v1.22BestTime" + level, time);
     }
 
     public static float GetBestLevelTime(string level)
     {
-        return PlayerPrefs.HasKey("BestTime" + level) ? PlayerPrefs.GetFloat("BestTime" + level) : -1f;
+        return PlayerPrefs.HasKey("v1.22BestTime" + level) ? PlayerPrefs.GetFloat("v1.22BestTime" + level) : -1f;
     }
 
     private static bool _timerRunning;

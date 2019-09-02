@@ -217,7 +217,7 @@ public class WallRunning : MonoBehaviour
                 value -= 90;
                 value /= 90;
 
-                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 25 * -value, Time.deltaTime);
+                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 18 * -value, Time.deltaTime * 2);
             }
             catch (Exception)
             {
@@ -262,7 +262,7 @@ public class WallRunning : MonoBehaviour
                 value -= 90;
                 value /= 90;
 
-                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 30 * rotation * -value, Time.deltaTime * 6);
+                player.CameraRotation = Mathf.Lerp(player.CameraRotation, 30 * rotation * -value, Time.deltaTime * 8);
             }
         }
         else approaching = false;
