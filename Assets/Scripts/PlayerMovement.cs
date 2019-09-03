@@ -25,7 +25,7 @@ public class PlayerMovement : MonoBehaviour
     public float wallFriction = 2f;
     public float wallSpeed = 20f;
     public float wallJumpSpeed = 30f;
-    public int wallNoFrictionFrames = 2;
+    public int wallNoFrictionTicks = 1;
     public float grappleSwingForce = 25f;
     public float grappleDetachFrictionScale = 0.12f;
 
@@ -72,7 +72,7 @@ public class PlayerMovement : MonoBehaviour
     private int bounceTimestamp;
     private int groundTimestamp;
     private Collider currentWall;
-    private int wallFrameCount;
+    private int wallTickCount;
     private int grappleAttachTimestamp;
 
     public static bool DoubleJumpAvailable { get; set; }
@@ -100,6 +100,8 @@ public class PlayerMovement : MonoBehaviour
 
     public float CameraRotation { get; set; }
     public Vector3 Wishdir { get; set; }
+    
+    public Vector3 CrosshairDirection { get; set; }
 
     private void Start()
     {
@@ -147,8 +149,10 @@ public class PlayerMovement : MonoBehaviour
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
 
-        camera.transform.rotation =
-            Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, Yaw, CameraRotation));
+        Transform cam;
+        (cam = camera.transform).rotation = Quaternion.Euler(new Vector3(Pitch, Yaw, CameraRotation));
+        CrosshairDirection = cam.forward;
+        camera.transform.rotation = Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, Yaw, CameraRotation));
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
 
         // Movement
@@ -188,8 +192,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (IsOnWall)
         {
-            wallFrameCount++;
-            if (wallFrameCount == wallNoFrictionFrames + 3)
+            wallTickCount++;
+            if (wallTickCount == 4)
             {
                 grindSound.volume = 1;
                 source.PlayOneShot(wallLand);
@@ -299,9 +303,9 @@ public class PlayerMovement : MonoBehaviour
         var yankProjection = Vector3.Dot(Game.I.Player.velocity, towardPoint);
         if (yankProjection < 0) Game.I.Player.velocity -= towardPoint * yankProjection;
 
-        Accelerate(towardPoint, 30, grappleSwingForce * f);
-        Accelerate(velocity.normalized, 40, grappleSwingForce / 3 * f);
-        Accelerate(Wishdir, 30, grappleSwingForce / 8 * f);
+        Accelerate(towardPoint, grappleSwingForce, 1 * f);
+        Accelerate(velocity.normalized, grappleSwingForce / 4, 1 * f);
+        Accelerate(Wishdir, grappleSwingForce, 0.2f * f);
     }
 
     public void WallLean(float t, float f)
@@ -390,20 +394,20 @@ public class PlayerMovement : MonoBehaviour
             gravityEnabled = true;
 
             grindSound.volume = 0;
-            wallFrameCount = -1;
+            wallTickCount = -1;
             return;
         }
 
         if (currentWall.CompareTag("Launch Wall"))
         {
-            Accelerate(new Vector3(0, 1, 0), 25, 2 * f);
+            Accelerate(new Vector3(0, 1, 0), 30, 2 * f);
         }
         else
         {
-            var fMod = Mathf.Min((wallFrameCount - wallNoFrictionFrames) / 2.5f, 1);
-            if (wallFrameCount > wallNoFrictionFrames) ApplyFriction(wallFriction * f * fMod);
+            if (wallTickCount > wallNoFrictionTicks) ApplyFriction(wallFriction * f);
             var towardWall = Flatten(point - position).normalized;
 
+            if (wallTickCount == 1) Accelerate(new Vector3(0, 1, 0), 1, 1);
             Accelerate(towardWall, 1, 1 * f);
             Accelerate(Flatten(velocity).normalized, wallSpeed, runAcceleration * f);
         }
@@ -417,10 +421,10 @@ public class PlayerMovement : MonoBehaviour
         if (jumpLock && Input.GetAxis("Jump") < Tolerance) jumpLock = false;
         if (jumpLock || !movementEnabled) return;
 
-        if (!(Input.GetAxis("Jump") > 0)) return;
+        if (!(Input.GetAxis("Jump") > 0) && wallTickCount != 1) return;
         jumpLock = true;
 
-        if (wallFrameCount < 0) return;
+        if (wallTickCount < 0) return;
 
         var position = transform.position;
         var point = currentWall.ClosestPoint(position);
@@ -429,39 +433,45 @@ public class PlayerMovement : MonoBehaviour
         gravityEnabled = true;
 
         var c = wallkickDisplay.color;
-        Accelerate(new Vector3(0, 1, 0), jumpHeight, jumpHeight);
-        Accelerate(jumpDir, 10, wallJumpSpeed);
-        if (currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, jumpHeight);
+        Accelerate(new Vector3(0, 1, 0), jumpHeight, 2);
+        if (currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 1);
+        var speed = wallJumpSpeed;
 
-        if (wallFrameCount <= wallNoFrictionFrames)
+        switch (wallTickCount)
         {
-            source.PlayOneShot(wallKick);
-            c.a = 1;
-            c.r = 0;
-            c.b = 0;
-            c.g = 1;
+            case 1:
+                speed *= 1.6f;
+                source.PlayOneShot(wallKick);
+                c.a = 1;
+                c.r = 0;
+                c.b = 0;
+                c.g = 1;
+                break;
+            case 2:
+                speed *= 1.4f;
+                source.PlayOneShot(wallKick);
+                c.a = 1;
+                c.r = 1;
+                c.b = 0;
+                c.g = 1;
+                break;
+            case 3:
+                speed *= 1.2f;
+                source.PlayOneShot(wallKick);
+                c.a = 1;
+                c.r = 1;
+                c.b = 0;
+                c.g = 0;
+                break;
+            default:
+                source.PlayOneShot(wallJump);
+                break;
         }
-        else if (wallFrameCount == wallNoFrictionFrames + 1)
-        {
-            source.PlayOneShot(wallKick);
-            c.a = 1;
-            c.r = 1;
-            c.b = 0;
-            c.g = 1;
-        }
-        else if (wallFrameCount == wallNoFrictionFrames + 2)
-        {
-            source.PlayOneShot(wallKick);
-            c.a = 1;
-            c.r = 1;
-            c.b = 0;
-            c.g = 0;
-        }
-        else
-            source.PlayOneShot(wallJump);
+        
+        Accelerate(jumpDir, speed, 0.2f);
 
         wallkickDisplay.color = c;
-        wallFrameCount = -1;
+        wallTickCount = -1;
         grindSound.volume = 0;
     }
 
@@ -495,7 +505,7 @@ public class PlayerMovement : MonoBehaviour
         if (!IsMoving || !movementEnabled) return;
 
         var movementMod = Mathf.Max(0f, Mathf.Min(1f, groundTimer * 3 - 0.1f));
-        Accelerate(Wishdir, movementSpeed * movementMod, runAcceleration * f);
+        Accelerate(Wishdir, movementSpeed, runAcceleration * movementMod * f);
     }
 
     public void AirMove(float f)

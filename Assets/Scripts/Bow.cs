@@ -79,7 +79,7 @@ public class Bow : MonoBehaviour
         }
         else if (Drawback > 0)
         {
-            Fire(player.camera.transform.position, player.camera.transform.forward);
+            Fire(player.camera.transform.position, player.CrosshairDirection);
         }
     }
 

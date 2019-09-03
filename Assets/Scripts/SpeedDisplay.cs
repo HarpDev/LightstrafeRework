@@ -5,11 +5,13 @@ public class SpeedDisplay : MonoBehaviour
 {
     public Text speedText;
     public string prefix;
+    public bool flatten;
 
     // Update is called once per frame
     private void Update()
     {
-        speedText.text = prefix + Mathf.RoundToInt(Flatten(Game.I.Player.velocity * 2).magnitude);
+        var display = Mathf.RoundToInt(flatten ? (Flatten(Game.I.Player.velocity) * 2).magnitude : (Game.I.Player.velocity * 2).magnitude);
+        speedText.text = prefix + display;
     }
 
     private static Vector3 Flatten(Vector3 vec)

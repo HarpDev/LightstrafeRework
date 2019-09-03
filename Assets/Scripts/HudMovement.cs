@@ -9,8 +9,7 @@ public class HudMovement : MonoBehaviour
     private float hudYawOffset;
     private float hudPitchOffset;
     public float hudMovementReduction = 6;
-
-
+    
     public static Vector3 RotationSlamVector { get; set; }
     public static Vector3 PositionSlamVector { get; set; }
     public static Vector3 rotationSlamVectorLerp;
