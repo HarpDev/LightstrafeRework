@@ -228,7 +228,7 @@ public class PlayerMovement : MonoBehaviour
         var position = transform.position;
         var point = hit.collider.ClosestPoint(position);
         var compare = point.y - position.y;
-        if (compare < -0.9f || compare > 0) return;
+        if (compare < -0.9f || compare > 0 || Math.Abs(hit.collider.transform.rotation.eulerAngles.z % 90) > Tolerance) return;
         if (IsOnWall || IsGrounded) return;
         currentWall = hit.collider;
         IsOnWall = true;
@@ -304,7 +304,8 @@ public class PlayerMovement : MonoBehaviour
         if (yankProjection < 0) Game.I.Player.velocity -= towardPoint * yankProjection;
 
         Accelerate(towardPoint, grappleSwingForce, 1 * f);
-        Accelerate(Wishdir, grappleSwingForce * 1.5f, 2f * f);
+        Accelerate(velocity.normalized, grappleSwingForce * 3, 0.4f * f);
+        Accelerate(Wishdir, grappleSwingForce, 1 * f);
     }
 
     public void WallLean(float t, float f)
@@ -345,7 +346,7 @@ public class PlayerMovement : MonoBehaviour
         var didHit = Physics.CapsuleCast(pos - new Vector3(0, 2f, 0), pos + new Vector3(0, 1f, 0),
             controller.radius, Flatten(velocity).normalized, out hit, velocity.magnitude * t,
             layermask);
-        if (didHit && !IsGrounded && !IsOnWall)
+        if (didHit && !IsGrounded && !IsOnWall && Math.Abs(hit.collider.transform.rotation.eulerAngles.z % 90) < Tolerance)
         {
             var close = hit.point;
 
