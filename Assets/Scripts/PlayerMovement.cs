@@ -204,12 +204,12 @@ public class PlayerMovement : MonoBehaviour
     public void Bounce()
     {
         if (!wishBounce) return;
+        wishBounce = false;
         if (Environment.TickCount - bounceTimestamp <= 1000) return;
         bounceTimestamp = Environment.TickCount;
-        Accelerate(new Vector3(0, 1, 0), 30, 30);
+        Accelerate(new Vector3(0, 1, 0), 26, 26);
         DoubleJumpAvailable = true;
         source.PlayOneShot(spring);
-        wishBounce = false;
     }
 
 
@@ -377,6 +377,7 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             approachingWall = false;
+            wallApproach.volume = 0;
             if (wallApproach.isPlaying) wallApproach.Stop();
         }
     }
@@ -400,14 +401,14 @@ public class PlayerMovement : MonoBehaviour
 
         if (currentWall.CompareTag("Launch Wall"))
         {
-            Accelerate(new Vector3(0, 1, 0), 30, 2 * f);
+            Accelerate(new Vector3(0, 1, 0), 25, 1 * f);
         }
         else
         {
             if (wallTickCount > wallNoFrictionTicks) ApplyFriction(wallFriction * f);
             var towardWall = Flatten(point - position).normalized;
 
-            if (wallTickCount == 1) Accelerate(new Vector3(0, 1, 0), 1, 1);
+            if (wallTickCount == 1) Accelerate(new Vector3(0, 1, 0), 2, 4);
             Accelerate(towardWall, 1, 1 * f);
             Accelerate(Flatten(velocity).normalized, wallSpeed, runAcceleration * f);
         }
@@ -421,7 +422,7 @@ public class PlayerMovement : MonoBehaviour
         if (jumpLock && Input.GetAxis("Jump") < Tolerance) jumpLock = false;
         if (jumpLock || !movementEnabled) return;
 
-        if (!(Input.GetAxis("Jump") > 0) && wallTickCount != 1) return;
+        if (!(Input.GetAxis("Jump") > 0)) return;
         jumpLock = true;
 
         if (wallTickCount < 0) return;
@@ -435,12 +436,13 @@ public class PlayerMovement : MonoBehaviour
         var c = wallkickDisplay.color;
         Accelerate(new Vector3(0, 1, 0), jumpHeight, 2);
         if (currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 1);
-        var speed = wallJumpSpeed;
+        
+        Accelerate(jumpDir, wallJumpSpeed, 0.2f);
 
         switch (wallTickCount)
         {
             case 1:
-                speed *= 1.6f;
+                Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 2f, 0.07f);
                 source.PlayOneShot(wallKick);
                 c.a = 1;
                 c.r = 0;
@@ -448,7 +450,7 @@ public class PlayerMovement : MonoBehaviour
                 c.g = 1;
                 break;
             case 2:
-                speed *= 1.4f;
+                Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.8f, 0.07f);
                 source.PlayOneShot(wallKick);
                 c.a = 1;
                 c.r = 1;
@@ -456,7 +458,7 @@ public class PlayerMovement : MonoBehaviour
                 c.g = 1;
                 break;
             case 3:
-                speed *= 1.2f;
+                Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.6f, 0.08f);
                 source.PlayOneShot(wallKick);
                 c.a = 1;
                 c.r = 1;
@@ -467,8 +469,6 @@ public class PlayerMovement : MonoBehaviour
                 source.PlayOneShot(wallJump);
                 break;
         }
-        
-        Accelerate(jumpDir, speed, 0.2f);
 
         wallkickDisplay.color = c;
         wallTickCount = -1;
