@@ -36,7 +36,6 @@ public class PlayerMovement : MonoBehaviour
     /* Audio */
     public AudioSource source;
     public AudioSource grindSound;
-    public AudioSource wallApproach;
     public AudioSource grappleDuring;
     public AudioClip spring;
     public AudioClip jump;
@@ -172,20 +171,21 @@ public class PlayerMovement : MonoBehaviour
         else
             AirMove(Time.deltaTime);
 
-        Jump();
-        WallJump();
-        Bounce();
-
         WallLean(0.3f, Time.deltaTime);
 
         controller.Move(velocity * Time.deltaTime);
 
         var vel = controller.velocity;
-        if (vel.magnitude >= velocity.magnitude) return;
-        velocity.x = vel.x;
-        velocity.z = vel.z;
-        if (!IsGrounded)
+        if (vel.magnitude < velocity.magnitude)
+        {
+            velocity.x = vel.x;
+            velocity.z = vel.z;
             velocity.y = vel.y;
+        }
+
+        Jump();
+        WallJump();
+        Bounce();
     }
 
     private void FixedUpdate()
@@ -304,8 +304,7 @@ public class PlayerMovement : MonoBehaviour
         if (yankProjection < 0) Game.I.Player.velocity -= towardPoint * yankProjection;
 
         Accelerate(towardPoint, grappleSwingForce, 1 * f);
-        Accelerate(velocity.normalized, grappleSwingForce / 4, 1 * f);
-        Accelerate(Wishdir, grappleSwingForce, 0.2f * f);
+        Accelerate(Wishdir, grappleSwingForce * 1.5f, 2f * f);
     }
 
     public void WallLean(float t, float f)
@@ -323,7 +322,7 @@ public class PlayerMovement : MonoBehaviour
                 value -= 90;
                 value /= 90;
 
-                CameraRotation = Mathf.Lerp(CameraRotation, 18 * -value, f * 2);
+                CameraRotation = Mathf.Lerp(CameraRotation, 20 * -value, f * 2);
             }
             catch (Exception)
             {
@@ -356,14 +355,9 @@ public class PlayerMovement : MonoBehaviour
             {
                 approachingWall = true;
                 approachingWallDistance = distance;
-                wallApproach.volume = 0;
-                wallApproach.Play();
             }
 
             var rotation = (approachingWallDistance - distance) / approachingWallDistance;
-
-            wallApproach.volume = rotation;
-            wallApproach.pitch = 1 + rotation;
 
             var relativePoint = transform.InverseTransformPoint(hit.collider.ClosestPoint(pos));
 
@@ -372,13 +366,11 @@ public class PlayerMovement : MonoBehaviour
             value -= 90;
             value /= 90;
 
-            CameraRotation = Mathf.Lerp(CameraRotation, 30 * rotation * -value, f * 8);
+            CameraRotation = Mathf.Lerp(CameraRotation, 20 * rotation * -value, f * 25);
         }
         else
         {
             approachingWall = false;
-            wallApproach.volume = 0;
-            if (wallApproach.isPlaying) wallApproach.Stop();
         }
     }
 
@@ -435,40 +427,40 @@ public class PlayerMovement : MonoBehaviour
 
         var c = wallkickDisplay.color;
         Accelerate(new Vector3(0, 1, 0), jumpHeight, 2);
-        if (currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 1);
+        if (currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 0.2f);
         
         Accelerate(jumpDir, wallJumpSpeed, 0.2f);
+        DoubleJumpAvailable = true;
 
-        switch (wallTickCount)
+        if (wallTickCount <= 1)
         {
-            case 1:
-                Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 2f, 0.07f);
-                source.PlayOneShot(wallKick);
-                c.a = 1;
-                c.r = 0;
-                c.b = 0;
-                c.g = 1;
-                break;
-            case 2:
-                Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.8f, 0.07f);
-                source.PlayOneShot(wallKick);
-                c.a = 1;
-                c.r = 1;
-                c.b = 0;
-                c.g = 1;
-                break;
-            case 3:
-                Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.6f, 0.08f);
-                source.PlayOneShot(wallKick);
-                c.a = 1;
-                c.r = 1;
-                c.b = 0;
-                c.g = 0;
-                break;
-            default:
-                source.PlayOneShot(wallJump);
-                break;
+            Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 2f, 0.07f);
+            source.PlayOneShot(wallKick);
+            c.a = 1;
+            c.r = 0;
+            c.b = 0;
+            c.g = 1;
         }
+        else if (wallTickCount == 2)
+        {
+            Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.8f, 0.07f);
+            source.PlayOneShot(wallKick);
+            c.a = 1;
+            c.r = 1;
+            c.b = 0;
+            c.g = 1;
+        }
+        else if (wallTickCount == 3)
+        {
+            Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.6f, 0.08f);
+            source.PlayOneShot(wallKick);
+            c.a = 1;
+            c.r = 1;
+            c.b = 0;
+            c.g = 0;
+        }
+
+        source.PlayOneShot(wallJump);
 
         wallkickDisplay.color = c;
         wallTickCount = -1;
@@ -478,17 +470,7 @@ public class PlayerMovement : MonoBehaviour
     public void Gravity(float f)
     {
         if (!gravityEnabled) return;
-        if (!IsGrounded)
-        {
-            Accelerate(new Vector3(0, -1, 0), fallSpeed, gravity * f);
-        }
-        else
-        {
-            if (velocity.y > -0.1)
-                velocity.y -= gravity * f;
-            if (velocity.y < -0.1)
-                velocity.y = -0.1f;
-        }
+        Accelerate(new Vector3(0, -1, 0), fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
