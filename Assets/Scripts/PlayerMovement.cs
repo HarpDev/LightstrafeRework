@@ -17,6 +17,7 @@ public class PlayerMovement : MonoBehaviour
     public float friction = 3f;
     public float runAcceleration = 6f;
     public float airAcceleration = 60f;
+    public float surfAcceleration = 900f;
     public float gravity = 0.5f;
     public bool gravityEnabled = true;
     public float movementSpeed = 11;
@@ -75,6 +76,8 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _grappleAttachPosition;
     private Vector3 _previousPosition;
     private float _motionInterpolationDelta;
+    private bool _isSurfing;
+    private int _wallJumpTimestamp;
 
     public static bool DoubleJumpAvailable { get; set; }
 
@@ -205,6 +208,7 @@ public class PlayerMovement : MonoBehaviour
         WallJump();
 
         _motionInterpolationDelta = 0;
+        _isSurfing = false;
         var position = rigidbody.transform.position;
         _previousPosition = position;
         rigidbody.MovePosition(position + velocity * factor);
@@ -225,6 +229,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (!validCollision) return;
 
+        DoubleJumpAvailable = true;
+
         if (other.collider.CompareTag("Bounce Block"))
         {
             if (Environment.TickCount - _bounceTimestamp <= 1000) return;
@@ -241,8 +247,14 @@ public class PlayerMovement : MonoBehaviour
         // Wall Grab
         var close = other.collider.ClosestPoint(InterpolatedPosition);
         var compare = close.y - InterpolatedPosition.y;
-        if (compare < -0.9f || compare > 0 || Math.Abs(other.transform.rotation.eulerAngles.z % 90) > Tolerance) return;
-        if (IsOnWall || IsGrounded) return;
+        if (compare < -0.9f || compare > 0 || Math.Abs(other.transform.rotation.eulerAngles.z % 90) > Tolerance ||
+            IsOnWall || IsGrounded)
+        {
+            if (!IsGrounded)
+                _isSurfing = true;
+            return;
+        }
+
         _currentWall = other.collider;
         IsOnWall = true;
         gravityEnabled = false;
@@ -436,6 +448,7 @@ public class PlayerMovement : MonoBehaviour
         var jumpDir = Flatten(position - point).normalized;
         IsOnWall = false;
         gravityEnabled = true;
+        _wallJumpTimestamp = Environment.TickCount;
 
         var c = wallkickDisplay.color;
         Accelerate(new Vector3(0, 1, 0), jumpHeight, 2);
@@ -507,7 +520,9 @@ public class PlayerMovement : MonoBehaviour
         if (movementEnabled) grindSound.volume = 0;
         _groundTimer = 0;
         if (!IsMoving) return;
-        AirAccelerate(Wishdir, airAcceleration * f);
+        var accel = _isSurfing ? surfAcceleration : airAcceleration;
+        accel *= Mathf.Min((Environment.TickCount - _wallJumpTimestamp) / 1000f, 1);
+        AirAccelerate(Wishdir, accel * f);
     }
 
     public void ApplyFriction(float f)
