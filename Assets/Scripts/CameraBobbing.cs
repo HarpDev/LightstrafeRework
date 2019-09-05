@@ -15,11 +15,15 @@ public class CameraBobbing : MonoBehaviour
     
     public static Vector3 BobbingVector { get; set; }
 
-    // Update is called once per frame
+    private Vector3 startPos;
+
+    private void Start()
+    {
+        startPos = player.camera.transform.localPosition;
+    }
+
     private void Update()
     {
-
-        // Camera bobbing
         if (Math.Abs(player.velocity.magnitude) > Tolerance && player.IsGrounded)
         {
             bobbingPos += Flatten(player.velocity).magnitude * BobbingSpeed * Time.deltaTime * 2;
@@ -28,7 +32,7 @@ public class CameraBobbing : MonoBehaviour
             var y = BobbingHeight * Mathf.Sin(bobbingPos * 2);
             var x = BobbingWidth * Mathf.Sin(bobbingPos + 1.8f);
             BobbingVector = new Vector3(x, y, 0);
-            player.camera.transform.localPosition = Vector3.Lerp(player.camera.transform.localPosition, new Vector3(), Time.deltaTime);
+            player.camera.transform.localPosition = Vector3.Lerp(player.camera.transform.localPosition, startPos, Time.deltaTime);
         }
     }
 

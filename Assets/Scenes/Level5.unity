@@ -2808,11 +2808,6 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: -0.00000003352761
       objectReference: {fileID: 0}
-    - target: {fileID: 7599826470672326151, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
-        type: 3}
-      propertyPath: yLimit
-      value: 30
-      objectReference: {fileID: 0}
     - target: {fileID: 6119354538802664579, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
       propertyPath: totalTargets
@@ -2837,6 +2832,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_BoundingSphereOverride.w
       value: 2.2983e-41
+      objectReference: {fileID: 0}
+    - target: {fileID: 7599826470672326151, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: yLimit
+      value: 30
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d5ad091b3b95f6f4d8790c5241f1ebd0, type: 3}

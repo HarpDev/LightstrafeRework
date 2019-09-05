@@ -89,7 +89,7 @@ public class Bow : MonoBehaviour
         arrow.transform.localScale = new Vector3(1, 1, 1);
         arrow.Fire(Quaternion.LookRotation(vel), Drawback * 450 * vel);
         arrow.transform.position = from;
-        arrow.FiredVelocity = Flatten(Game.I.Player.velocity).magnitude;
+        arrow.FiredVelocity = Flatten(player.velocity).magnitude;
 
         Drawback = 0;
     }
