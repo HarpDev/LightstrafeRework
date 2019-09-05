@@ -21,7 +21,7 @@ public class Bow : MonoBehaviour
 
     public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
 
-    private float lerpSpeed = 20;
+    private float _lerpSpeed = 20;
 
     public float Drawback { get; set; }
 
@@ -52,7 +52,7 @@ public class Bow : MonoBehaviour
 
         bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
         transform.localRotation = Quaternion.Lerp(transform.localRotation,
-            Quaternion.Euler(new Vector3(90 - bowAngle, -90, -90)), Time.deltaTime * lerpSpeed);
+            Quaternion.Euler(new Vector3(90 - bowAngle, -90, -90)), Time.deltaTime * _lerpSpeed);
 
         var yCalc = player.velocity.y / yVelocityReduction;
 
@@ -77,19 +77,19 @@ public class Bow : MonoBehaviour
 
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector / 12;
 
-        transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * lerpSpeed);
+        transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);
         if (Input.GetAxis("Fire1") > 0)
         {
             if (Drawback < 1)
             {
                 Drawback += Time.deltaTime;
-                lerpSpeed = 20;
+                _lerpSpeed = 20;
             }
         }
         else if (Drawback > 0)
         {
             Fire(player.camera.transform.position, player.CrosshairDirection);
-            lerpSpeed = 3;
+            _lerpSpeed = 3;
         }
     }
 
