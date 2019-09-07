@@ -19,11 +19,11 @@ public class Arrow : MonoBehaviour
 
     public float FiredVelocity { get; set; }
 
-    private Vector3 prevPosition;
+    private Vector3 _prevPosition;
 
     private void Start()
     {
-        prevPosition = transform.position;
+        _prevPosition = transform.position;
     }
 
     private void Update()
@@ -35,14 +35,13 @@ public class Arrow : MonoBehaviour
             model.transform.localRotation = Quaternion.Euler(beforeFiredRotation);
 
         var trans = transform;
-        var lookDir = trans.position - prevPosition;
-        var vec = Vector3.RotateTowards(new Vector3(1, 0, 0), lookDir, 360, 0.0f);
+        var lookDir = trans.position - _prevPosition;
         RaycastHit hit;
         var layermask = ~(1 << 9);
-        Physics.Raycast(prevPosition, vec, out hit, lookDir.magnitude, layermask);
+        Physics.Raycast(_prevPosition, lookDir.normalized, out hit, lookDir.magnitude, layermask);
         if (hit.collider != null) Collide(hit);
 
-        prevPosition = transform.position;
+        _prevPosition = transform.position;
     }
 
     public void Fire(Quaternion direction, Vector3 velocity)
@@ -55,30 +54,13 @@ public class Arrow : MonoBehaviour
         rigidbody.isKinematic = false;
     }
 
-    public delegate void ArrowCollide(RaycastHit hit);
-
-    public event ArrowCollide OnArrowCollide;
-
     public void Collide(RaycastHit hit)
     {
         if (!Fired) return;
-        if (OnArrowCollide != null) OnArrowCollide(hit);
         transform.position = hit.point;
         Hit = true;
         GetComponent<Rigidbody>().isKinematic = true;
-        if (hit.collider.CompareTag("Target"))
-        {
-            var target = hit.collider.gameObject.GetComponent<TargetHitbox>();
-            target.Hit();
-        }
-        else if (hit.collider.CompareTag("Blast Block"))
-        {
-            var blast = hit.collider.gameObject.GetComponent<BlastBlock>();
-            blast.Hit();
-        }
-        else if (hit.collider.CompareTag("Grapple Block"))
-        {
-            Game.I.Player.AttachGrapple(hit.point);
-        }
+        var action = hit.collider.gameObject.GetComponent<BlockAction>();
+        if (action != null) action.Hit(hit);
     }
 }

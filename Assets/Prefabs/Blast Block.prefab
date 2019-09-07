@@ -12,10 +12,10 @@ GameObject:
   - component: {fileID: 2187279387207818073}
   - component: {fileID: 5577231400882775968}
   - component: {fileID: 3115585651593702953}
-  - component: {fileID: 8254175231061505055}
   - component: {fileID: 6036139983352900633}
   - component: {fileID: 3462979261958428659}
   - component: {fileID: 8254175229558830706}
+  - component: {fileID: 2438897680623289363}
   m_Layer: 0
   m_Name: Blast Block
   m_TagString: Blast Block
@@ -95,21 +95,6 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 2, y: 2, z: 2}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &8254175231061505055
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6150395798176109436}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61697d335cc61884da7a09cba1fa2ff2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  force: 20
-  particle: {fileID: 6036139983352900633}
-  blast: {fileID: 8254175229558830706}
 --- !u!198 &6036139983352900633
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -4926,3 +4911,20 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2438897680623289363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6150395798176109436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5b44ee9ac9d3c9409c893f15e591923, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  particle: {fileID: 6036139983352900633}
+  rotate: 1
+  breakOnHit: 1
+  sound: {fileID: 8254175229558830706}
+  action: 0

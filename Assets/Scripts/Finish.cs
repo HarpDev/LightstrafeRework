@@ -8,7 +8,7 @@ public class Finish : MonoBehaviour
 
     public GameObject finishMenu;
 
-    private bool finished;
+    private bool _finished;
 
     private void Awake()
     {
@@ -17,11 +17,11 @@ public class Finish : MonoBehaviour
 
     private float TOLERANCE = 0.01f;
 
-    private float blurCount;
+    private float _blurCount;
 
     private void Update()
     {
-        if (finished && Time.timeScale > 0)
+        if (_finished && Time.timeScale > 0)
         {
             Time.timeScale -= Time.deltaTime * 3;
             if (Time.timeScale < TOLERANCE) Time.timeScale = 0;
@@ -31,8 +31,8 @@ public class Finish : MonoBehaviour
             if (blur.BlurIterations.value < 8)
             {
                 if (!blur.enabled.value) blur.enabled.value = true;
-                blur.BlurIterations.value = Mathf.RoundToInt(blurCount);
-                blurCount += Time.unscaledDeltaTime * 15;
+                blur.BlurIterations.value = Mathf.RoundToInt(_blurCount);
+                _blurCount += Time.unscaledDeltaTime * 15;
             }
         }
         else if (Math.Abs(Time.timeScale) < TOLERANCE)
@@ -50,7 +50,7 @@ public class Finish : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            finished = true;
+            _finished = true;
             Game.EndTimer();
         }
     }

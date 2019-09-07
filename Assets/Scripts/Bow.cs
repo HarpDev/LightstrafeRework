@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [ExecuteAlways]
@@ -25,8 +26,33 @@ public class Bow : MonoBehaviour
 
     public float Drawback { get; set; }
 
+    private MeshRenderer _mesh;
+
+    private void Start()
+    {
+        _mesh = GetComponent<MeshRenderer>();
+    }
+
     private void Update()
     {
+        var m = _mesh.sharedMaterial;
+        var c = m.color;
+        if (PlayerMovement.DoubleJumpAvailable)
+        {
+            c.r = 1;
+            c.g = 1;
+            c.b = 1;
+        }
+        else
+        {
+            c.r = 0;
+            c.g = 0;
+            c.b = 0;
+        }
+
+        m.color = c;
+        _mesh.sharedMaterial = m;
+
         var list = new List<Vector3> {top.transform.localPosition};
 
         var trans = transform;
