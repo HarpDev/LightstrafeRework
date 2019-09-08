@@ -82,12 +82,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 5124070473534990130}
+  collider: {fileID: 3116331977861670693}
   camera: {fileID: 8023130152235894417}
+  cameraPosition: {x: 0, y: 0.5, z: 0}
   movementEnabled: 1
   deceleration: 10
   friction: 3
   runAcceleration: 5
-  airAcceleration: 90
+  airAcceleration: 110
   surfAcceleration: 900
   gravity: 0.3
   gravityEnabled: 1
@@ -98,7 +100,7 @@ MonoBehaviour:
   wallSpeed: 15
   wallJumpSpeed: 22
   wallNoFrictionTicks: 1
-  grappleSwingForce: 10
+  grappleSwingForce: 40
   grappleDetachFrictionScale: 0.12
   slopeAngle: 45
   velocity: {x: 0, y: 0, z: 0}
@@ -629,7 +631,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112
-  m_CollisionDetection: 2
+  m_CollisionDetection: 0
 --- !u!1 &8023130150596892150
 GameObject:
   m_ObjectHideFlags: 0
@@ -1246,7 +1248,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8023130152235894422}
   m_LocalRotation: {x: 0.004101949, y: -0, z: -0, w: 0.9999916}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 8023130151277321243}

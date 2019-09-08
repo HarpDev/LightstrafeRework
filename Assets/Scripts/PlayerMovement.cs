@@ -10,7 +10,10 @@ public class PlayerMovement : MonoBehaviour
 {
     private const float Tolerance = 0.05f;
     public new Rigidbody rigidbody;
+    public new Collider collider;
     public new Camera camera;
+
+    public Vector3 cameraPosition;
 
     /* Movement Stuff */
     public bool movementEnabled = true;
@@ -77,7 +80,9 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _previousPosition;
     private Collision _previousCollision;
     private Vector3 _previousCollisionLocalPosition;
+    private Vector3 _slideLeanVector;
     private float _motionInterpolationDelta;
+    private float _crouchAmount;
     private bool _isSurfing;
     private int _wallJumpTimestamp;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
@@ -92,6 +97,11 @@ public class PlayerMovement : MonoBehaviour
     public static bool IsMoving
     {
         get { return Math.Abs(Input.GetAxis("Forward")) > Tolerance || Math.Abs(Input.GetAxis("Right")) > Tolerance; }
+    }
+
+    public static bool IsSliding
+    {
+        get { return Input.GetAxis("Slide") > 0; }
     }
 
     public bool IsGrounded { get; private set; }
@@ -174,9 +184,22 @@ public class PlayerMovement : MonoBehaviour
         Wishdir = IsMoving ? new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t)) : new Vector3();
 
         _motionInterpolationDelta += Time.deltaTime;
-        camera.transform.position = InterpolatedPosition;
+
+        var position = cameraPosition;
+        if (IsSliding)
+        {
+            if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
+        }
+        else if (_crouchAmount > 0) _crouchAmount -= Time.deltaTime * 6;
+
+        position.y -= 0.6f * _crouchAmount;
+        camera.transform.position = InterpolatedPosition + position;
 
         WallLean(0.3f, Time.deltaTime);
+        if (!IsSliding) _slideLeanVector = velocity;
+
+        if ((!IsSliding || !IsGrounded) && !IsOnWall)
+            CameraRotation = Mathf.Lerp(CameraRotation, 0, Time.deltaTime * 6);
     }
 
     private void FixedUpdate()
@@ -201,7 +224,12 @@ public class PlayerMovement : MonoBehaviour
         else if (IsOnWall)
             WallMove(factor);
         else if (IsGrounded)
-            GroundMove(factor);
+        {
+            if (IsSliding)
+                SlideMove(factor);
+            else
+                GroundMove(factor);
+        }
         else
             AirMove(factor);
 
@@ -210,7 +238,6 @@ public class PlayerMovement : MonoBehaviour
 
         _motionInterpolationDelta = 0;
         _isSurfing = false;
-        var position = rigidbody.transform.position;
         var platformMotion = new Vector3();
 
         if (_previousCollision != null)
@@ -223,15 +250,31 @@ public class PlayerMovement : MonoBehaviour
                 _previousCollision.transform.hasChanged = false;
             }
 
-            _previousCollisionLocalPosition = _previousCollision.transform.InverseTransformPoint(position);
+            _previousCollisionLocalPosition =
+                _previousCollision.transform.InverseTransformPoint(rigidbody.transform.position);
         }
         else _previousCollisionLocalPosition = new Vector3();
 
-        _previousPosition = position;
+        _previousPosition = rigidbody.transform.position;
+        var nextPosition = _previousPosition + platformMotion + velocity * factor;
+
+        RaycastHit hit;
+        var difference = nextPosition - _previousPosition;
+        if (rigidbody.SweepTest(difference.normalized, out hit, difference.magnitude))
+        {
+            if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle) IsGrounded = true;
+            var projection = Vector3.Dot(velocity, -hit.normal);
+            if (projection > 0)
+            {
+                var impulse = hit.normal * (projection - 4f);
+                velocity += impulse;
+            }
+            
+            nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor, nextPosition, hit.distance / difference.magnitude);
+        }
 
         _previousCollision = null;
-
-        rigidbody.MovePosition(position + platformMotion + velocity * factor);
+        rigidbody.MovePosition(nextPosition);
         IsGrounded = false;
     }
 
@@ -343,20 +386,19 @@ public class PlayerMovement : MonoBehaviour
     public void GrappleMove(float f)
     {
         if (!GrappleHooked) return;
+        var camTrans = camera.transform;
 
         var list = new List<Vector3>
-            {new Vector3(0, grappleYOffset, 0), transform.InverseTransformPoint(_grappleAttachPosition)};
+            {new Vector3(0, grappleYOffset, 0), camTrans.InverseTransformPoint(_grappleAttachPosition)};
 
         grappleTether.positionCount = list.Count;
         grappleTether.SetPositions(list.ToArray());
 
         if (Environment.TickCount - _grappleAttachTimestamp > maxGrappleTimeMillis) DetachGrapple();
 
-        var trans = transform.position;
-        var camTrans = camera.transform;
         camTrans.localPosition = new Vector3();
 
-        var towardPoint = (_grappleAttachPosition - trans).normalized;
+        var towardPoint = (_grappleAttachPosition - camTrans.position).normalized;
 
         var forward = camTrans.forward;
         var projection = Vector3.Dot(forward, towardPoint);
@@ -379,8 +421,8 @@ public class PlayerMovement : MonoBehaviour
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
 
         Accelerate(towardPoint, grappleSwingForce, 1 * f);
-        Accelerate(velocity.normalized, grappleSwingForce * 3, 0.4f * f);
-        Accelerate(Wishdir, grappleSwingForce, 1 * f);
+        Accelerate(velocity.normalized, grappleSwingForce, 0.4f * f);
+        Accelerate(Wishdir, grappleSwingForce / 4, 1 * f);
     }
 
     public void WallLean(float t, float f)
@@ -410,8 +452,6 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             if (!_approachingWall) _approachingWallDistance = 100000f;
-
-            CameraRotation = Mathf.Lerp(CameraRotation, 0, f * 6);
         }
 
         RaycastHit hit;
@@ -559,13 +599,20 @@ public class PlayerMovement : MonoBehaviour
             source.PlayOneShot(land);
 
         _groundTimer += f;
-        var frictionMod = Mathf.Max(0f, Mathf.Min(1f, _groundTimer));
 
-        ApplyFriction(frictionMod * f);
+        ApplyFriction(f);
         if (!IsMoving || !movementEnabled) return;
 
-        var movementMod = Mathf.Max(0f, Mathf.Min(1f, _groundTimer * 3 - 0.1f));
-        Accelerate(Wishdir, movementSpeed, runAcceleration * movementMod * f);
+        Accelerate(Wishdir, movementSpeed, runAcceleration * f);
+    }
+
+    public void SlideMove(float f)
+    {
+        ApplyFriction(f / 12);
+        _slideLeanVector = Vector3.Lerp(_slideLeanVector, velocity, f * 4);
+        var projection = Vector3.Dot(Flatten(_slideLeanVector), camera.transform.right);
+        CameraRotation = Mathf.Lerp(CameraRotation, projection * _crouchAmount, f * 12);
+        AirMove(f);
     }
 
     public void AirMove(float f)

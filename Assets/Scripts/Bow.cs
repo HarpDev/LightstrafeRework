@@ -73,10 +73,22 @@ public class Bow : MonoBehaviour
         bowString.SetPositions(list.ToArray());
 
         var bowAngle = player.velocity.y * 1.8f - 10;
+        var bowPos = bowPosition;
 
-        bowAngle -= ease * 65;
-
-        bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
+        if (PlayerMovement.IsSliding)
+        {
+            bowAngle -= ease * 10;
+            bowAngle += 180;
+            bowAngle = -bowAngle;
+            bowPos.x -= 0.38f;
+            bowPos.y -= 0.25f;
+            bowAngle = Mathf.Max(Mathf.Min(bowAngle, -150), -180);
+        }
+        else
+        {
+            bowAngle -= ease * 65;
+            bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
+        }
         transform.localRotation = Quaternion.Lerp(transform.localRotation,
             Quaternion.Euler(new Vector3(90 - bowAngle, -90, -90)), Time.deltaTime * _lerpSpeed);
 
@@ -99,7 +111,7 @@ public class Bow : MonoBehaviour
         zCalc = Mathf.Max(zCalc, -hVelocityLimit);
         zCalc = Mathf.Min(zCalc, hVelocityLimit);
 
-        var finalPosition = bowPosition + new Vector3(xCalc, -yCalc, zCalc);
+        var finalPosition = bowPos + new Vector3(xCalc, -yCalc, zCalc);
 
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector / 12;
 
@@ -109,13 +121,11 @@ public class Bow : MonoBehaviour
             if (Drawback < 1)
             {
                 Drawback += Time.deltaTime;
-                _lerpSpeed = 20;
             }
         }
         else if (Drawback > 0)
         {
             Fire(player.camera.transform.position, player.CrosshairDirection);
-            _lerpSpeed = 3;
         }
     }
 

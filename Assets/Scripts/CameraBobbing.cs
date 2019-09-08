@@ -11,28 +11,20 @@ public class CameraBobbing : MonoBehaviour
     private const float BobbingSpeed = 0.58f;
     private const float BobbingWidth = 0.2f;
     private const float BobbingHeight = 0.2f;
-    private float bobbingPos;
+    private float _bobbingPos;
     
     public static Vector3 BobbingVector { get; set; }
 
-    private Vector3 startPos;
-
-    private void Start()
-    {
-        startPos = player.camera.transform.localPosition;
-    }
-
     private void Update()
     {
-        if (Math.Abs(player.velocity.magnitude) > Tolerance && player.IsGrounded)
+        if (Math.Abs(player.velocity.magnitude) > Tolerance && player.IsGrounded && !PlayerMovement.IsSliding)
         {
-            bobbingPos += Flatten(player.velocity).magnitude * BobbingSpeed * Time.deltaTime * 2;
-            while (bobbingPos > Mathf.PI * 2) bobbingPos -= Mathf.PI * 2;
+            _bobbingPos += Flatten(player.velocity).magnitude * BobbingSpeed * Time.deltaTime * 2;
+            while (_bobbingPos > Mathf.PI * 2) _bobbingPos -= Mathf.PI * 2;
 
-            var y = BobbingHeight * Mathf.Sin(bobbingPos * 2);
-            var x = BobbingWidth * Mathf.Sin(bobbingPos + 1.8f);
+            var y = BobbingHeight * Mathf.Sin(_bobbingPos * 2);
+            var x = BobbingWidth * Mathf.Sin(_bobbingPos + 1.8f);
             BobbingVector = new Vector3(x, y, 0);
-            player.camera.transform.localPosition = Vector3.Lerp(player.camera.transform.localPosition, startPos, Time.deltaTime);
         }
     }
 
