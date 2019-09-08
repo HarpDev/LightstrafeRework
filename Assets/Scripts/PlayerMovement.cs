@@ -212,7 +212,7 @@ public class PlayerMovement : MonoBehaviour
         _isSurfing = false;
         var position = rigidbody.transform.position;
         var platformMotion = new Vector3();
-        
+
         if (_previousCollision != null)
         {
             if (_previousCollision.transform.hasChanged && IsGrounded && _previousCollisionLocalPosition.magnitude > 0)
@@ -222,8 +222,10 @@ public class PlayerMovement : MonoBehaviour
                 platformMotion.y = 0;
                 _previousCollision.transform.hasChanged = false;
             }
+
             _previousCollisionLocalPosition = _previousCollision.transform.InverseTransformPoint(position);
-        } else _previousCollisionLocalPosition = new Vector3();
+        }
+        else _previousCollisionLocalPosition = new Vector3();
 
         _previousPosition = position;
 
@@ -246,12 +248,19 @@ public class PlayerMovement : MonoBehaviour
     private void OnCollisionStay(Collision other)
     {
         var moved = (rigidbody.transform.position - _previousPosition) / Time.fixedDeltaTime;
-        _momentumBuffer.Add(moved);
+        if (other.collider.CompareTag("Launch Block"))
+        {
+            var blockAction = other.collider.gameObject.GetComponent<BlockAction>();
+            if (blockAction.IsAtApex) _momentumBuffer.Add(blockAction.maxSpeed * blockAction.direction.normalized);
+            else _momentumBuffer.Add(moved);
+        }
+        else _momentumBuffer.Add(moved);
+
         if (_momentumBuffer.Count > 2) _momentumBuffer.RemoveAt(0);
 
         _previousCollision = other;
         _previousCollision.transform.hasChanged = false;
-        
+
         var validCollision = false;
         foreach (var point in other.contacts)
         {
@@ -278,7 +287,8 @@ public class PlayerMovement : MonoBehaviour
         else if (other.collider.CompareTag("Kill Block"))
         {
             Game.RestartLevel();
-        } else if (other.collider.CompareTag("Launch Block"))
+        }
+        else if (other.collider.CompareTag("Launch Block"))
         {
             other.gameObject.GetComponent<BlockAction>().ActivateLaunch();
         }
@@ -525,7 +535,7 @@ public class PlayerMovement : MonoBehaviour
             c.b = 0;
             c.g = 0;
         }
-        
+
         _momentumBuffer.Clear();
 
         source.PlayOneShot(wallJump);
@@ -633,6 +643,7 @@ public class PlayerMovement : MonoBehaviour
 
         var speed = jumpHeight;
         if (_momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed) speed += _momentumBuffer[0].y;
+
         Accelerate(new Vector3(0, 1, 0), speed, jumpHeight);
 
         if (IsGrounded)

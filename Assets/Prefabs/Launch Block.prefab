@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 3544075874744654137}
   m_Layer: 0
   m_Name: Launch Block
-  m_TagString: Untagged
+  m_TagString: Launch Block
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -122,7 +122,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   particle: {fileID: 0}
-  rotate: 0
+  doesRotate: 0
   breakOnHit: 0
   sound: {fileID: 0}
+  direction: {x: 0, y: 0, z: 0}
+  maxSpeed: 30
   action: 3

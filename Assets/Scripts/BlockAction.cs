@@ -10,9 +10,8 @@ public class BlockAction : MonoBehaviour
     public bool breakOnHit;
     public AudioSource sound;
 
-    public Vector3 move;
-    public Vector3 rotate;
-    public float time;
+    public Vector3 direction;
+    public float maxSpeed = 30;
 
     public enum Action
     {
@@ -24,11 +23,12 @@ public class BlockAction : MonoBehaviour
 
     public Action action;
 
-    private bool _shoving;
+    public bool Shoving { get; set; }
+    public bool IsAtApex { get; set; }
     private float _shoveTime;
     private Rigidbody _rigidbody;
     private Vector3 _beforePosition;
-    private Vector3 _beforeRotation;
+    private float _speed;
 
     private void Start()
     {
@@ -42,38 +42,44 @@ public class BlockAction : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (_shoving)
+        if (!Shoving) return;
+        const float time = 0.5f;
+        var max = maxSpeed * Time.fixedDeltaTime;
+        if (_shoveTime <= 0)
         {
-            if (_shoveTime <= 0)
-            {
-                var trans = transform;
-                _beforePosition = trans.position;
-                _beforeRotation = trans.rotation.eulerAngles;
-            }
-
-            _shoveTime += Time.fixedDeltaTime;
-            if (_shoveTime > time * 2)
-            {
-                _shoving = false;
-                _shoveTime = 0;
-            }
-
-            var correctedTime = _shoveTime / time;
-
-            var factor = correctedTime * correctedTime * correctedTime * correctedTime * correctedTime;
-            if (_shoveTime > time) factor = 1 - (_shoveTime - time) / time;
-
-            var toPosition = Vector3.Lerp(_beforePosition, _beforePosition + move, factor);
-            var toRotation = Vector3.Lerp(_beforeRotation, _beforeRotation + rotate, factor);
-
-            _rigidbody.MoveRotation(Quaternion.Euler(toRotation));
-            _rigidbody.MovePosition(toPosition);
+            var trans = transform;
+            _beforePosition = trans.position;
+            _speed = 0;
         }
+
+        _shoveTime += Time.fixedDeltaTime;
+
+        if (_speed < max) _speed += Time.fixedDeltaTime * Mathf.Pow(_shoveTime / time, 2) * 14;
+        if (_speed > max) _speed = max;
+
+        var position = _rigidbody.position;
+        IsAtApex = false;
+        if (_shoveTime < time)
+        {
+            _rigidbody.MovePosition(position + direction.normalized * _speed);
+        }
+        else if (_shoveTime > time * 2)
+        {
+            _rigidbody.MovePosition(Vector3.Lerp(position, _beforePosition, (_shoveTime - time * 2) / time));
+        }
+        else
+        {
+            IsAtApex = true;
+        }
+
+        if (!(_shoveTime > time * 3)) return;
+        Shoving = false;
+        _shoveTime = 0;
     }
 
     public void ActivateLaunch()
     {
-        _shoving = true;
+        Shoving = true;
     }
 
     public void Hit(RaycastHit hit)
