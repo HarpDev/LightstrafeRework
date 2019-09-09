@@ -79,7 +79,11 @@ public class BlockAction : MonoBehaviour
 
     public void ActivateLaunch()
     {
+        if (Shoving) return;
         Shoving = true;
+
+        if (sound != null) sound.Play();
+        if (particle != null) particle.Play();
     }
 
     public void Hit(RaycastHit hit)
@@ -96,7 +100,7 @@ public class BlockAction : MonoBehaviour
                 Game.I.Player.AttachGrapple(hit.point);
                 break;
             case Action.Shove:
-                ActivateLaunch();
+                Shoving = true;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

@@ -16,7 +16,6 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 cameraPosition;
 
     /* Movement Stuff */
-    public bool movementEnabled = true;
     public float deceleration = 10f;
     public float friction = 3f;
     public float runAcceleration = 6f;
@@ -71,7 +70,7 @@ public class PlayerMovement : MonoBehaviour
     private bool _groundLock;
     private bool _approachingWall;
     private float _approachingWallDistance;
-    private float _groundTimer;
+    private int _groundTimestamp;
     private int _bounceTimestamp;
     private Collider _currentWall;
     private int _wallTickCount;
@@ -104,7 +103,10 @@ public class PlayerMovement : MonoBehaviour
         get { return Input.GetAxis("Slide") > 0; }
     }
 
-    public bool IsGrounded { get; private set; }
+    public bool IsGrounded
+    {
+        get { return Environment.TickCount - _groundTimestamp < 100; }
+    }
 
     public bool IsOnWall { get; set; }
 
@@ -196,7 +198,6 @@ public class PlayerMovement : MonoBehaviour
         camera.transform.position = InterpolatedPosition + position;
 
         WallLean(0.3f, Time.deltaTime);
-        if (!IsSliding) _slideLeanVector = velocity;
 
         if ((!IsSliding || !IsGrounded) && !IsOnWall)
             CameraRotation = Mathf.Lerp(CameraRotation, 0, Time.deltaTime * 6);
@@ -219,19 +220,11 @@ public class PlayerMovement : MonoBehaviour
 
         Gravity(factor);
 
-        if (GrappleHooked)
-            GrappleMove(factor);
-        else if (IsOnWall)
-            WallMove(factor);
-        else if (IsGrounded)
-        {
-            if (IsSliding)
-                SlideMove(factor);
-            else
-                GroundMove(factor);
-        }
-        else
-            AirMove(factor);
+        GrappleMove(factor);
+        WallMove(factor);
+        SlideMove(factor);
+        GroundMove(factor);
+        AirMove(factor);
 
         Jump();
         WallJump();
@@ -262,20 +255,20 @@ public class PlayerMovement : MonoBehaviour
         var difference = nextPosition - _previousPosition;
         if (rigidbody.SweepTest(difference.normalized, out hit, difference.magnitude))
         {
-            if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle) IsGrounded = true;
+            if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle) _groundTimestamp = Environment.TickCount;
             var projection = Vector3.Dot(velocity, -hit.normal);
             if (projection > 0)
             {
                 var impulse = hit.normal * (projection - 4f);
                 velocity += impulse;
             }
-            
-            nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor, nextPosition, hit.distance / difference.magnitude);
+
+            nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor, nextPosition,
+                hit.distance / difference.magnitude);
         }
 
         _previousCollision = null;
         rigidbody.MovePosition(nextPosition);
-        IsGrounded = false;
     }
 
     private void OnCollisionExit(Collision other)
@@ -307,7 +300,7 @@ public class PlayerMovement : MonoBehaviour
         var validCollision = false;
         foreach (var point in other.contacts)
         {
-            if (Vector3.Angle(Vector3.up, point.normal) < slopeAngle) IsGrounded = true;
+            if (Vector3.Angle(Vector3.up, point.normal) < slopeAngle) _groundTimestamp = Environment.TickCount;
             var projection = Vector3.Dot(velocity, -point.normal);
             if (projection <= 0) continue;
             validCollision = true;
@@ -446,7 +439,6 @@ public class PlayerMovement : MonoBehaviour
             {
                 IsOnWall = false;
                 gravityEnabled = true;
-                movementEnabled = true;
             }
         }
         else
@@ -494,6 +486,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void WallMove(float f)
     {
+        if (!IsOnWall) return;
         var point = _currentWall.ClosestPoint(InterpolatedPosition);
         var ycompare = point.y - InterpolatedPosition.y;
         var distance = (Flatten(point) - Flatten(InterpolatedPosition)).magnitude;
@@ -529,7 +522,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!IsOnWall) return;
         if (_jumpLock && Input.GetAxis("Jump") < Tolerance) _jumpLock = false;
-        if (_jumpLock || !movementEnabled) return;
+        if (_jumpLock) return;
 
         if (!(Input.GetAxis("Jump") > 0)) return;
         _jumpLock = true;
@@ -542,7 +535,7 @@ public class PlayerMovement : MonoBehaviour
         _wallJumpTimestamp = Environment.TickCount;
 
         var c = wallkickDisplay.color;
-        Accelerate(new Vector3(0, 1, 0), jumpHeight, 2);
+        Accelerate(new Vector3(0, 1, 0), IsSliding ? jumpHeight / 1.5f : jumpHeight, 2);
         if (_currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 0.2f);
 
         Accelerate(jumpDir, wallJumpSpeed, 0.2f);
@@ -593,32 +586,43 @@ public class PlayerMovement : MonoBehaviour
 
     public void GroundMove(float f)
     {
-        grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 16, 1), 2);
-        grindSound.volume = Mathf.Min(velocity.magnitude / 15, 1);
-        if (_groundTimer <= 0)
-            source.PlayOneShot(land);
-
-        _groundTimer += f;
-
+        if (!IsGrounded) return;
+        if (IsSliding) return;
         ApplyFriction(f);
-        if (!IsMoving || !movementEnabled) return;
+        if (!IsMoving) return;
 
         Accelerate(Wishdir, movementSpeed, runAcceleration * f);
     }
 
     public void SlideMove(float f)
     {
+        if (!IsSliding)
+        {
+            _slideLeanVector = velocity;
+            grindSound.volume = 0;
+            return;
+        }
+        if (!IsGrounded) return;
+        if (GrappleHooked) return;
+        if (IsOnWall) return;
+        if (grindSound.volume <= 0)
+        {
+            source.PlayOneShot(wallLand);
+        }
+        grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
+        grindSound.volume = Mathf.Min(velocity.magnitude / 10, 1);
+
         ApplyFriction(f / 12);
         _slideLeanVector = Vector3.Lerp(_slideLeanVector, velocity, f * 4);
         var projection = Vector3.Dot(Flatten(_slideLeanVector), camera.transform.right);
         CameraRotation = Mathf.Lerp(CameraRotation, projection * _crouchAmount, f * 12);
-        AirMove(f);
+        AirAccelerate(Wishdir, airAcceleration * f);
     }
 
     public void AirMove(float f)
     {
-        if (movementEnabled) grindSound.volume = 0;
-        _groundTimer = 0;
+        if (IsGrounded) return;
+        if (GrappleHooked) return;
         if (!IsMoving) return;
         var accel = _isSurfing ? surfAcceleration : airAcceleration;
         accel *= Mathf.Min((Environment.TickCount - _wallJumpTimestamp) / 1000f, 1);
@@ -654,7 +658,7 @@ public class PlayerMovement : MonoBehaviour
             var accelSpeed = accel * wishSpeed;
             if (accelSpeed > addSpeed)
                 accelSpeed = addSpeed;
-            if (movementEnabled) velocity += accelSpeed * Wishdir;
+            velocity += accelSpeed * Wishdir;
         }
     }
 
@@ -681,7 +685,7 @@ public class PlayerMovement : MonoBehaviour
         if (IsGrounded) DoubleJumpAvailable = true;
         if (_jumpLock && Input.GetAxis("Jump") < Tolerance) _jumpLock = false;
         if (_groundLock && Input.GetAxis("Jump") < Tolerance && IsGrounded) _groundLock = false;
-        if (_jumpLock || !movementEnabled) return;
+        if (_jumpLock) return;
 
         if (!(Input.GetAxis("Jump") > 0)) return;
         _jumpLock = true;
@@ -706,6 +710,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         grindSound.volume = 0;
+        _groundTimestamp = 0;
 
         var slam = HudMovement.RotationSlamVector;
         slam.y += 20;
