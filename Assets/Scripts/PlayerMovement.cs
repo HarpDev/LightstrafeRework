@@ -1,19 +1,17 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Experimental.GlobalIllumination;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
     private const float Tolerance = 0.05f;
     public new Rigidbody rigidbody;
-    public new Collider collider;
     public new Camera camera;
 
     public Vector3 cameraPosition;
+
+    public Vector3 velocity;
 
     /* Movement Stuff */
     public float deceleration = 10f;
@@ -22,19 +20,18 @@ public class PlayerMovement : MonoBehaviour
     public float airAcceleration = 60f;
     public float surfAcceleration = 900f;
     public float gravity = 0.5f;
-    public bool gravityEnabled = true;
     public float movementSpeed = 11;
     public float jumpHeight = 11f;
     public float fallSpeed = 40f;
-    public float wallFriction = 2f;
     public float wallSpeed = 20f;
-    public float wallJumpSpeed = 30f;
-    public int wallNoFrictionTicks = 1;
+    public float wallFriction = 0.5f;
+    public float wallJumpSpeed = 15f;
+    public float greenKickSpeed = 25f;
+    public int greenKickTicks = 2;
+    public float dashSpeed = 25f;
     public float grappleSwingForce = 25f;
     public float grappleDetachFrictionScale = 0.12f;
     public float slopeAngle = 45;
-
-    public Vector3 velocity;
 
     public Image wallkickDisplay;
 
@@ -45,7 +42,6 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip spring;
     public AudioClip jump;
     public AudioClip jumpair;
-    public AudioClip land;
     public AudioClip ding;
     public AudioClip wallLand;
     public AudioClip wallKick;
@@ -63,8 +59,6 @@ public class PlayerMovement : MonoBehaviour
     public float Pitch { get; set; }
     public float LookScale { get; set; }
 
-    public Vector2 startRotation;
-
     private bool _firstMove;
     private bool _jumpLock;
     private bool _groundLock;
@@ -75,15 +69,16 @@ public class PlayerMovement : MonoBehaviour
     private Collider _currentWall;
     private int _wallTickCount;
     private int _grappleAttachTimestamp;
-    private Vector3 _grappleAttachPosition;
+    private Transform _grappleAttachPosition;
     private Vector3 _previousPosition;
     private Collision _previousCollision;
     private Vector3 _previousCollisionLocalPosition;
     private Vector3 _slideLeanVector;
+    private Vector3 _dashVector;
     private float _motionInterpolationDelta;
     private float _crouchAmount;
     private bool _isSurfing;
-    private int _wallJumpTimestamp;
+    private float _dashTimer;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
 
     public static bool DoubleJumpAvailable { get; set; }
@@ -101,6 +96,11 @@ public class PlayerMovement : MonoBehaviour
     public static bool IsSliding
     {
         get { return Input.GetAxis("Slide") > 0; }
+    }
+
+    public bool IsDashing
+    {
+        get { return _dashVector.magnitude > 0; }
     }
 
     public bool IsGrounded
@@ -136,8 +136,7 @@ public class PlayerMovement : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        Yaw = startRotation.x;
-        Pitch = startRotation.y;
+        Yaw = transform.rotation.eulerAngles.y;
 
         wallkickDisplay.gameObject.SetActive(true);
         var c = wallkickDisplay.color;
@@ -174,9 +173,9 @@ public class PlayerMovement : MonoBehaviour
 
         Transform cam;
         (cam = camera.transform).rotation = Quaternion.Euler(new Vector3(Pitch, Yaw, CameraRotation));
-        CrosshairDirection = cam.forward;
         camera.transform.rotation =
             Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, Yaw, CameraRotation));
+        CrosshairDirection = cam.forward;
         rigidbody.transform.rotation = Quaternion.Euler(new Vector3(0, Yaw, 0));
 
         // Movement
@@ -209,11 +208,6 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnWall)
         {
             _wallTickCount++;
-            if (_wallTickCount == 4)
-            {
-                grindSound.volume = 1;
-                source.PlayOneShot(wallLand);
-            }
         }
 
         var factor = Time.fixedDeltaTime;
@@ -225,6 +219,7 @@ public class PlayerMovement : MonoBehaviour
         SlideMove(factor);
         GroundMove(factor);
         AirMove(factor);
+        DashMove(factor);
 
         Jump();
         WallJump();
@@ -287,7 +282,8 @@ public class PlayerMovement : MonoBehaviour
         if (other.collider.CompareTag("Launch Block"))
         {
             var blockAction = other.collider.gameObject.GetComponent<BlockAction>();
-            if (blockAction.IsAtApex) _momentumBuffer.Add(blockAction.maxSpeed * blockAction.direction.normalized);
+            if (blockAction.IsAtApex)
+                _momentumBuffer.Add(blockAction.maxSpeed * blockAction.direction.normalized + moved);
             else _momentumBuffer.Add(moved);
         }
         else _momentumBuffer.Add(moved);
@@ -343,32 +339,52 @@ public class PlayerMovement : MonoBehaviour
 
         _currentWall = other.collider;
         IsOnWall = true;
-        gravityEnabled = false;
     }
 
-    public void AttachGrapple(Vector3 point)
+    public void Dash(Vector3 direction)
+    {
+        _dashVector = direction.normalized;
+    }
+
+    public void DashMove(float f)
+    {
+        const float dashTime = 0.5f;
+        if (!IsDashing)
+        {
+            _dashTimer = 0;
+            return;
+        }
+
+        var factor = Mathf.Min(Mathf.Max(2 - _dashTimer / (dashTime / 2), 0), 1) + 1;
+
+        ApplyFriction(f * 4);
+        Accelerate(_dashVector.normalized, dashSpeed * factor, 100);
+
+        if (_dashTimer > dashTime) _dashVector = new Vector3();
+        _dashTimer += f;
+    }
+
+    public void AttachGrapple(Transform position)
     {
         if (!enabled) return;
         source.PlayOneShot(grappleAttach);
         Game.I.Hitmarker.Display();
         if (GrappleHooked) return;
-        if (Vector3.Distance(point, transform.position) > maxGrappleDistance) return;
-        _grappleAttachPosition = point;
+        if (Vector3.Distance(position.position, transform.position) > maxGrappleDistance) return;
+        _grappleAttachPosition = position;
         GrappleHooked = true;
-        gravityEnabled = false;
         DoubleJumpAvailable = true;
         grappleTether.enabled = true;
         _grappleAttachTimestamp = Environment.TickCount;
         grappleDuring.volume = 1;
 
-        var towardPoint = (_grappleAttachPosition - transform.position).normalized;
+        var towardPoint = (_grappleAttachPosition.position - transform.position).normalized;
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         velocity -= towardPoint * yankProjection;
     }
 
     public void DetachGrapple()
     {
-        gravityEnabled = true;
         if (GrappleHooked) GrappleHooked = false;
         if (grappleTether.enabled) grappleTether.enabled = false;
         ApplyFriction(grappleDetachFrictionScale);
@@ -382,7 +398,7 @@ public class PlayerMovement : MonoBehaviour
         var camTrans = camera.transform;
 
         var list = new List<Vector3>
-            {new Vector3(0, grappleYOffset, 0), camTrans.InverseTransformPoint(_grappleAttachPosition)};
+            {new Vector3(0, grappleYOffset, 0), camTrans.InverseTransformPoint(_grappleAttachPosition.position)};
 
         grappleTether.positionCount = list.Count;
         grappleTether.SetPositions(list.ToArray());
@@ -391,7 +407,7 @@ public class PlayerMovement : MonoBehaviour
 
         camTrans.localPosition = new Vector3();
 
-        var towardPoint = (_grappleAttachPosition - camTrans.position).normalized;
+        var towardPoint = (_grappleAttachPosition.position - camTrans.position).normalized;
 
         var forward = camTrans.forward;
         var projection = Vector3.Dot(forward, towardPoint);
@@ -399,7 +415,7 @@ public class PlayerMovement : MonoBehaviour
 
         var velocityProjection = Mathf.Abs(Vector3.Dot(velocity, camTrans.right));
 
-        var relativePoint = transform.InverseTransformPoint(_grappleAttachPosition);
+        var relativePoint = transform.InverseTransformPoint(_grappleAttachPosition.position);
 
         var value = Mathf.Atan2(relativePoint.z, relativePoint.x) * Mathf.Rad2Deg;
         value = Mathf.Abs(value);
@@ -438,7 +454,6 @@ public class PlayerMovement : MonoBehaviour
             catch (Exception)
             {
                 IsOnWall = false;
-                gravityEnabled = true;
             }
         }
         else
@@ -487,6 +502,7 @@ public class PlayerMovement : MonoBehaviour
     public void WallMove(float f)
     {
         if (!IsOnWall) return;
+        if (IsDashing) return;
         var point = _currentWall.ClosestPoint(InterpolatedPosition);
         var ycompare = point.y - InterpolatedPosition.y;
         var distance = (Flatten(point) - Flatten(InterpolatedPosition)).magnitude;
@@ -494,7 +510,6 @@ public class PlayerMovement : MonoBehaviour
         if (ycompare < -0.9f || ycompare > 0 || distance > 0.5f * 2)
         {
             IsOnWall = false;
-            gravityEnabled = true;
 
             grindSound.volume = 0;
             _wallTickCount = -1;
@@ -507,11 +522,24 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            if (_wallTickCount > wallNoFrictionTicks) ApplyFriction(wallFriction * f);
+            var speed = velocity.magnitude;
+            var control = speed < deceleration ? deceleration : speed;
+            var drop = control * friction * f;
+
+            var newspeed = speed - drop;
+            if (newspeed < 0)
+                newspeed = 0;
+            if (speed > 0)
+                newspeed /= speed;
+
+            velocity.y *= newspeed;
+
+            ApplyFriction(wallFriction * f);
+
             var towardWall = Flatten(point - InterpolatedPosition).normalized;
 
             if (_wallTickCount == 1) Accelerate(new Vector3(0, 1, 0), 2, 4);
-            Accelerate(towardWall, 1, 1 * f);
+            Accelerate(towardWall, 4, 1 * f);
             Accelerate(Flatten(velocity).normalized, wallSpeed, runAcceleration * f);
         }
 
@@ -529,44 +557,40 @@ public class PlayerMovement : MonoBehaviour
 
         var position = transform.position;
         var point = _currentWall.ClosestPoint(position);
-        var jumpDir = Flatten(position - point).normalized;
+        var awayDir = Flatten(position - point).normalized;
         IsOnWall = false;
-        gravityEnabled = true;
-        _wallJumpTimestamp = Environment.TickCount;
 
         var c = wallkickDisplay.color;
         Accelerate(new Vector3(0, 1, 0), IsSliding ? jumpHeight / 1.5f : jumpHeight, 2);
         if (_currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 0.2f);
 
-        Accelerate(jumpDir, wallJumpSpeed, 0.2f);
+        var x = velocity.x + 0.2f * 15 * awayDir.x;
+        var z = velocity.z + 0.2f * 15 * awayDir.z;
+        var jumpDir = new Vector3(x, 0, z).normalized;
+
+        var newDir = Flatten(velocity).magnitude * jumpDir;
+        velocity.x = newDir.x;
+        velocity.z = newDir.z;
+
         DoubleJumpAvailable = true;
 
-        if (_wallTickCount <= 1)
+        if (IsDashing)
         {
-            Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 2f, 0.07f);
+            _dashVector = new Vector3();
+        }
+
+        if (_wallTickCount <= greenKickTicks)
+        {
+            velocity += jumpDir * greenKickSpeed;
             source.PlayOneShot(wallKick);
             c.a = 1;
             c.r = 0;
             c.b = 0;
             c.g = 1;
         }
-        else if (_wallTickCount == 2)
+        else
         {
-            Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.8f, 0.07f);
-            source.PlayOneShot(wallKick);
-            c.a = 1;
-            c.r = 1;
-            c.b = 0;
-            c.g = 1;
-        }
-        else if (_wallTickCount == 3)
-        {
-            Accelerate(Flatten(velocity).normalized, wallJumpSpeed * 1.6f, 0.08f);
-            source.PlayOneShot(wallKick);
-            c.a = 1;
-            c.r = 1;
-            c.b = 0;
-            c.g = 0;
+            velocity += jumpDir * wallJumpSpeed;
         }
 
         _momentumBuffer.Clear();
@@ -580,13 +604,16 @@ public class PlayerMovement : MonoBehaviour
 
     public void Gravity(float f)
     {
-        if (!gravityEnabled) return;
+        if (IsOnWall) return;
+        if (GrappleHooked) return;
+        if (IsDashing) return;
         Accelerate(new Vector3(0, -1, 0), fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
     {
         if (!IsGrounded) return;
+        if (IsDashing) return;
         if (IsSliding) return;
         ApplyFriction(f);
         if (!IsMoving) return;
@@ -596,19 +623,18 @@ public class PlayerMovement : MonoBehaviour
 
     public void SlideMove(float f)
     {
-        if (!IsSliding)
+        if (!IsGrounded)
         {
             _slideLeanVector = velocity;
             grindSound.volume = 0;
             return;
         }
-        if (!IsGrounded) return;
+
+        if (!IsSliding) return;
         if (GrappleHooked) return;
         if (IsOnWall) return;
-        if (grindSound.volume <= 0)
-        {
-            source.PlayOneShot(wallLand);
-        }
+
+        if (grindSound.volume <= 0) source.PlayOneShot(wallLand);
         grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
         grindSound.volume = Mathf.Min(velocity.magnitude / 10, 1);
 
@@ -625,7 +651,6 @@ public class PlayerMovement : MonoBehaviour
         if (GrappleHooked) return;
         if (!IsMoving) return;
         var accel = _isSurfing ? surfAcceleration : airAcceleration;
-        accel *= Mathf.Min((Environment.TickCount - _wallJumpTimestamp) / 1000f, 1);
         AirAccelerate(Wishdir, accel * f);
     }
 
@@ -708,6 +733,8 @@ public class PlayerMovement : MonoBehaviour
             source.PlayOneShot(jumpair);
             AirAccelerate(Wishdir, 5);
         }
+
+        if (IsDashing) _dashVector = new Vector3();
 
         grindSound.volume = 0;
         _groundTimestamp = 0;

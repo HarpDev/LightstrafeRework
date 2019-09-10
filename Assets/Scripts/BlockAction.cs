@@ -29,6 +29,7 @@ public class BlockAction : MonoBehaviour
     private Rigidbody _rigidbody;
     private Vector3 _beforePosition;
     private float _speed;
+    private bool _apexFrameDelay;
 
     private void Start()
     {
@@ -61,6 +62,7 @@ public class BlockAction : MonoBehaviour
         IsAtApex = false;
         if (_shoveTime < time)
         {
+            _apexFrameDelay = false;
             _rigidbody.MovePosition(position + direction.normalized * _speed);
         }
         else if (_shoveTime > time * 2)
@@ -69,7 +71,10 @@ public class BlockAction : MonoBehaviour
         }
         else
         {
-            IsAtApex = true;
+            if (!_apexFrameDelay)
+                _apexFrameDelay = true;
+            else
+                IsAtApex = true;
         }
 
         if (!(_shoveTime > time * 3)) return;
@@ -97,7 +102,7 @@ public class BlockAction : MonoBehaviour
                 PlayerMovement.DoubleJumpAvailable = true;
                 break;
             case Action.Grapple:
-                Game.I.Player.AttachGrapple(hit.point);
+                Game.I.Player.AttachGrapple(hit.transform);
                 break;
             case Action.Shove:
                 Shoving = true;

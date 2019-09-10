@@ -7,8 +7,7 @@ public class Bow : MonoBehaviour
 {
     public GameObject top;
     public GameObject bottom;
-    public Arrow arrowPrefab;
-    public Arrow arrowModel;
+    public Arrow arrow;
     public PlayerMovement player;
 
     public LineRenderer bowString;
@@ -23,6 +22,7 @@ public class Bow : MonoBehaviour
     public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
 
     private float _lerpSpeed = 20;
+    private int _availableArrows = 1;
 
     public float Drawback { get; set; }
 
@@ -50,13 +50,22 @@ public class Bow : MonoBehaviour
             c.b = 0;
         }
 
+        if (_availableArrows > 0)
+        {
+            if (!arrow.model.activeSelf) arrow.model.SetActive(true);
+        }
+        else
+        {
+            if (arrow.model.activeSelf) arrow.model.SetActive(false);
+        }
+
         m.color = c;
         _mesh.sharedMaterial = m;
 
         var list = new List<Vector3> {top.transform.localPosition};
 
         var trans = transform;
-        var activeTrans = arrowModel.transform;
+        var activeTrans = arrow.transform;
         var position = trans.position;
         var ease = Drawback < .5
             ? 4 * Drawback * Drawback * Drawback
@@ -65,7 +74,7 @@ public class Bow : MonoBehaviour
                                trans.forward * boltPosition.y + trans.right * boltPosition.x;
         activeTrans.rotation = trans.rotation;
 
-        var relative = transform.InverseTransformPoint(arrowModel.nockPosition.position);
+        var relative = transform.InverseTransformPoint(arrow.nockPosition.position);
         list.Add(relative);
 
         list.Add(bottom.transform.localPosition);
@@ -89,6 +98,7 @@ public class Bow : MonoBehaviour
             bowAngle -= ease * 65;
             bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
         }
+
         transform.localRotation = Quaternion.Lerp(transform.localRotation,
             Quaternion.Euler(new Vector3(90 - bowAngle, -90, -90)), Time.deltaTime * _lerpSpeed);
 
@@ -116,28 +126,41 @@ public class Bow : MonoBehaviour
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector / 12;
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);
-        if (Input.GetAxis("Fire1") > 0)
+        if (Input.GetAxis("Fire1") > 0 && _availableArrows > 0)
         {
             if (Drawback < 1)
             {
                 Drawback += Time.deltaTime;
             }
         }
-        else if (Drawback > 0)
+        else if (Drawback >= 0.8f)
         {
             Fire(player.camera.transform.position, player.CrosshairDirection);
+        }
+        else
+        {
+            if (Drawback > 0)
+            {
+                Drawback -= Time.deltaTime;
+            }
         }
     }
 
     public void Fire(Vector3 from, Vector3 vel)
     {
-        var arrow = Instantiate(arrowPrefab.gameObject).GetComponent<Arrow>();
-        arrow.transform.localScale = new Vector3(1, 1, 1);
-        arrow.Fire(Quaternion.LookRotation(vel), Drawback * 150 * vel);
-        arrow.transform.position = from;
-        arrow.FiredVelocity = Flatten(player.velocity).magnitude;
-
+        _availableArrows--;
+        var shot = Instantiate(arrow.gameObject).GetComponent<Arrow>();
+        shot.transform.localScale = new Vector3(1, 1, 1);
+        shot.Fire(Quaternion.LookRotation(vel), Drawback * 100 * vel);
+        shot.transform.position = from;
+        shot.FiredVelocity = Flatten(player.velocity).magnitude;
         Drawback = 0;
+        Invoke("GiveArrow", 1);
+    }
+
+    public void GiveArrow()
+    {
+        _availableArrows++;
     }
 
     private static Vector3 Flatten(Vector3 vec)

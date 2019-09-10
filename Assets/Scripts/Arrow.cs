@@ -20,6 +20,7 @@ public class Arrow : MonoBehaviour
     public float FiredVelocity { get; set; }
 
     private Vector3 _prevPosition;
+    private Transform _hitTransform;
 
     private void Start()
     {
@@ -28,6 +29,11 @@ public class Arrow : MonoBehaviour
 
     private void Update()
     {
+        if (Hit)
+        {
+            if (_hitTransform.hasChanged) model.GetComponent<MeshRenderer>().enabled = false;
+            return;
+        }
         if (Fired && !Hit)
             transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(rigidbody.velocity),
                 Time.deltaTime * 10);
@@ -59,8 +65,12 @@ public class Arrow : MonoBehaviour
         if (!Fired) return;
         transform.position = hit.point;
         Hit = true;
+        _hitTransform = hit.transform;
+        _hitTransform.hasChanged = false;
         GetComponent<Rigidbody>().isKinematic = true;
         var action = hit.collider.gameObject.GetComponent<BlockAction>();
         if (action != null) action.Hit(hit);
+        var kill = hit.collider.gameObject.GetComponent<KillBlock>();
+        if (kill != null) kill.Hit();
     }
 }
