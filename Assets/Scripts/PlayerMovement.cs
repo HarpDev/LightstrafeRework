@@ -8,9 +8,9 @@ public class PlayerMovement : MonoBehaviour
     private const float Tolerance = 0.05f;
     public new Rigidbody rigidbody;
     public new Camera camera;
+    public Slider dashCharge;
 
     public Vector3 cameraPosition;
-
     public Vector3 velocity;
 
     /* Movement Stuff */
@@ -79,6 +79,7 @@ public class PlayerMovement : MonoBehaviour
     private float _crouchAmount;
     private bool _isSurfing;
     private float _dashTimer;
+    private bool _dashLock;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
 
     public static bool DoubleJumpAvailable { get; set; }
@@ -160,6 +161,16 @@ public class PlayerMovement : MonoBehaviour
             Game.StartTimer();
         }
 
+        if (Input.GetAxis("Dash") > 0)
+        {
+            if (!_dashLock)
+            {
+                _dashLock = true;
+                Dash(Wishdir);
+            }
+        }
+        else _dashLock = false;
+
         // Wallkick display fade out
         var c = wallkickDisplay.color;
         if (c.a > 0) c.a -= Time.deltaTime;
@@ -198,7 +209,7 @@ public class PlayerMovement : MonoBehaviour
 
         WallLean(0.3f, Time.deltaTime);
 
-        if ((!IsSliding || !IsGrounded) && !IsOnWall)
+        if ((!IsSliding || !IsGrounded) && !IsOnWall && !IsDashing)
             CameraRotation = Mathf.Lerp(CameraRotation, 0, Time.deltaTime * 6);
     }
 
@@ -250,16 +261,19 @@ public class PlayerMovement : MonoBehaviour
         var difference = nextPosition - _previousPosition;
         if (rigidbody.SweepTest(difference.normalized, out hit, difference.magnitude))
         {
-            if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle) _groundTimestamp = Environment.TickCount;
-            var projection = Vector3.Dot(velocity, -hit.normal);
-            if (projection > 0)
+            if (!hit.collider.isTrigger)
             {
-                var impulse = hit.normal * (projection - 4f);
-                velocity += impulse;
-            }
+                if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle) _groundTimestamp = Environment.TickCount;
+                var projection = Vector3.Dot(velocity, -hit.normal);
+                if (projection > 0)
+                {
+                    var impulse = hit.normal * (projection - 4f);
+                    velocity += impulse;
+                }
 
-            nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor, nextPosition,
-                hit.distance / difference.magnitude);
+                nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor, nextPosition,
+                    hit.distance / difference.magnitude);
+            }
         }
 
         _previousCollision = null;
@@ -302,21 +316,12 @@ public class PlayerMovement : MonoBehaviour
             validCollision = true;
             var impulse = point.normal * projection;
             velocity += impulse;
+            if (IsDashing) _dashVector = velocity.normalized;
         }
 
         if (!validCollision) return;
 
-        DoubleJumpAvailable = true;
-
-        if (other.collider.CompareTag("Bounce Block"))
-        {
-            if (Environment.TickCount - _bounceTimestamp <= 1000) return;
-            _bounceTimestamp = Environment.TickCount;
-            Accelerate(new Vector3(0, 1, 0), 26, 26);
-            DoubleJumpAvailable = true;
-            source.PlayOneShot(spring);
-        }
-        else if (other.collider.CompareTag("Kill Block"))
+        if (other.collider.CompareTag("Kill Block"))
         {
             Game.RestartLevel();
         }
@@ -343,7 +348,9 @@ public class PlayerMovement : MonoBehaviour
 
     public void Dash(Vector3 direction)
     {
-        _dashVector = direction.normalized;
+        if (dashCharge.value < 1) return;
+        dashCharge.value = 0;
+        _dashVector = Flatten(direction).normalized;
     }
 
     public void DashMove(float f)
@@ -355,13 +362,21 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        var factor = Mathf.Min(Mathf.Max(2 - _dashTimer / (dashTime / 2), 0), 1) + 1;
+        var factor = 1 - Mathf.Min(_dashTimer / dashTime, 1) + 1;
 
-        ApplyFriction(f * 4);
-        Accelerate(_dashVector.normalized, dashSpeed * factor, 100);
+        velocity = factor * dashSpeed * _dashVector;
+
+        var projection = Vector3.Dot(Flatten(velocity), camera.transform.right) / 2f;
+        CameraRotation = Mathf.Lerp(CameraRotation, projection, f * 12);
 
         if (_dashTimer > dashTime) _dashVector = new Vector3();
         _dashTimer += f;
+    }
+
+    public void CancelDash(Vector3 direction)
+    {
+        velocity = dashSpeed * direction.normalized;
+        _dashVector = new Vector3();
     }
 
     public void AttachGrapple(Transform position)
@@ -576,12 +591,12 @@ public class PlayerMovement : MonoBehaviour
 
         if (IsDashing)
         {
-            _dashVector = new Vector3();
+            CancelDash(velocity);
         }
 
         if (_wallTickCount <= greenKickTicks)
         {
-            velocity += jumpDir * greenKickSpeed;
+            Accelerate(jumpDir, greenKickSpeed, 1);
             source.PlayOneShot(wallKick);
             c.a = 1;
             c.r = 0;
@@ -590,7 +605,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            velocity += jumpDir * wallJumpSpeed;
+            Accelerate(jumpDir, wallJumpSpeed, 1);
         }
 
         _momentumBuffer.Clear();
@@ -720,7 +735,9 @@ public class PlayerMovement : MonoBehaviour
         var speed = jumpHeight;
         if (_momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed) speed += _momentumBuffer[0].y;
 
-        Accelerate(new Vector3(0, 1, 0), speed, jumpHeight);
+
+        if (IsDashing) _dashVector.y += 0.5f;
+        else Accelerate(new Vector3(0, 1, 0), speed, jumpHeight);
 
         if (IsGrounded)
         {
@@ -733,8 +750,6 @@ public class PlayerMovement : MonoBehaviour
             source.PlayOneShot(jumpair);
             AirAccelerate(Wishdir, 5);
         }
-
-        if (IsDashing) _dashVector = new Vector3();
 
         grindSound.volume = 0;
         _groundTimestamp = 0;

@@ -5,7 +5,7 @@ using UnityEngine;
 public class KillBlock : MonoBehaviour
 {
     public Transform to;
-    
+
     public bool IsHit { get; private set; }
 
     private Vector3 _toPosition;
@@ -22,6 +22,8 @@ public class KillBlock : MonoBehaviour
     public void Hit()
     {
         if (IsHit) return;
+        if (Game.I.Player.dashCharge.value < 1)
+            Game.I.Player.dashCharge.value += 0.5f;
         IsHit = true;
         _toPosition = to.position;
         _toRotation = to.rotation;
