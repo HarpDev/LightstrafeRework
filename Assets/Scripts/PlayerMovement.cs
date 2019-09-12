@@ -8,7 +8,6 @@ public class PlayerMovement : MonoBehaviour
     private const float Tolerance = 0.05f;
     public new Rigidbody rigidbody;
     public new Camera camera;
-    public Slider dashCharge;
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
@@ -79,7 +78,6 @@ public class PlayerMovement : MonoBehaviour
     private float _crouchAmount;
     private bool _isSurfing;
     private float _dashTimer;
-    private bool _dashLock;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
 
     public static bool DoubleJumpAvailable { get; set; }
@@ -160,16 +158,6 @@ public class PlayerMovement : MonoBehaviour
             _firstMove = true;
             Game.StartTimer();
         }
-
-        if (Input.GetAxis("Dash") > 0)
-        {
-            if (!_dashLock)
-            {
-                _dashLock = true;
-                Dash(Wishdir);
-            }
-        }
-        else _dashLock = false;
 
         // Wallkick display fade out
         var c = wallkickDisplay.color;
@@ -348,8 +336,6 @@ public class PlayerMovement : MonoBehaviour
 
     public void Dash(Vector3 direction)
     {
-        if (dashCharge.value < 1) return;
-        dashCharge.value = 0;
         _dashVector = Flatten(direction).normalized;
     }
 
@@ -388,7 +374,6 @@ public class PlayerMovement : MonoBehaviour
         if (Vector3.Distance(position.position, transform.position) > maxGrappleDistance) return;
         _grappleAttachPosition = position;
         GrappleHooked = true;
-        DoubleJumpAvailable = true;
         grappleTether.enabled = true;
         _grappleAttachTimestamp = Environment.TickCount;
         grappleDuring.volume = 1;
@@ -530,6 +515,8 @@ public class PlayerMovement : MonoBehaviour
             _wallTickCount = -1;
             return;
         }
+        
+        DoubleJumpAvailable = true;
 
         if (_currentWall.CompareTag("Launch Wall"))
         {
@@ -554,11 +541,9 @@ public class PlayerMovement : MonoBehaviour
             var towardWall = Flatten(point - InterpolatedPosition).normalized;
 
             if (_wallTickCount == 1) Accelerate(new Vector3(0, 1, 0), 2, 4);
-            Accelerate(towardWall, 4, 1 * f);
+            Accelerate(towardWall, 4, 10 * f);
             Accelerate(Flatten(velocity).normalized, wallSpeed, runAcceleration * f);
         }
-
-        DoubleJumpAvailable = true;
     }
 
     public void WallJump()
@@ -586,8 +571,6 @@ public class PlayerMovement : MonoBehaviour
         var newDir = Flatten(velocity).magnitude * jumpDir;
         velocity.x = newDir.x;
         velocity.z = newDir.z;
-
-        DoubleJumpAvailable = true;
 
         if (IsDashing)
         {
@@ -631,6 +614,7 @@ public class PlayerMovement : MonoBehaviour
         if (IsDashing) return;
         if (IsSliding) return;
         ApplyFriction(f);
+        DoubleJumpAvailable = true;
         if (!IsMoving) return;
 
         Accelerate(Wishdir, movementSpeed, runAcceleration * f);
@@ -652,6 +636,7 @@ public class PlayerMovement : MonoBehaviour
         if (grindSound.volume <= 0) source.PlayOneShot(wallLand);
         grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
         grindSound.volume = Mathf.Min(velocity.magnitude / 10, 1);
+        DoubleJumpAvailable = true;
 
         ApplyFriction(f / 12);
         _slideLeanVector = Vector3.Lerp(_slideLeanVector, velocity, f * 4);
@@ -664,6 +649,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (IsGrounded) return;
         if (GrappleHooked) return;
+        if (IsOnWall) return;
         if (!IsMoving) return;
         var accel = _isSurfing ? surfAcceleration : airAcceleration;
         AirAccelerate(Wishdir, accel * f);
@@ -722,7 +708,6 @@ public class PlayerMovement : MonoBehaviour
     public void Jump()
     {
         if (IsOnWall) return;
-        if (IsGrounded) DoubleJumpAvailable = true;
         if (_jumpLock && Input.GetAxis("Jump") < Tolerance) _jumpLock = false;
         if (_groundLock && Input.GetAxis("Jump") < Tolerance && IsGrounded) _groundLock = false;
         if (_jumpLock) return;
