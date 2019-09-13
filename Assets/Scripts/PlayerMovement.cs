@@ -60,7 +60,6 @@ public class PlayerMovement : MonoBehaviour
 
     private bool _firstMove;
     private bool _jumpLock;
-    private bool _groundLock;
     private bool _approachingWall;
     private float _approachingWallDistance;
     private int _groundTimestamp;
@@ -159,6 +158,19 @@ public class PlayerMovement : MonoBehaviour
             Game.StartTimer();
         }
 
+        if (Input.GetAxis("Jump") > 0)
+        {
+            if (!_jumpLock)
+            {
+                _jumpLock = true;
+                if (IsOnWall)
+                    WallJump();
+                else
+                    Jump();
+            }
+        }
+        else if (_jumpLock) _jumpLock = false;
+
         // Wallkick display fade out
         var c = wallkickDisplay.color;
         if (c.a > 0) c.a -= Time.deltaTime;
@@ -219,9 +231,6 @@ public class PlayerMovement : MonoBehaviour
         GroundMove(factor);
         AirMove(factor);
         DashMove(factor);
-
-        Jump();
-        WallJump();
 
         _motionInterpolationDelta = 0;
         _isSurfing = false;
@@ -515,7 +524,7 @@ public class PlayerMovement : MonoBehaviour
             _wallTickCount = -1;
             return;
         }
-        
+
         DoubleJumpAvailable = true;
 
         if (_currentWall.CompareTag("Launch Wall"))
@@ -549,11 +558,6 @@ public class PlayerMovement : MonoBehaviour
     public void WallJump()
     {
         if (!IsOnWall) return;
-        if (_jumpLock && Input.GetAxis("Jump") < Tolerance) _jumpLock = false;
-        if (_jumpLock) return;
-
-        if (!(Input.GetAxis("Jump") > 0)) return;
-        _jumpLock = true;
 
         var position = transform.position;
         var point = _currentWall.ClosestPoint(position);
@@ -571,6 +575,8 @@ public class PlayerMovement : MonoBehaviour
         var newDir = Flatten(velocity).magnitude * jumpDir;
         velocity.x = newDir.x;
         velocity.z = newDir.z;
+
+        DoubleJumpAvailable = true;
 
         if (IsDashing)
         {
@@ -708,13 +714,7 @@ public class PlayerMovement : MonoBehaviour
     public void Jump()
     {
         if (IsOnWall) return;
-        if (_jumpLock && Input.GetAxis("Jump") < Tolerance) _jumpLock = false;
-        if (_groundLock && Input.GetAxis("Jump") < Tolerance && IsGrounded) _groundLock = false;
-        if (_jumpLock) return;
 
-        if (!(Input.GetAxis("Jump") > 0)) return;
-        _jumpLock = true;
-        if (IsGrounded && _groundLock) return;
         if (!IsGrounded && !DoubleJumpAvailable) return;
 
         var speed = jumpHeight;
@@ -726,7 +726,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (IsGrounded)
         {
-            _groundLock = true;
             source.PlayOneShot(jump);
         }
         else
