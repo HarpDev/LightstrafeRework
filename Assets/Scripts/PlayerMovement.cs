@@ -669,7 +669,7 @@ public class PlayerMovement : MonoBehaviour
         if (GrappleHooked) return;
         if (IsOnWall) return;
 
-        if (Flatten(velocity).magnitude > greenKickSpeed)
+        if (Flatten(velocity).magnitude > greenKickSpeed && !_isSurfing)
         {
             var speed = velocity.magnitude;
             var control = speed < deceleration ? deceleration : speed;
