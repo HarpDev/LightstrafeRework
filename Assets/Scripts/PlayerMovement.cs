@@ -8,6 +8,7 @@ public class PlayerMovement : MonoBehaviour
     private const float Tolerance = 0.05f;
     public new Rigidbody rigidbody;
     public new Camera camera;
+    public Text multiplierText;
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
@@ -66,6 +67,7 @@ public class PlayerMovement : MonoBehaviour
     private int _bounceTimestamp;
     private Collider _currentWall;
     private int _wallTickCount;
+    private int _wallKickCounter;
     private int _grappleAttachTimestamp;
     private Transform _grappleAttachPosition;
     private Vector3 _previousPosition;
@@ -209,6 +211,12 @@ public class PlayerMovement : MonoBehaviour
 
         WallLean(0.3f, Time.deltaTime);
 
+        if (_wallKickCounter == 0)
+            multiplierText.text = "";
+        else
+            multiplierText.text = "x" + _wallKickCounter;
+        multiplierText.fontSize = _wallKickCounter * 2 + 50;
+
         if ((!IsSliding || !IsGrounded) && !IsOnWall && !IsDashing)
             CameraRotation = Mathf.Lerp(CameraRotation, 0, Time.deltaTime * 6);
     }
@@ -292,9 +300,9 @@ public class PlayerMovement : MonoBehaviour
         var moved = (rigidbody.transform.position - _previousPosition) / Time.fixedDeltaTime;
         if (other.collider.CompareTag("Launch Block"))
         {
-            var blockAction = other.collider.gameObject.GetComponent<BlockAction>();
-            if (blockAction.IsAtApex)
-                _momentumBuffer.Add(blockAction.maxSpeed * blockAction.direction.normalized + moved);
+            var launch = other.collider.gameObject.GetComponent<LaunchBlock>();
+            if (launch.IsAtApex)
+                _momentumBuffer.Add(launch.maxSpeed * launch.Direction.normalized + moved);
             else _momentumBuffer.Add(moved);
         }
         else _momentumBuffer.Add(moved);
@@ -324,7 +332,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (other.collider.CompareTag("Launch Block"))
         {
-            other.gameObject.GetComponent<BlockAction>().ActivateLaunch();
+            other.gameObject.GetComponent<LaunchBlock>().ActivateLaunch();
         }
 
         // Wall Grab
@@ -546,6 +554,8 @@ public class PlayerMovement : MonoBehaviour
             velocity.y *= newspeed;
 
             ApplyFriction(wallFriction * f);
+            if (_wallTickCount > greenKickTicks)
+                _wallKickCounter = 0;
 
             var towardWall = Flatten(point - InterpolatedPosition).normalized;
 
@@ -585,7 +595,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (_wallTickCount <= greenKickTicks)
         {
-            Accelerate(jumpDir, greenKickSpeed, 1);
+            _wallKickCounter++;
+            Accelerate(jumpDir, greenKickSpeed + _wallKickCounter, 0.2f);
             source.PlayOneShot(wallKick);
             c.a = 1;
             c.r = 0;
@@ -594,7 +605,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            Accelerate(jumpDir, wallJumpSpeed, 1);
+            Accelerate(jumpDir, wallJumpSpeed, 0.2f);
         }
 
         _momentumBuffer.Clear();
@@ -647,8 +658,9 @@ public class PlayerMovement : MonoBehaviour
         ApplyFriction(f / 12);
         _slideLeanVector = Vector3.Lerp(_slideLeanVector, velocity, f * 4);
         var projection = Vector3.Dot(Flatten(_slideLeanVector), camera.transform.right);
-        CameraRotation = Mathf.Lerp(CameraRotation, projection * _crouchAmount, f * 12);
-        AirAccelerate(Wishdir, airAcceleration * f);
+        CameraRotation = Mathf.Lerp(CameraRotation, projection * _crouchAmount, f * 25);
+        AirAccelerate(Wishdir, surfAcceleration * f);
+        Accelerate(Flatten(velocity).normalized, movementSpeed, runAcceleration * f);
     }
 
     public void AirMove(float f)
@@ -656,6 +668,23 @@ public class PlayerMovement : MonoBehaviour
         if (IsGrounded) return;
         if (GrappleHooked) return;
         if (IsOnWall) return;
+
+        if (Flatten(velocity).magnitude > greenKickSpeed)
+        {
+            var speed = velocity.magnitude;
+            var control = speed < deceleration ? deceleration : speed;
+            var drop = control * f * 0.15f;
+
+            var newspeed = speed - drop;
+            if (newspeed < 0)
+                newspeed = 0;
+            if (speed > 0)
+                newspeed /= speed;
+
+            velocity.x *= newspeed;
+            velocity.z *= newspeed;
+        }
+        
         if (!IsMoving) return;
         var accel = _isSurfing ? surfAcceleration : airAcceleration;
         AirAccelerate(Wishdir, accel * f);

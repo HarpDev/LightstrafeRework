@@ -17,78 +17,19 @@ public class BlockAction : MonoBehaviour
     {
         Blast,
         Grapple,
-        Refresh,
-        Shove
+        Refresh
     }
 
     public Action action;
 
-    public bool Shoving { get; set; }
     public bool IsAtApex { get; set; }
-    private float _shoveTime;
-    private Rigidbody _rigidbody;
     private Vector3 _beforePosition;
     private float _speed;
     private bool _apexFrameDelay;
 
-    private void Start()
-    {
-        _rigidbody = GetComponent<Rigidbody>();
-    }
-
     private void Update()
     {
         if (doesRotate) gameObject.transform.Rotate(15 * Time.deltaTime, 18 * Time.deltaTime, 14 * Time.deltaTime);
-    }
-
-    private void FixedUpdate()
-    {
-        if (!Shoving) return;
-        const float time = 0.5f;
-        var max = maxSpeed * Time.fixedDeltaTime;
-        if (_shoveTime <= 0)
-        {
-            var trans = transform;
-            _beforePosition = trans.position;
-            _speed = 0;
-        }
-
-        _shoveTime += Time.fixedDeltaTime;
-
-        if (_speed < max) _speed += Time.fixedDeltaTime * Mathf.Pow(_shoveTime / time, 2) * 14;
-        if (_speed > max) _speed = max;
-
-        var position = _rigidbody.position;
-        IsAtApex = false;
-        if (_shoveTime < time)
-        {
-            _apexFrameDelay = false;
-            _rigidbody.MovePosition(position + direction.normalized * _speed);
-        }
-        else if (_shoveTime > time * 2)
-        {
-            _rigidbody.MovePosition(Vector3.Lerp(position, _beforePosition, (_shoveTime - time * 2) / time));
-        }
-        else
-        {
-            if (!_apexFrameDelay)
-                _apexFrameDelay = true;
-            else
-                IsAtApex = true;
-        }
-
-        if (!(_shoveTime > time * 3)) return;
-        Shoving = false;
-        _shoveTime = 0;
-    }
-
-    public void ActivateLaunch()
-    {
-        if (Shoving) return;
-        Shoving = true;
-
-        if (sound != null) sound.Play();
-        if (particle != null) particle.Play();
     }
 
     public void Hit(RaycastHit hit)
@@ -103,9 +44,6 @@ public class BlockAction : MonoBehaviour
                 break;
             case Action.Grapple:
                 Game.I.Player.AttachGrapple(hit.transform);
-                break;
-            case Action.Shove:
-                Shoving = true;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

@@ -82,7 +82,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 5124070473534990130}
   camera: {fileID: 8023130152235894417}
-  dashCharge: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   deceleration: 10
@@ -98,7 +97,7 @@ MonoBehaviour:
   wallFriction: 0.7
   wallJumpSpeed: 15
   greenKickSpeed: 22
-  greenKickTicks: 3
+  greenKickTicks: 2
   dashSpeed: 20
   grappleSwingForce: 40
   grappleDetachFrictionScale: 0.12
