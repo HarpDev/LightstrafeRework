@@ -17,7 +17,8 @@ public class PlayerMovement : MonoBehaviour
     public float deceleration = 10f;
     public float friction = 3f;
     public float runAcceleration = 6f;
-    public float airAcceleration = 60f;
+    public float airAcceleration = 10f;
+    public float strafeAcceleration = 60f;
     public float surfAcceleration = 900f;
     public float gravity = 0.5f;
     public float movementSpeed = 11;
@@ -79,6 +80,7 @@ public class PlayerMovement : MonoBehaviour
     private float _crouchAmount;
     private bool _isSurfing;
     private float _dashTimer;
+    private int _sinceJumpCounter;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
 
     public static bool DoubleJumpAvailable { get; set; }
@@ -105,7 +107,7 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsGrounded
     {
-        get { return Environment.TickCount - _groundTimestamp < 100; }
+        get { return Environment.TickCount - _groundTimestamp < 150; }
     }
 
     public bool IsOnWall { get; set; }
@@ -164,6 +166,7 @@ public class PlayerMovement : MonoBehaviour
         {
             if (!_jumpLock)
             {
+                _sinceJumpCounter = 0;
                 _jumpLock = true;
                 if (IsOnWall)
                     WallJump();
@@ -223,11 +226,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        _sinceJumpCounter++;
         rigidbody.velocity = new Vector3();
-        if (IsOnWall)
-        {
-            _wallTickCount++;
-        }
 
         var factor = Time.fixedDeltaTime;
 
@@ -346,6 +346,7 @@ public class PlayerMovement : MonoBehaviour
                 _isSurfing = true;
             return;
         }
+        Debug.Log("wall");
 
         _currentWall = other.collider;
         IsOnWall = true;
@@ -524,16 +525,19 @@ public class PlayerMovement : MonoBehaviour
         var ycompare = point.y - InterpolatedPosition.y;
         var distance = (Flatten(point) - Flatten(InterpolatedPosition)).magnitude;
 
+        _wallTickCount++;
+
         if (ycompare < -0.9f || ycompare > 0 || distance > 0.5f * 2)
         {
             IsOnWall = false;
 
             grindSound.volume = 0;
-            _wallTickCount = -1;
+            _wallTickCount = 0;
             return;
         }
 
         DoubleJumpAvailable = true;
+        if (_sinceJumpCounter < greenKickTicks / 2) WallJump();
 
         if (_currentWall.CompareTag("Launch Wall"))
         {
@@ -554,14 +558,33 @@ public class PlayerMovement : MonoBehaviour
             velocity.y *= newspeed;
 
             ApplyFriction(wallFriction * f);
-            if (_wallTickCount > greenKickTicks)
-                _wallKickCounter = 0;
-
             var towardWall = Flatten(point - InterpolatedPosition).normalized;
+            if (_wallTickCount > greenKickTicks / 2)
+            {
+                source.pitch = 1;
+                _wallKickCounter = 0;
+                // REAL wall movement, do it, dont be an idiot
+                var direction = new Vector3(-towardWall.z, 0, towardWall.x);
+                if (IsMoving)
+                {
+                    if (Vector3.Angle(Wishdir, direction) < 90)
+                    {
+                        Accelerate(direction, wallSpeed, runAcceleration * f);
+                    }
+                    else
+                    {
+                        Accelerate(-direction, wallSpeed, runAcceleration * f);
+                    }
+                }
+            }
+            else
+            {
+                Accelerate(Flatten(velocity).normalized, wallSpeed, runAcceleration * f);
+            }
+
 
             if (_wallTickCount == 1) Accelerate(new Vector3(0, 1, 0), 2, 4);
             Accelerate(towardWall, 4, 10 * f);
-            Accelerate(Flatten(velocity).normalized, wallSpeed, runAcceleration * f);
         }
     }
 
@@ -575,7 +598,6 @@ public class PlayerMovement : MonoBehaviour
         IsOnWall = false;
 
         var c = wallkickDisplay.color;
-        Accelerate(new Vector3(0, 1, 0), IsSliding ? jumpHeight / 1.5f : jumpHeight, 2);
         if (_currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 0.2f);
 
         var x = velocity.x + 0.2f * 15 * awayDir.x;
@@ -593,10 +615,12 @@ public class PlayerMovement : MonoBehaviour
             CancelDash(velocity);
         }
 
-        if (_wallTickCount <= greenKickTicks)
+        if (_wallTickCount <= greenKickTicks / 2)
         {
             _wallKickCounter++;
-            Accelerate(jumpDir, greenKickSpeed + _wallKickCounter, 0.2f);
+            Accelerate(jumpDir, greenKickSpeed, 1f);
+            Accelerate(new Vector3(0, 1, 0), jumpHeight / 1.3f, 2);
+            source.pitch = 1 + (_wallKickCounter - 1) / 10f;
             source.PlayOneShot(wallKick);
             c.a = 1;
             c.r = 0;
@@ -605,7 +629,8 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            Accelerate(jumpDir, wallJumpSpeed, 0.2f);
+            Accelerate(jumpDir, wallJumpSpeed, 1f);
+            Accelerate(new Vector3(0, 1, 0), jumpHeight, 2);
         }
 
         _momentumBuffer.Clear();
@@ -613,7 +638,7 @@ public class PlayerMovement : MonoBehaviour
         source.PlayOneShot(wallJump);
 
         wallkickDisplay.color = c;
-        _wallTickCount = -1;
+        _wallTickCount = 0;
         grindSound.volume = 0;
     }
 
@@ -669,24 +694,25 @@ public class PlayerMovement : MonoBehaviour
         if (GrappleHooked) return;
         if (IsOnWall) return;
 
-        if (Flatten(velocity).magnitude > greenKickSpeed && !_isSurfing)
+        if (!IsMoving) return;
+
+        var flatVelocity = Flatten(velocity);
+        var angle = Vector3.Angle(flatVelocity, Wishdir);
+        var accel = _isSurfing ? surfAcceleration : strafeAcceleration;
+        var heldAngle = MovementDirectionRadians * Mathf.Rad2Deg;
+        if (angle <= 70 && heldAngle <= 80 && heldAngle >= -80)
         {
-            var speed = velocity.magnitude;
-            var control = speed < deceleration ? deceleration : speed;
-            var drop = control * f * 0.15f;
+            var lerp = Vector3.Lerp(flatVelocity.normalized, Wishdir, f).normalized * flatVelocity.magnitude;
 
-            var newspeed = speed - drop;
-            if (newspeed < 0)
-                newspeed = 0;
-            if (speed > 0)
-                newspeed /= speed;
-
-            velocity.x *= newspeed;
-            velocity.z *= newspeed;
+            velocity.x = lerp.x;
+            velocity.z = lerp.z;
         }
         
-        if (!IsMoving) return;
-        var accel = _isSurfing ? surfAcceleration : airAcceleration;
+        if (heldAngle > 110 || heldAngle < -110)
+        {
+            accel = airAcceleration;
+        }
+
         AirAccelerate(Wishdir, accel * f);
     }
 
@@ -745,6 +771,7 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnWall) return;
 
         if (!IsGrounded && !DoubleJumpAvailable) return;
+        if (!IsGrounded) return;
 
         var speed = jumpHeight;
         if (_momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed) speed += _momentumBuffer[0].y;
@@ -761,7 +788,18 @@ public class PlayerMovement : MonoBehaviour
         {
             DoubleJumpAvailable = false;
             source.PlayOneShot(jumpair);
-            AirAccelerate(Wishdir, 5);
+            var heldAngle = MovementDirectionRadians * Mathf.Rad2Deg;
+            if (Math.Abs(heldAngle - 90) < 5 || Math.Abs(heldAngle + 90) < 5)
+            {
+                AirAccelerate(Wishdir, 5);
+            }
+            else
+            {
+                var v = velocity.normalized * (velocity.magnitude - movementSpeed / 2);
+                velocity.x = v.x;
+                velocity.z = v.z;
+                Accelerate(Wishdir, movementSpeed, 0.5f);
+            }
         }
 
         grindSound.volume = 0;

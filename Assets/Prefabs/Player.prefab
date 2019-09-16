@@ -82,12 +82,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 5124070473534990130}
   camera: {fileID: 8023130152235894417}
+  multiplierText: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   deceleration: 10
   friction: 3
   runAcceleration: 5
-  airAcceleration: 60
+  airAcceleration: 10
+  strafeAcceleration: 60
   surfAcceleration: 900
   gravity: 0.3
   movementSpeed: 11
@@ -97,7 +99,7 @@ MonoBehaviour:
   wallFriction: 0.7
   wallJumpSpeed: 15
   greenKickSpeed: 22
-  greenKickTicks: 2
+  greenKickTicks: 10
   dashSpeed: 20
   grappleSwingForce: 40
   grappleDetachFrictionScale: 0.12

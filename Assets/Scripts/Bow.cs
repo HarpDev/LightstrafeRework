@@ -133,7 +133,7 @@ public class Bow : MonoBehaviour
                 Drawback += Time.deltaTime;
             }
         }
-        else if (Drawback >= 0.8f)
+        else if (Drawback >= 0.6f)
         {
             Fire(player.camera.transform.position, player.CrosshairDirection);
         }
