@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 3544075874744654138}
   - component: {fileID: 2065673428738026620}
   - component: {fileID: 3016469575726210521}
+  - component: {fileID: 2890892413421452221}
   m_Layer: 0
   m_Name: Launch Block
   m_TagString: Launch Block
@@ -31,12 +32,12 @@ Transform:
   m_GameObject: {fileID: 1655414796957804824}
   m_LocalRotation: {x: -0.00000004470348, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -392.46, y: 29.78, z: -42.65}
-  m_LocalScale: {x: 8, y: 0.30909, z: 8}
+  m_LocalScale: {x: 6, y: 0.2, z: 6}
   m_Children:
   - {fileID: 3567979767775179754}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90.00001, z: 0}
 --- !u!33 &6771559630406525245
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -222,6 +223,18 @@ MonoBehaviour:
   to: {fileID: 3567979767775179754}
   sound: {fileID: 2065673428738026620}
   maxSpeed: 20
+--- !u!114 &2890892413421452221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1655414796957804824}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e44febf53ac097d41802ac9797ae03fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6895618480073851764
 GameObject:
   m_ObjectHideFlags: 0

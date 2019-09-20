@@ -10,9 +10,6 @@ public class BlockAction : MonoBehaviour
     public bool breakOnHit;
     public AudioSource sound;
 
-    public Vector3 direction;
-    public float maxSpeed = 30;
-
     public enum Action
     {
         Blast,
@@ -22,7 +19,6 @@ public class BlockAction : MonoBehaviour
 
     public Action action;
 
-    public bool IsAtApex { get; set; }
     private Vector3 _beforePosition;
     private float _speed;
     private bool _apexFrameDelay;

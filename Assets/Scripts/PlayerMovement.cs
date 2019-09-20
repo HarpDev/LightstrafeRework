@@ -17,8 +17,9 @@ public class PlayerMovement : MonoBehaviour
     public float deceleration = 10f;
     public float friction = 3f;
     public float runAcceleration = 6f;
-    public float airAcceleration = 10f;
+    public float airFriction = 0.5f;
     public float strafeAcceleration = 60f;
+    public float stairHeight = 0.1f;
     public float surfAcceleration = 900f;
     public float gravity = 0.5f;
     public float movementSpeed = 11;
@@ -29,7 +30,6 @@ public class PlayerMovement : MonoBehaviour
     public float wallJumpSpeed = 15f;
     public float greenKickSpeed = 25f;
     public int greenKickTicks = 2;
-    public float dashSpeed = 25f;
     public float grappleSwingForce = 25f;
     public float grappleDetachFrictionScale = 0.12f;
     public float slopeAngle = 45;
@@ -40,7 +40,6 @@ public class PlayerMovement : MonoBehaviour
     public AudioSource source;
     public AudioSource grindSound;
     public AudioSource grappleDuring;
-    public AudioClip spring;
     public AudioClip jump;
     public AudioClip jumpair;
     public AudioClip ding;
@@ -65,22 +64,25 @@ public class PlayerMovement : MonoBehaviour
     private bool _approachingWall;
     private float _approachingWallDistance;
     private int _groundTimestamp;
+    private int _wallTimestamp;
     private int _bounceTimestamp;
     private Collider _currentWall;
     private int _wallTickCount;
     private int _wallKickCounter;
+    private int _wallJumpTimestamp;
+    private Vector3 _wallNormal;
     private int _grappleAttachTimestamp;
     private Transform _grappleAttachPosition;
     private Vector3 _previousPosition;
     private Collision _previousCollision;
     private Vector3 _previousCollisionLocalPosition;
     private Vector3 _slideLeanVector;
-    private Vector3 _dashVector;
+    private Vector3 _displacePosition;
     private float _motionInterpolationDelta;
     private float _crouchAmount;
     private bool _isSurfing;
-    private float _dashTimer;
     private int _sinceJumpCounter;
+    private float _cameraRoll;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
 
     public static bool DoubleJumpAvailable { get; set; }
@@ -100,9 +102,21 @@ public class PlayerMovement : MonoBehaviour
         get { return Input.GetAxis("Slide") > 0; }
     }
 
-    public bool IsDashing
+    public float GetJumpHeight(float distance)
     {
-        get { return _dashVector.magnitude > 0; }
+        var vx = Flatten(velocity).magnitude;
+        var t = distance / vx;
+        var y = gravity * fallSpeed * Mathf.Pow(t, 2) / t;
+        if (vx < Tolerance || y > jumpHeight) y = jumpHeight;
+        return y;
+    }
+
+    public float GetJumpHeightUncapped(float distance)
+    {
+        var vx = Flatten(velocity).magnitude;
+        var t = distance / vx;
+        var y = gravity * fallSpeed * Mathf.Pow(t, 2) / t;
+        return y;
     }
 
     public bool IsGrounded
@@ -110,7 +124,10 @@ public class PlayerMovement : MonoBehaviour
         get { return Environment.TickCount - _groundTimestamp < 150; }
     }
 
-    public bool IsOnWall { get; set; }
+    public bool IsOnWall
+    {
+        get { return Environment.TickCount - _wallTimestamp < 150; }
+    }
 
     public float CameraRotation { get; set; }
 
@@ -127,10 +144,9 @@ public class PlayerMovement : MonoBehaviour
 
     public Vector3 CrosshairDirection { get; set; }
 
-    private void Start()
+    private void Awake()
     {
         LookScale = 1;
-        //Time.timeScale = 0.2f;
 
         _firstMove = false;
         Game.StopTimer();
@@ -187,10 +203,10 @@ public class PlayerMovement : MonoBehaviour
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
 
-        Transform cam;
-        (cam = camera.transform).rotation = Quaternion.Euler(new Vector3(Pitch, Yaw, CameraRotation));
+        var cam = camera.transform;
+        _cameraRoll = Mathf.Lerp(_cameraRoll, CameraRotation, Time.deltaTime * 10);
         camera.transform.rotation =
-            Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, Yaw, CameraRotation));
+            Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, Yaw, _cameraRoll));
         CrosshairDirection = cam.forward;
         rigidbody.transform.rotation = Quaternion.Euler(new Vector3(0, Yaw, 0));
 
@@ -207,7 +223,11 @@ public class PlayerMovement : MonoBehaviour
         {
             if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
         }
-        else if (_crouchAmount > 0) _crouchAmount -= Time.deltaTime * 6;
+        else if (_crouchAmount > 0)
+        {
+            _crouchAmount -= Time.deltaTime * 6;
+            CameraRotation = 0;
+        }
 
         position.y -= 0.6f * _crouchAmount;
         camera.transform.position = InterpolatedPosition + position;
@@ -219,9 +239,6 @@ public class PlayerMovement : MonoBehaviour
         else
             multiplierText.text = "x" + _wallKickCounter;
         multiplierText.fontSize = _wallKickCounter * 2 + 50;
-
-        if ((!IsSliding || !IsGrounded) && !IsOnWall && !IsDashing)
-            CameraRotation = Mathf.Lerp(CameraRotation, 0, Time.deltaTime * 6);
     }
 
     private void FixedUpdate()
@@ -238,7 +255,6 @@ public class PlayerMovement : MonoBehaviour
         SlideMove(factor);
         GroundMove(factor);
         AirMove(factor);
-        DashMove(factor);
 
         _motionInterpolationDelta = 0;
         _isSurfing = false;
@@ -269,26 +285,47 @@ public class PlayerMovement : MonoBehaviour
             if (!hit.collider.isTrigger)
             {
                 if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle) _groundTimestamp = Environment.TickCount;
-                var projection = Vector3.Dot(velocity, -hit.normal);
-                if (projection > 0)
+                else
                 {
-                    var impulse = hit.normal * (projection - 4f);
-                    velocity += impulse;
-                }
+                    RaycastHit stair;
+                    if (Physics.Raycast(hit.point + new Vector3(0, 3, 0), new Vector3(0, -1, 0), out stair, 6) &&
+                        stair.point.y - (nextPosition.y - 1) < stairHeight)
+                    {
+                        _displacePosition += new Vector3(0, stair.point.y - (nextPosition.y - 1), 0);
 
-                nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor, nextPosition,
-                    hit.distance / difference.magnitude);
+                        var projection = Vector3.Dot(velocity, new Vector3(0, 1, 0));
+                        if (projection > 0)
+                        {
+                            var impulse = new Vector3(0, -1, 0) * projection;
+                            velocity += impulse;
+                        }
+                    }
+                    else
+                    {
+                        var projection = Vector3.Dot(velocity, -hit.normal);
+                        if (projection > 0)
+                        {
+                            var impulse = hit.normal * (projection - 4f);
+                            velocity += impulse;
+                        }
+
+                        nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor,
+                            nextPosition,
+                            hit.distance / difference.magnitude);
+                    }
+                }
             }
         }
 
         _previousCollision = null;
-        rigidbody.MovePosition(nextPosition);
+        rigidbody.MovePosition(nextPosition + _displacePosition);
+        _displacePosition = new Vector3();
     }
 
     private void OnCollisionExit(Collision other)
     {
         _previousCollision = null;
-        if (_momentumBuffer.Count == 0) return;
+        if (_momentumBuffer.Count < 2) return;
         if (Mathf.Abs(_momentumBuffer[0].x) > Mathf.Abs(velocity.x)) velocity.x = _momentumBuffer[0].x;
         if (Mathf.Abs(_momentumBuffer[0].y) > Mathf.Abs(velocity.y)) velocity.y = _momentumBuffer[0].y;
         if (Mathf.Abs(_momentumBuffer[0].z) > Mathf.Abs(velocity.z)) velocity.z = _momentumBuffer[0].z;
@@ -297,7 +334,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnCollisionStay(Collision other)
     {
-        var moved = (rigidbody.transform.position - _previousPosition) / Time.fixedDeltaTime;
+        var moved = (rigidbody.transform.position - _displacePosition - _previousPosition) / Time.fixedDeltaTime;
         if (other.collider.CompareTag("Launch Block"))
         {
             var launch = other.collider.gameObject.GetComponent<LaunchBlock>();
@@ -321,7 +358,6 @@ public class PlayerMovement : MonoBehaviour
             validCollision = true;
             var impulse = point.normal * projection;
             velocity += impulse;
-            if (IsDashing) _dashVector = velocity.normalized;
         }
 
         if (!validCollision) return;
@@ -336,51 +372,28 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Wall Grab
-        var close = other.collider.ClosestPoint(InterpolatedPosition);
-        var compare = close.y - InterpolatedPosition.y;
-        if (compare < -0.9f || compare > 0 ||
-            Math.Abs(Vector3.Angle(Vector3.up, other.contacts[0].normal) - 90) > Tolerance ||
-            IsOnWall || IsGrounded)
+        var position = transform.position;
+        var close = other.collider.ClosestPoint(position);
+        var compare = close.y - position.y;
+        if (compare < -0.9f || compare > 0.2f ||
+            Math.Abs(Vector3.Angle(Vector3.up, other.contacts[0].normal) - 90) > Tolerance || IsGrounded)
         {
             if (!IsGrounded)
                 _isSurfing = true;
             return;
         }
-        Debug.Log("wall");
 
+        _wallNormal = other.contacts[0].normal;
         _currentWall = other.collider;
-        IsOnWall = true;
+        _wallTimestamp = Environment.TickCount;
     }
 
-    public void Dash(Vector3 direction)
+    private void OnTriggerStay(Collider other)
     {
-        _dashVector = Flatten(direction).normalized;
-    }
-
-    public void DashMove(float f)
-    {
-        const float dashTime = 0.5f;
-        if (!IsDashing)
+        if (other.CompareTag("Arrow"))
         {
-            _dashTimer = 0;
-            return;
+            other.GetComponent<Arrow>().Explode();
         }
-
-        var factor = 1 - Mathf.Min(_dashTimer / dashTime, 1) + 1;
-
-        velocity = factor * dashSpeed * _dashVector;
-
-        var projection = Vector3.Dot(Flatten(velocity), camera.transform.right) / 2f;
-        CameraRotation = Mathf.Lerp(CameraRotation, projection, f * 12);
-
-        if (_dashTimer > dashTime) _dashVector = new Vector3();
-        _dashTimer += f;
-    }
-
-    public void CancelDash(Vector3 direction)
-    {
-        velocity = dashSpeed * direction.normalized;
-        _dashVector = new Vector3();
     }
 
     public void AttachGrapple(Transform position)
@@ -467,11 +480,12 @@ public class PlayerMovement : MonoBehaviour
                 value -= 90;
                 value /= 90;
 
-                CameraRotation = Mathf.Lerp(CameraRotation, 20 * -value, f * 25);
+                CameraRotation = 20 * -value;
             }
             catch (Exception)
             {
-                IsOnWall = false;
+                _wallTimestamp = 0;
+                CameraRotation = 0;
             }
         }
         else
@@ -509,7 +523,7 @@ public class PlayerMovement : MonoBehaviour
             value -= 90;
             value /= 90;
 
-            CameraRotation = Mathf.Lerp(CameraRotation, 20 * rotation * -value, f * 35);
+            CameraRotation = 20 * rotation * -value;
         }
         else
         {
@@ -520,24 +534,29 @@ public class PlayerMovement : MonoBehaviour
     public void WallMove(float f)
     {
         if (!IsOnWall) return;
-        if (IsDashing) return;
         var point = _currentWall.ClosestPoint(InterpolatedPosition);
         var ycompare = point.y - InterpolatedPosition.y;
         var distance = (Flatten(point) - Flatten(InterpolatedPosition)).magnitude;
 
         _wallTickCount++;
 
-        if (ycompare < -0.9f || ycompare > 0 || distance > 0.5f * 2)
-        {
-            IsOnWall = false;
+        DoubleJumpAvailable = true;
 
+        if (ycompare < -0.9f || ycompare > 0.2f || distance > 0.5f * 2)
+        {
             grindSound.volume = 0;
-            _wallTickCount = 0;
+            CameraRotation = 0;
             return;
         }
 
-        DoubleJumpAvailable = true;
-        if (_sinceJumpCounter < greenKickTicks / 2) WallJump();
+        if (ycompare < -Tolerance)
+        {
+            Accelerate(new Vector3(0, -1, 0), 8, runAcceleration * f);
+        }
+        else if (ycompare > Tolerance)
+        {
+            Accelerate(new Vector3(0, 1, 0), 8, runAcceleration * f);
+        }
 
         if (_currentWall.CompareTag("Launch Wall"))
         {
@@ -555,7 +574,8 @@ public class PlayerMovement : MonoBehaviour
             if (speed > 0)
                 newspeed /= speed;
 
-            velocity.y *= newspeed;
+            if (velocity.y < 0)
+                velocity.y *= newspeed;
 
             ApplyFriction(wallFriction * f);
             var towardWall = Flatten(point - InterpolatedPosition).normalized;
@@ -563,45 +583,37 @@ public class PlayerMovement : MonoBehaviour
             {
                 source.pitch = 1;
                 _wallKickCounter = 0;
-                // REAL wall movement, do it, dont be an idiot
-                var direction = new Vector3(-towardWall.z, 0, towardWall.x);
-                if (IsMoving)
-                {
-                    if (Vector3.Angle(Wishdir, direction) < 90)
-                    {
-                        Accelerate(direction, wallSpeed, runAcceleration * f);
-                    }
-                    else
-                    {
-                        Accelerate(-direction, wallSpeed, runAcceleration * f);
-                    }
-                }
+            }
+
+            var direction = new Vector3(-towardWall.z, 0, towardWall.x);
+            if (Vector3.Angle(CrosshairDirection, direction) < 90)
+            {
+                Accelerate(direction, wallSpeed, runAcceleration * f);
             }
             else
             {
-                Accelerate(Flatten(velocity).normalized, wallSpeed, runAcceleration * f);
+                Accelerate(-direction, wallSpeed, runAcceleration * f);
             }
-
 
             if (_wallTickCount == 1) Accelerate(new Vector3(0, 1, 0), 2, 4);
             Accelerate(towardWall, 4, 10 * f);
         }
+
+        if (_sinceJumpCounter < greenKickTicks / 2) WallJump();
     }
 
     public void WallJump()
     {
         if (!IsOnWall) return;
 
-        var position = transform.position;
-        var point = _currentWall.ClosestPoint(position);
-        var awayDir = Flatten(position - point).normalized;
-        IsOnWall = false;
+        _wallTimestamp = 0;
+        CameraRotation = 0;
 
         var c = wallkickDisplay.color;
         if (_currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 0.2f);
 
-        var x = velocity.x + 0.2f * 15 * awayDir.x;
-        var z = velocity.z + 0.2f * 15 * awayDir.z;
+        var x = velocity.x + 0.2f * 15 * _wallNormal.x;
+        var z = velocity.z + 0.2f * 15 * _wallNormal.z;
         var jumpDir = new Vector3(x, 0, z).normalized;
 
         var newDir = Flatten(velocity).magnitude * jumpDir;
@@ -609,19 +621,17 @@ public class PlayerMovement : MonoBehaviour
         velocity.z = newDir.z;
 
         DoubleJumpAvailable = true;
+        _wallJumpTimestamp = Environment.TickCount;
 
-        if (IsDashing)
-        {
-            CancelDash(velocity);
-        }
+        Accelerate(jumpDir, wallJumpSpeed, 0.15f);
 
         if (_wallTickCount <= greenKickTicks / 2)
         {
             _wallKickCounter++;
-            Accelerate(jumpDir, greenKickSpeed, 1f);
-            Accelerate(new Vector3(0, 1, 0), jumpHeight / 1.3f, 2);
+            Accelerate(jumpDir, greenKickSpeed, 0.15f);
             source.pitch = 1 + (_wallKickCounter - 1) / 10f;
             source.PlayOneShot(wallKick);
+            Accelerate(new Vector3(0, 1, 0), GetJumpHeight(8), 4);
             c.a = 1;
             c.r = 0;
             c.b = 0;
@@ -629,8 +639,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            Accelerate(jumpDir, wallJumpSpeed, 1f);
-            Accelerate(new Vector3(0, 1, 0), jumpHeight, 2);
+            Accelerate(new Vector3(0, 1, 0), GetJumpHeight(7), 4);
         }
 
         _momentumBuffer.Clear();
@@ -646,14 +655,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (IsOnWall) return;
         if (GrappleHooked) return;
-        if (IsDashing) return;
         Accelerate(new Vector3(0, -1, 0), fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
     {
         if (!IsGrounded) return;
-        if (IsDashing) return;
         if (IsSliding) return;
         ApplyFriction(f);
         DoubleJumpAvailable = true;
@@ -679,11 +686,12 @@ public class PlayerMovement : MonoBehaviour
         grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
         grindSound.volume = Mathf.Min(velocity.magnitude / 10, 1);
         DoubleJumpAvailable = true;
+        
+        var projection = Vector3.Dot(Flatten(_slideLeanVector).normalized, camera.transform.right);
+        CameraRotation = projection * 15 * _crouchAmount;
 
         ApplyFriction(f / 12);
         _slideLeanVector = Vector3.Lerp(_slideLeanVector, velocity, f * 4);
-        var projection = Vector3.Dot(Flatten(_slideLeanVector), camera.transform.right);
-        CameraRotation = Mathf.Lerp(CameraRotation, projection * _crouchAmount, f * 25);
         AirAccelerate(Wishdir, surfAcceleration * f);
         Accelerate(Flatten(velocity).normalized, movementSpeed, runAcceleration * f);
     }
@@ -693,27 +701,37 @@ public class PlayerMovement : MonoBehaviour
         if (IsGrounded) return;
         if (GrappleHooked) return;
         if (IsOnWall) return;
+        _wallTickCount = 0;
 
-        if (!IsMoving) return;
-
-        var flatVelocity = Flatten(velocity);
-        var angle = Vector3.Angle(flatVelocity, Wishdir);
-        var accel = _isSurfing ? surfAcceleration : strafeAcceleration;
-        var heldAngle = MovementDirectionRadians * Mathf.Rad2Deg;
-        if (angle <= 70 && heldAngle <= 80 && heldAngle >= -80)
+        if (IsMoving && Math.Abs(MovementDirectionRadians) < Tolerance)
         {
-            var lerp = Vector3.Lerp(flatVelocity.normalized, Wishdir, f).normalized * flatVelocity.magnitude;
+            var speed = Flatten(velocity).magnitude;
+            var control = speed < deceleration ? deceleration : speed;
+            var drop = control * airFriction * f;
 
-            velocity.x = lerp.x;
-            velocity.z = lerp.z;
+            var newspeed = speed - drop;
+            if (newspeed < 0)
+                newspeed = 0;
+            if (speed > 0)
+                newspeed /= speed;
+
+            velocity.x *= newspeed;
+            velocity.z *= newspeed;
+
+            velocity += Wishdir * drop;
         }
-        
-        if (heldAngle > 110 || heldAngle < -110)
+
+        if (Flatten(velocity).magnitude < movementSpeed / 1.5f)
         {
-            accel = airAcceleration;
+            Accelerate(Wishdir, movementSpeed / 1.5f, runAcceleration / 3 * f);
         }
-
-        AirAccelerate(Wishdir, accel * f);
+        else
+        {
+            var accel = _isSurfing ? surfAcceleration : strafeAcceleration;
+            var time = (Environment.TickCount - _wallJumpTimestamp) / 500f;
+            if (time > 1) time = 1;
+            AirAccelerate(Wishdir, accel * f * time);
+        }
     }
 
     public void ApplyFriction(float f)
@@ -771,14 +789,11 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnWall) return;
 
         if (!IsGrounded && !DoubleJumpAvailable) return;
-        if (!IsGrounded) return;
 
-        var speed = jumpHeight;
+        var speed = GetJumpHeight(7);
         if (_momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed) speed += _momentumBuffer[0].y;
 
-
-        if (IsDashing) _dashVector.y += 0.5f;
-        else Accelerate(new Vector3(0, 1, 0), speed, jumpHeight);
+        Accelerate(new Vector3(0, 1, 0), speed, speed);
 
         if (IsGrounded)
         {
@@ -788,19 +803,9 @@ public class PlayerMovement : MonoBehaviour
         {
             DoubleJumpAvailable = false;
             source.PlayOneShot(jumpair);
-            var heldAngle = MovementDirectionRadians * Mathf.Rad2Deg;
-            if (Math.Abs(heldAngle - 90) < 5 || Math.Abs(heldAngle + 90) < 5)
-            {
-                AirAccelerate(Wishdir, 5);
-            }
-            else
-            {
-                var v = velocity.normalized * (velocity.magnitude - movementSpeed / 2);
-                velocity.x = v.x;
-                velocity.z = v.z;
-                Accelerate(Wishdir, movementSpeed, 0.5f);
-            }
         }
+
+        CameraRotation = 0;
 
         grindSound.volume = 0;
         _groundTimestamp = 0;

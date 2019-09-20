@@ -22,9 +22,9 @@ public class Bow : MonoBehaviour
     public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
 
     private float _lerpSpeed = 20;
-    private int _availableArrows = 1;
 
     public float Drawback { get; set; }
+
 
     private MeshRenderer _mesh;
 
@@ -48,15 +48,6 @@ public class Bow : MonoBehaviour
             c.r = 0;
             c.g = 0;
             c.b = 0;
-        }
-
-        if (_availableArrows > 0)
-        {
-            if (!arrow.model.activeSelf) arrow.model.SetActive(true);
-        }
-        else
-        {
-            if (arrow.model.activeSelf) arrow.model.SetActive(false);
         }
 
         m.color = c;
@@ -126,7 +117,7 @@ public class Bow : MonoBehaviour
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector / 12;
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);
-        if (Input.GetAxis("Fire1") > 0 && _availableArrows > 0)
+        if (Input.GetAxis("Fire1") > 0)
         {
             if (Drawback < 1)
             {
@@ -148,19 +139,12 @@ public class Bow : MonoBehaviour
 
     public void Fire(Vector3 from, Vector3 vel)
     {
-        _availableArrows--;
-        var shot = Instantiate(arrow.gameObject).GetComponent<Arrow>();
-        shot.transform.localScale = new Vector3(1, 1, 1);
-        shot.Fire(Quaternion.LookRotation(vel), Drawback * 100 * vel);
-        shot.transform.position = from;
-        shot.FiredVelocity = Flatten(player.velocity).magnitude;
+        var a = Instantiate(arrow.gameObject).GetComponent<Arrow>();
+        a.transform.localScale = new Vector3(1, 1, 1);
+        a.Fire(Quaternion.LookRotation(vel), Drawback * 100 * vel);
+        a.transform.position = from;
+        a.FiredVelocity = Flatten(player.velocity).magnitude;
         Drawback = 0;
-        Invoke("GiveArrow", 1);
-    }
-
-    public void GiveArrow()
-    {
-        _availableArrows++;
     }
 
     private static Vector3 Flatten(Vector3 vec)
