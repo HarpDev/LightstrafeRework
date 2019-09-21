@@ -35,7 +35,7 @@ public class Finish : MonoBehaviour
                 _blurCount += Time.unscaledDeltaTime * 15;
             }
         }
-        else if (Math.Abs(Time.timeScale) < TOLERANCE)
+        else if (_finished && Math.Abs(Time.timeScale) < TOLERANCE)
         {
             if (!Cursor.visible)
             {

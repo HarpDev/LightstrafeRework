@@ -37,6 +37,8 @@ public class Game : MonoBehaviour
     
     public Hitmarker Hitmarker { get; private set; }
 
+    public Notification notification;
+
     private void Awake()
     {
         Time.timeScale = 1;

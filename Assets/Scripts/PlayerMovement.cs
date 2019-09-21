@@ -703,24 +703,6 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnWall) return;
         _wallTickCount = 0;
 
-        if (IsMoving && Math.Abs(MovementDirectionRadians) < Tolerance)
-        {
-            var speed = Flatten(velocity).magnitude;
-            var control = speed < deceleration ? deceleration : speed;
-            var drop = control * airFriction * f;
-
-            var newspeed = speed - drop;
-            if (newspeed < 0)
-                newspeed = 0;
-            if (speed > 0)
-                newspeed /= speed;
-
-            velocity.x *= newspeed;
-            velocity.z *= newspeed;
-
-            velocity += Wishdir * drop;
-        }
-
         if (Flatten(velocity).magnitude < movementSpeed / 1.5f)
         {
             Accelerate(Wishdir, movementSpeed / 1.5f, runAcceleration / 3 * f);
