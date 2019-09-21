@@ -396,6 +396,11 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public void Teleport(Vector3 position)
+    {
+        _displacePosition += position - transform.position;
+    }
+
     public void AttachGrapple(Transform position)
     {
         if (!enabled) return;

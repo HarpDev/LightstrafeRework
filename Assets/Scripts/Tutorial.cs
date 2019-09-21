@@ -7,9 +7,9 @@ public class Tutorial : MonoBehaviour
 {
 
     private int _stage = -1;
+    private bool _pauseOnNextTick;
 
-    public Image rightStrafeKey;
-    public Image leftStrafeKey;
+    public KeyDisplay keyDisplay;
 
     private void Update()
     {
@@ -31,5 +31,38 @@ public class Tutorial : MonoBehaviour
                 _stage++;
             }
         }
+        if (Game.I.Player.transform.position.z > 250 && _stage < 2)
+        {
+            _stage++;
+            Game.I.Player.Yaw = 0;
+            Game.I.Player.Pitch = 0;
+            _pauseOnNextTick = true;
+            keyDisplay.key.text = "A";
+            keyDisplay.keycode = "a";
+        }
+        
+        if (_stage == 2)
+        {
+            if (Input.GetAxisRaw("Right") < 0)
+            {
+                Game.I.Player.velocity = new Vector3(0, 20, 30);
+                Game.I.Player.LookScale = 1;
+                Time.timeScale = 1;
+                _stage++;
+            }
+        }
+
+      
     }
+
+    private void FixedUpdate()
+    {
+        if (_pauseOnNextTick)
+        {
+            Game.I.Player.LookScale = 0;
+            Time.timeScale = 0;
+            _pauseOnNextTick = false;
+        }
+    }
+
 }

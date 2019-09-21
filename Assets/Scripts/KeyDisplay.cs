@@ -28,7 +28,7 @@ public class KeyDisplay : MonoBehaviour
     private void Update()
     {
         var pressed = Input.GetKey(keycode);
-        if (pressed && Math.Abs(PlayerMovement.MovementDirectionRadians - Mathf.Deg2Rad * 90) < 0.05f)
+        if (pressed)
         {
             image.sprite = keydown;
             key.fontSize = _fontSize - 5;
