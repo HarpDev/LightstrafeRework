@@ -7,7 +7,6 @@ public class Tutorial : MonoBehaviour
 {
 
     private int _stage = -1;
-    private Notification _notification;
 
     public Image rightStrafeKey;
     public Image leftStrafeKey;
@@ -20,9 +19,6 @@ public class Tutorial : MonoBehaviour
             _stage++;
             Game.I.Player.LookScale = 0;
             Time.timeScale = 0;
-            _notification = Instantiate(Game.I.notification.gameObject, Game.I.Canvas.transform).GetComponent<Notification>();
-            _notification.text.text = "Press and hold 'D'";
-            _notification.text.fontSize = 30;
         }
 
         if (_stage == 0)
