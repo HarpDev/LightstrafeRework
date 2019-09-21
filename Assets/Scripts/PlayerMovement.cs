@@ -89,7 +89,7 @@ public class PlayerMovement : MonoBehaviour
 
     public static float MovementDirectionRadians
     {
-        get { return Mathf.Atan2(Input.GetAxis("Right"), Input.GetAxis("Forward")); }
+        get { return Mathf.Atan2(Input.GetAxisRaw("Right"), Input.GetAxisRaw("Forward")); }
     }
 
     public static bool IsMoving
