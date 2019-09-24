@@ -299,11 +299,11 @@ MonoBehaviour:
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   deceleration: 10
-  friction: 3
-  runAcceleration: 5
-  airFriction: 1
-  strafeAcceleration: 75
-  stairHeight: 1
+  friction: 5
+  runAcceleration: 8
+  airFriction: 0.1
+  strafeAcceleration: 100
+  stairHeight: 0.6
   surfAcceleration: 900
   gravity: 0.3
   movementSpeed: 11
@@ -312,8 +312,11 @@ MonoBehaviour:
   wallSpeed: 12
   wallFriction: 0.7
   wallJumpSpeed: 14
-  greenKickSpeed: 20
-  greenKickTicks: 6
+  greenKickSpeed: 2
+  greenKickTicks: 8
+  wallKickFlingThreshold: 15
+  wallBumpThreshold: 8
+  wallBumpSpeed: 20
   grappleSwingForce: 40
   grappleDetachFrictionScale: 0.12
   slopeAngle: 45
@@ -1340,6 +1343,7 @@ MonoBehaviour:
   explodeParticle: {fileID: 1048158983340295895}
   explodeSound: {fileID: 360158247203074145}
   radius: 2.5
+  power: 20
   nockPosition: {fileID: 8023130150759736865}
   rigidbody: {fileID: 8023130151858336734}
   trail: {fileID: 8023130150759736866}

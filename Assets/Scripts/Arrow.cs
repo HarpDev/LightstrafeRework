@@ -20,7 +20,8 @@ public class Arrow : MonoBehaviour
     public ParticleSystem explodeParticle;
     public AudioSource explodeSound;
 
-    public float radius = 8f;
+    public float radius = 2.5f;
+    public float power = 20f;
 
     public Transform nockPosition;
     public new Rigidbody rigidbody;
@@ -78,13 +79,9 @@ public class Arrow : MonoBehaviour
     {
         if (!Hit || HasExploded) return;
         collider.enabled = false;
-        var o = gameObject;
         HasExploded = true;
 
-        var lookat = (Game.I.Player.transform.position - o.transform.position).normalized;
-
-        var y = lookat.y > 0 ? 1 : -1;
-        Game.I.Player.Accelerate(new Vector3(0, y, 0), 20, 20);
+        Game.I.Player.Accelerate(Vector3.up, power, power);
 
         model.SetActive(false);
         radiusIndicator.gameObject.SetActive(false);
