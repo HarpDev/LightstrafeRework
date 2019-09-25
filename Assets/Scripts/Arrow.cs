@@ -82,6 +82,7 @@ public class Arrow : MonoBehaviour
         HasExploded = true;
 
         Game.I.Player.Accelerate(Vector3.up, power, power);
+        Time.timeScale = 0.1f;
 
         model.SetActive(false);
         radiusIndicator.gameObject.SetActive(false);

@@ -69,7 +69,7 @@ public class PlayerMovement : MonoBehaviour
     private int _groundTimestamp;
     private int _wallTimestamp;
     private int _bounceTimestamp;
-    private float _lastJumpHeight;
+    private float _lastJumpBeforeYVelocity;
     private Collider _currentWall;
     private int _wallTickCount;
     private int _wallKickCounter;
@@ -200,6 +200,11 @@ public class PlayerMovement : MonoBehaviour
             }
         }
         else if (_jumpLock) _jumpLock = false;
+        
+        if (Time.timeScale < 1 && Time.timeScale > 0)
+        {
+            Time.timeScale += Time.unscaledDeltaTime;
+        }
 
         // Wallkick display fade out
         var c = wallkickDisplay.color;
@@ -293,11 +298,12 @@ public class PlayerMovement : MonoBehaviour
         {
             if (!hit.collider.isTrigger)
             {
-                if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle) _groundTimestamp = Environment.TickCount;
+                var angle = Vector3.Angle(Vector3.up, hit.normal);
+                if (angle < slopeAngle) _groundTimestamp = Environment.TickCount;
                 else
                 {
                     RaycastHit stair;
-                    if (Physics.Raycast(hit.point - hit.normal * 0.2f + new Vector3(0, 3, 0), new Vector3(0, -1, 0), out stair, 6) &&
+                    if (Math.Abs(angle - 90) < 0.05f && Physics.Raycast(hit.point - hit.normal * 0.2f + new Vector3(0, 3, 0), new Vector3(0, -1, 0), out stair, 6) &&
                         stair.point.y - (nextPosition.y - 1) < (IsSliding ? stairHeight + 0.7f : stairHeight))
                     {
                         _displacePosition += new Vector3(0, stair.point.y - (nextPosition.y - 1), 0);
@@ -542,7 +548,11 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            _approachingWall = false;
+            if (_approachingWall)
+            {
+                _approachingWall = false;
+                CameraRotation = 0;
+            }
         }
     }
 
@@ -551,8 +561,8 @@ public class PlayerMovement : MonoBehaviour
         if (!IsOnWall) return;
         if (_sinceJumpCounter < greenKickTicks / 2)
         {
-            velocity.y -= _lastJumpHeight;
-            _lastAirborneVelocity.y -= _lastJumpHeight;
+            velocity.y = _lastJumpBeforeYVelocity;
+            _lastAirborneVelocity.y = _lastJumpBeforeYVelocity;
             WallJump();
         }
 
@@ -596,7 +606,7 @@ public class PlayerMovement : MonoBehaviour
                 if (velocity.y < 0) velocity.y *= newspeed;
                 ApplyFriction(wallFriction * f);
             }
-            else if (_wallTickCount == greenKickTicks / 2)
+            if (_wallTickCount == 1)
             {
                 Accelerate(Vector3.up, 1, 10);
             }
@@ -649,6 +659,10 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = 0;
                 _removeInvertY = transform.position.y;
             }
+            if (up > wallBumpThreshold)
+            {
+                Accelerate(Vector3.up, wallBumpSpeed, 1);
+            }
             
             _wallKickCounter++;
             velocity += jumpDir * greenKickSpeed;
@@ -659,11 +673,6 @@ public class PlayerMovement : MonoBehaviour
             c.r = 0;
             c.b = 0;
             c.g = 1;
-
-            if (up > wallBumpThreshold)
-            {
-                Accelerate(Vector3.up, wallBumpSpeed, 1);
-            }
         }
         else
         {
@@ -715,7 +724,6 @@ public class PlayerMovement : MonoBehaviour
         {
             source.PlayOneShot(wallLand);
             var slideBoost = -_lastAirborneVelocity.y / 10;
-            Debug.Log(slideBoost * 2);
             velocity += Flatten(velocity).normalized * slideBoost;
         }
         grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
@@ -758,10 +766,16 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            var accel = _isSurfing ? surfAcceleration : strafeAcceleration;
-            var time = (Environment.TickCount - _wallJumpTimestamp) / 500f;
-            if (time > 1) time = 1;
-            AirAccelerate(Wishdir, accel * f * time);
+            if (_isSurfing)
+            {
+                Accelerate(Wishdir, 1, surfAcceleration);
+            }
+            else
+            {
+                var time = (Environment.TickCount - _wallJumpTimestamp) / 500f;
+                if (time > 1) time = 1;
+                AirAccelerate(Wishdir, strafeAcceleration * f * time);
+            }
         }
     }
 
@@ -826,8 +840,8 @@ public class PlayerMovement : MonoBehaviour
         var speed = GetJumpHeight(7);
         if (_momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed) speed += _momentumBuffer[0].y;
 
-        _lastJumpHeight = speed;
-        Accelerate(Vector3.up, speed, speed);
+        _lastJumpBeforeYVelocity = velocity.y;
+        if (velocity.y < speed) velocity.y = speed;
 
         if (IsGrounded)
         {
