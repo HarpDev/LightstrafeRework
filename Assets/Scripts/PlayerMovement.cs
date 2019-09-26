@@ -8,7 +8,8 @@ public class PlayerMovement : MonoBehaviour
     private const float Tolerance = 0.05f;
     public new Rigidbody rigidbody;
     public new Camera camera;
-    public Text multiplierText;
+    public Collider standingHitbox;
+    public Collider slidingHitbox;
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
@@ -30,6 +31,7 @@ public class PlayerMovement : MonoBehaviour
     public float wallJumpSpeed = 14f;
     public float greenKickSpeed = 20f;
     public int greenKickTicks = 6;
+    public int wallJumpForgiveness = 10;
     public float wallKickFlingThreshold = 5;
     public float wallBumpThreshold = 8;
     public float wallBumpSpeed = 10;
@@ -63,7 +65,6 @@ public class PlayerMovement : MonoBehaviour
     public float LookScale { get; set; }
 
     private bool _firstMove;
-    private bool _jumpLock;
     private bool _approachingWall;
     private float _approachingWallDistance;
     private int _groundTimestamp;
@@ -72,7 +73,6 @@ public class PlayerMovement : MonoBehaviour
     private float _lastJumpBeforeYVelocity;
     private Collider _currentWall;
     private int _wallTickCount;
-    private int _wallKickCounter;
     private int _wallJumpTimestamp;
     private Vector3 _wallNormal;
     private int _grappleAttachTimestamp;
@@ -96,19 +96,9 @@ public class PlayerMovement : MonoBehaviour
 
     public static bool Inverted { get; set; }
 
-    public static float MovementDirectionRadians
+    public float MovementDirectionRadians
     {
-        get { return Mathf.Atan2(Input.GetAxisRaw("Right"), Input.GetAxisRaw("Forward")); }
-    }
-
-    public static bool IsMoving
-    {
-        get { return Math.Abs(Input.GetAxis("Forward")) > Tolerance || Math.Abs(Input.GetAxis("Right")) > Tolerance; }
-    }
-
-    public static bool IsSliding
-    {
-        get { return Input.GetAxis("Slide") > 0; }
+        get { return Mathf.Atan2(PlayerInput.GetAxisStrafeRight(), PlayerInput.GetAxisStrafeForward()); }
     }
 
     public float GetJumpHeight(float distance)
@@ -131,6 +121,11 @@ public class PlayerMovement : MonoBehaviour
     public bool IsGrounded
     {
         get { return Environment.TickCount - _groundTimestamp < 150; }
+    }
+
+    public bool IsSliding
+    {
+        get { return Input.GetKey((KeyCode) PlayerInput.Key.Slide); }
     }
 
     public bool IsOnWall
@@ -177,30 +172,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetAxis("Reset") > 0) Game.RestartLevel();
-
         if (Cursor.visible) return;
 
-        if ((IsMoving || Input.GetAxis("Fire1") > 0) && !_firstMove)
-        {
-            _firstMove = true;
-            Game.StartTimer();
-        }
-
-        if (Input.GetAxis("Jump") > 0)
-        {
-            if (!_jumpLock)
-            {
-                _sinceJumpCounter = 0;
-                _jumpLock = true;
-                if (IsOnWall)
-                    WallJump();
-                else
-                    Jump();
-            }
-        }
-        else if (_jumpLock) _jumpLock = false;
-        
         if (Time.timeScale < 1 && Time.timeScale > 0)
         {
             Time.timeScale += Time.unscaledDeltaTime;
@@ -224,39 +197,47 @@ public class PlayerMovement : MonoBehaviour
         CrosshairDirection = cam.forward;
         rigidbody.transform.rotation = Quaternion.Euler(new Vector3(0, Yaw, 0));
 
-        // Movement
-        var t = MovementDirectionRadians;
-
-        t += Mathf.Deg2Rad * Yaw;
-        Wishdir = IsMoving ? new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t)) : new Vector3();
-
         _motionInterpolationDelta += Time.deltaTime;
 
         var position = cameraPosition;
         if (IsSliding)
         {
+            if (standingHitbox.enabled) standingHitbox.enabled = false;
             if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
         }
-        else if (_crouchAmount > 0)
+        else 
         {
-            _crouchAmount -= Time.deltaTime * 6;
-            CameraRotation = 0;
+            if (!standingHitbox.enabled) standingHitbox.enabled = true;
+            if (_crouchAmount > 0)
+            {
+                _crouchAmount -= Time.deltaTime * 6;
+                CameraRotation = 0;
+            }
         }
 
         position.y -= 0.6f * _crouchAmount;
         camera.transform.position = InterpolatedPosition + position;
 
         WallLean(0.3f, Time.deltaTime);
-
-        if (_wallKickCounter == 0)
-            multiplierText.text = "";
-        else
-            multiplierText.text = "x" + _wallKickCounter;
-        multiplierText.fontSize = _wallKickCounter * 2 + 50;
     }
 
     private void FixedUpdate()
     {
+        var t = MovementDirectionRadians;
+
+        t += Mathf.Deg2Rad * Yaw;
+        if (Math.Abs(PlayerInput.GetAxisStrafeRight()) > 0.05f || Math.Abs(PlayerInput.GetAxisStrafeForward()) > 0.05f)
+            Wishdir = new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t));
+        else
+            Wishdir = new Vector3();
+
+        if (PlayerInput.JustPressed(PlayerInput.Key.RestartLevel)) Game.RestartLevel();
+        if ((Wishdir.magnitude > 0 || PlayerInput.JustPressed(PlayerInput.Key.FireBow)) && !_firstMove)
+        {
+            _firstMove = true;
+            Game.StartTimer();
+        }
+
         _sinceJumpCounter++;
         rigidbody.velocity = new Vector3();
 
@@ -265,10 +246,16 @@ public class PlayerMovement : MonoBehaviour
         Gravity(factor);
 
         GrappleMove(factor);
-        WallMove(factor);
         SlideMove(factor);
         GroundMove(factor);
         AirMove(factor);
+
+        if (PlayerInput.JustPressed(PlayerInput.Key.Jump))
+        {
+            Jump();
+        }
+
+        WallMove(factor);
 
         _motionInterpolationDelta = 0;
         _isSurfing = false;
@@ -303,7 +290,9 @@ public class PlayerMovement : MonoBehaviour
                 else
                 {
                     RaycastHit stair;
-                    if (Math.Abs(angle - 90) < 0.05f && Physics.Raycast(hit.point - hit.normal * 0.2f + new Vector3(0, 3, 0), new Vector3(0, -1, 0), out stair, 6) &&
+                    if (Math.Abs(angle - 90) < 0.05f &&
+                        Physics.Raycast(hit.point - hit.normal + new Vector3(0, 3, 0), new Vector3(0, -1, 0),
+                            out stair, 6) &&
                         stair.point.y - (nextPosition.y - 1) < (IsSliding ? stairHeight + 0.7f : stairHeight))
                     {
                         _displacePosition += new Vector3(0, stair.point.y - (nextPosition.y - 1), 0);
@@ -559,10 +548,15 @@ public class PlayerMovement : MonoBehaviour
     public void WallMove(float f)
     {
         if (!IsOnWall) return;
-        if (_sinceJumpCounter < greenKickTicks / 2)
+
+        if (PlayerInput.SincePressed(PlayerInput.Key.Jump) < wallJumpForgiveness)
         {
-            velocity.y = _lastJumpBeforeYVelocity;
-            _lastAirborneVelocity.y = _lastJumpBeforeYVelocity;
+            if (_sinceJumpCounter < wallJumpForgiveness)
+            {
+                velocity.y = _lastJumpBeforeYVelocity;
+                _lastAirborneVelocity.y = _lastJumpBeforeYVelocity;
+            }
+
             WallJump();
         }
 
@@ -598,18 +592,10 @@ public class PlayerMovement : MonoBehaviour
                 newspeed /= speed;
 
             var towardWall = Flatten(point - InterpolatedPosition).normalized;
-            if (_wallTickCount > greenKickTicks / 2)
-            {
-                source.pitch = 1;
-                _wallKickCounter = 0;
+            source.pitch = 1;
 
-                if (velocity.y < 0) velocity.y *= newspeed;
-                ApplyFriction(wallFriction * f);
-            }
-            if (_wallTickCount == 1)
-            {
-                Accelerate(Vector3.up, 1, 10);
-            }
+            if (velocity.y < 0) velocity.y *= newspeed;
+            ApplyFriction(wallFriction * f);
 
             var direction = new Vector3(-towardWall.z, 0, towardWall.x);
             if (Vector3.Angle(CrosshairDirection, direction) < 90)
@@ -651,7 +637,7 @@ public class PlayerMovement : MonoBehaviour
 
         var up = _lastAirborneVelocity.y;
 
-        if (_wallTickCount <= greenKickTicks / 2)
+        if (_wallTickCount < wallJumpForgiveness)
         {
             if (up < -wallKickFlingThreshold)
             {
@@ -659,14 +645,17 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = 0;
                 _removeInvertY = transform.position.y;
             }
+
             if (up > wallBumpThreshold)
             {
                 Accelerate(Vector3.up, wallBumpSpeed, 1);
             }
-            
-            _wallKickCounter++;
+        }
+
+        if (PlayerInput.SincePressed(PlayerInput.Key.Jump) <= greenKickTicks / 2 &&
+            _wallTickCount <= greenKickTicks / 2)
+        {
             velocity += jumpDir * greenKickSpeed;
-            source.pitch = 1 + (_wallKickCounter - 1) / 10f;
             source.PlayOneShot(wallKick);
             Accelerate(new Vector3(0, 1, 0), GetJumpHeight(8), 40);
             c.a = 1;
@@ -702,7 +691,6 @@ public class PlayerMovement : MonoBehaviour
         if (IsSliding) return;
         ApplyFriction(f);
         DoubleJumpAvailable = true;
-        if (!IsMoving) return;
 
         Accelerate(Wishdir, movementSpeed, runAcceleration * f);
     }
@@ -726,6 +714,7 @@ public class PlayerMovement : MonoBehaviour
             var slideBoost = -_lastAirborneVelocity.y / 10;
             velocity += Flatten(velocity).normalized * slideBoost;
         }
+
         grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
         grindSound.volume = Mathf.Min(velocity.magnitude / 10, 1);
         DoubleJumpAvailable = true;
@@ -838,7 +827,8 @@ public class PlayerMovement : MonoBehaviour
         if (Inverted) Inverted = false;
 
         var speed = GetJumpHeight(7);
-        if (_momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed) speed += _momentumBuffer[0].y;
+        if (_momentumBuffer.Count > 1 && _momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed)
+            speed += _momentumBuffer[0].y;
 
         _lastJumpBeforeYVelocity = velocity.y;
         if (velocity.y < speed) velocity.y = speed;
@@ -854,6 +844,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         CameraRotation = 0;
+        _sinceJumpCounter = 0;
 
         grindSound.volume = 0;
         _groundTimestamp = 0;

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
@@ -8,23 +9,18 @@ public class Menus : MonoBehaviour
 
     public GameObject pauseMenu;
 
-    private bool pauseLock;
-
-    private const float Tolerance = 0.05f;
-
-    private void Update()
+    private void FixedUpdate()
     {
-        if (Input.GetAxis("Pause") > 0 && !pauseLock)
+        if (PlayerInput.JustPressed(PlayerInput.Key.Pause))
         {
-            pauseLock = true;
             if (IsPaused())
                 Unpause();
             else
                 Pause();
-        } else if (Input.GetAxis("Pause") < Tolerance) pauseLock = false;
+        }
     }
 
-    public bool IsPaused()
+    public static bool IsPaused()
     {
         return Cursor.visible;
     }

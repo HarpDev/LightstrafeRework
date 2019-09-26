@@ -252,11 +252,13 @@ GameObject:
   m_Component:
   - component: {fileID: 8023130150563290705}
   - component: {fileID: 8023130150563290708}
+  - component: {fileID: 6904482860086597783}
   - component: {fileID: 8023130150563290714}
   - component: {fileID: 5542439263401049636}
   - component: {fileID: 2380960297985531293}
   - component: {fileID: 2805646102872565045}
   - component: {fileID: 3116331977861670693}
+  - component: {fileID: 2008641998251683611}
   - component: {fileID: 5124070473534990130}
   m_Layer: 9
   m_Name: Player
@@ -295,7 +297,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 5124070473534990130}
   camera: {fileID: 8023130152235894417}
-  multiplierText: {fileID: 0}
+  standingHitbox: {fileID: 3116331977861670693}
+  slidingHitbox: {fileID: 2008641998251683611}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   deceleration: 10
@@ -313,7 +316,8 @@ MonoBehaviour:
   wallFriction: 0.7
   wallJumpSpeed: 14
   greenKickSpeed: 2
-  greenKickTicks: 8
+  greenKickTicks: 4
+  wallJumpForgiveness: 10
   wallKickFlingThreshold: 15
   wallBumpThreshold: 8
   wallBumpSpeed: 20
@@ -336,6 +340,18 @@ MonoBehaviour:
   grappleYOffset: -0.7
   maxGrappleTimeMillis: 5000
   maxGrappleDistance: 120
+--- !u!114 &6904482860086597783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8023130150563290715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77700910200105a4cb74b24ad2829d3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!82 &8023130150563290714
 AudioSource:
   m_ObjectHideFlags: 0
@@ -734,6 +750,20 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 14
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!64 &2008641998251683611
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8023130150563290715}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Convex: 1
+  m_CookingOptions: 14
+  m_Mesh: {fileID: 2534964839176971238, guid: 5f583d0717a25d64aa6ea7ac8721d35d, type: 3}
 --- !u!54 &5124070473534990130
 Rigidbody:
   m_ObjectHideFlags: 0

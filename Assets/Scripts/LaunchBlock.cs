@@ -35,6 +35,8 @@ public class LaunchBlock : MonoBehaviour
         if (sound != null) sound.Play();
     }
 
+    private bool _apexDelay;
+
     private void FixedUpdate()
     {
         if (!Shoving) return;
@@ -57,6 +59,7 @@ public class LaunchBlock : MonoBehaviour
         if (_shoveTime < time)
         {
             _rigidbody.MovePosition(position + Direction.normalized * _speed);
+            _apexDelay = false;
         }
         else if (_shoveTime > time * 2)
         {
@@ -64,7 +67,14 @@ public class LaunchBlock : MonoBehaviour
         }
         else
         {
-            IsAtApex = true;
+            if (!_apexDelay)
+            {
+                _apexDelay = true;
+            }
+            else
+            {
+                IsAtApex = true;
+            }
         }
 
         if (!(_shoveTime > time * 3)) return;

@@ -75,7 +75,7 @@ public class Bow : MonoBehaviour
         var bowAngle = player.velocity.y * 1.8f - 10;
         var bowPos = bowPosition;
 
-        if (PlayerMovement.IsSliding)
+        if (Application.isPlaying && Game.I.Player.IsSliding)
         {
             bowAngle -= ease * 10;
             bowAngle += 180;
@@ -117,7 +117,7 @@ public class Bow : MonoBehaviour
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector / 12;
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);
-        if (Input.GetAxis("Fire1") > 0)
+        if (Input.GetKey((KeyCode)PlayerInput.Key.FireBow))
         {
             if (Drawback < 1)
             {
