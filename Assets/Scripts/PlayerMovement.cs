@@ -508,7 +508,7 @@ public class PlayerMovement : MonoBehaviour
 
         var pos = InterpolatedPosition;
         var didHit = Physics.CapsuleCast(pos - new Vector3(0, 2f, 0), pos + new Vector3(0, 1f, 0),
-            0.5f, Flatten(velocity).normalized, out hit, velocity.magnitude * t,
+            0.5f, velocity.normalized, out hit, velocity.magnitude * t,
             layermask);
         if (didHit && !IsGrounded && !IsOnWall &&
             Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < Tolerance &&
