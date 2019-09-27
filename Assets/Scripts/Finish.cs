@@ -8,22 +8,22 @@ public class Finish : MonoBehaviour
 
     public GameObject finishMenu;
 
-    private bool _finished;
+    public bool Finished { get; set; }
 
     private void Awake()
     {
         finishMenu.SetActive(false);
     }
 
-    private float TOLERANCE = 0.01f;
+    private float TOLERANCE = 0.08f;
 
     private float _blurCount;
 
     private void Update()
     {
-        if (_finished && Time.timeScale > 0)
+        if (Finished && Time.timeScale > 0)
         {
-            Time.timeScale -= Time.deltaTime * 3;
+            Time.timeScale -= Time.unscaledDeltaTime * 3;
             if (Time.timeScale < TOLERANCE) Time.timeScale = 0;
             Game.I.Player.LookScale = Time.timeScale;
             Blur blur;
@@ -35,7 +35,7 @@ public class Finish : MonoBehaviour
                 _blurCount += Time.unscaledDeltaTime * 15;
             }
         }
-        else if (_finished && Math.Abs(Time.timeScale) < TOLERANCE)
+        else if (Finished && Math.Abs(Time.timeScale) < TOLERANCE)
         {
             if (!Cursor.visible)
             {
@@ -50,7 +50,7 @@ public class Finish : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            _finished = true;
+            Finished = true;
             Game.EndTimer();
         }
     }

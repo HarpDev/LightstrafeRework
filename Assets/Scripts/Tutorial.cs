@@ -13,6 +13,8 @@ public class Tutorial : MonoBehaviour
     public KeyDisplay strafeRight;
     public KeyDisplay strafeLeft;
 
+    public Finish finish;
+
     private void Start()
     {
         strafeLeft.gameObject.SetActive(false);
@@ -20,6 +22,12 @@ public class Tutorial : MonoBehaviour
 
     private void Update()
     {
+        if (finish.Finished)
+        {
+            if (strafeRight.gameObject.activeSelf) strafeRight.gameObject.SetActive(false);
+            if (strafeLeft.gameObject.activeSelf) strafeLeft.gameObject.SetActive(false);
+            return;
+        }
         // velocity 0, 20, 30
         if (_stage == -1)
         {
@@ -30,7 +38,7 @@ public class Tutorial : MonoBehaviour
 
         if (_stage == 0)
         {
-            if (Input.GetAxisRaw("Right") > 0)
+            if (PlayerInput.GetAxisStrafeRight() > 0)
             {
                 Game.I.Player.velocity = new Vector3(0, 20, 30);
                 Game.I.Player.LookScale = 1;
@@ -49,7 +57,7 @@ public class Tutorial : MonoBehaviour
         
         if (_stage == 2)
         {
-            if (Input.GetAxisRaw("Right") < 0)
+            if (PlayerInput.GetAxisStrafeRight() < 0)
             {
                 Game.I.Player.velocity = new Vector3(0, 20, 30);
                 Game.I.Player.LookScale = 1;
@@ -66,7 +74,7 @@ public class Tutorial : MonoBehaviour
         }
         if (_stage == 4)
         {
-            if (Input.GetAxisRaw("Right") < 0)
+            if (PlayerInput.GetAxisStrafeRight() < 0)
             {
                 Game.I.Player.velocity = new Vector3(0, 20, 30);
                 Game.I.Player.LookScale = 1;

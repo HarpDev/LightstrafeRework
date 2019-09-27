@@ -403,7 +403,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void Teleport(Vector3 position)
     {
-        _displacePosition += position - transform.position;
+        _displacePosition += position - _displacePosition - transform.position;
     }
 
     public void AttachGrapple(Transform position)
