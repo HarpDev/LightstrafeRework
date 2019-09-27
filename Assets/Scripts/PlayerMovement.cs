@@ -332,7 +332,7 @@ public class PlayerMovement : MonoBehaviour
         _previousCollision = null;
         if (_momentumBuffer.Count < 2) return;
         if (Mathf.Abs(_momentumBuffer[0].x) > Mathf.Abs(velocity.x)) velocity.x = _momentumBuffer[0].x;
-        if (Mathf.Abs(_momentumBuffer[0].y) > Mathf.Abs(velocity.y)) velocity.y = _momentumBuffer[0].y;
+        if (_momentumBuffer[0].y > velocity.y) velocity.y = _momentumBuffer[0].y;
         if (Mathf.Abs(_momentumBuffer[0].z) > Mathf.Abs(velocity.z)) velocity.z = _momentumBuffer[0].z;
         _momentumBuffer.Clear();
     }
