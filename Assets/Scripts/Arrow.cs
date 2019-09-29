@@ -93,6 +93,7 @@ public class Arrow : MonoBehaviour
 
     public void Collide(RaycastHit hit)
     {
+        if (hit.collider.CompareTag("Player")) return;
         if (!Fired) return;
         radiusIndicator.gameObject.SetActive(true);
         transform.position = hit.point;

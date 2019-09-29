@@ -10,6 +10,7 @@ public class PlayerMovement : MonoBehaviour
     public new Camera camera;
     public Collider standingHitbox;
     public Collider slidingHitbox;
+    public Text wallkickDisplay;
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
@@ -29,17 +30,14 @@ public class PlayerMovement : MonoBehaviour
     public float wallSpeed = 12f;
     public float wallFriction = 0.7f;
     public float wallJumpSpeed = 14f;
-    public float greenKickSpeed = 20f;
-    public int greenKickTicks = 6;
     public int wallJumpForgiveness = 10;
     public float wallKickFlingThreshold = 5;
+    public float wallKickFriction = 7;
     public float wallBumpThreshold = 8;
     public float wallBumpSpeed = 10;
     public float grappleSwingForce = 40f;
     public float grappleDetachFrictionScale = 0.12f;
     public float slopeAngle = 45;
-
-    public Image wallkickDisplay;
 
     /* Audio */
     public AudioSource source;
@@ -205,7 +203,7 @@ public class PlayerMovement : MonoBehaviour
             if (standingHitbox.enabled) standingHitbox.enabled = false;
             if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
         }
-        else 
+        else
         {
             if (!standingHitbox.enabled) standingHitbox.enabled = true;
             if (_crouchAmount > 0)
@@ -557,7 +555,19 @@ public class PlayerMovement : MonoBehaviour
                 _lastAirborneVelocity.y = _lastJumpBeforeYVelocity;
             }
 
+            if (_wallTickCount == 0)
+            {
+                for (var i = 0; i < PlayerInput.SincePressed(PlayerInput.Key.Jump); i++)
+                {
+                    if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude)
+                        ApplyFriction(wallFriction * f * wallKickFriction);
+                    else
+                        ApplyFriction(wallFriction * f);
+                }
+            }
+
             WallJump();
+            return;
         }
 
         var point = _currentWall.ClosestPoint(InterpolatedPosition);
@@ -594,18 +604,17 @@ public class PlayerMovement : MonoBehaviour
             var towardWall = Flatten(point - InterpolatedPosition).normalized;
             source.pitch = 1;
 
-            if (velocity.y < 0) velocity.y *= newspeed;
-            ApplyFriction(wallFriction * f);
+            velocity.y *= newspeed;
+            if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude && _wallTickCount < wallJumpForgiveness)
+                ApplyFriction(wallFriction * f * wallKickFriction);
+            else
+                ApplyFriction(wallFriction * f);
 
             var direction = new Vector3(-towardWall.z, 0, towardWall.x);
             if (Vector3.Angle(CrosshairDirection, direction) < 90)
-            {
                 Accelerate(direction, wallSpeed, runAcceleration * f);
-            }
             else
-            {
                 Accelerate(-direction, wallSpeed, runAcceleration * f);
-            }
 
             Accelerate(towardWall, 4, 10 * f);
         }
@@ -619,7 +628,6 @@ public class PlayerMovement : MonoBehaviour
         CameraRotation = 0;
         if (Inverted) Inverted = false;
 
-        var c = wallkickDisplay.color;
         if (_currentWall.CompareTag("Launch Wall")) Accelerate(new Vector3(0, 1, 0), 40, 0.2f);
 
         var x = velocity.x + 0.2f * 15 * _wallNormal.x;
@@ -629,11 +637,10 @@ public class PlayerMovement : MonoBehaviour
         var newDir = Flatten(velocity).magnitude * jumpDir;
         velocity.x = newDir.x;
         velocity.z = newDir.z;
+        velocity += jumpDir * wallJumpSpeed;
 
         DoubleJumpAvailable = true;
         _wallJumpTimestamp = Environment.TickCount;
-
-        Accelerate(jumpDir, wallJumpSpeed, 0.15f);
 
         var up = _lastAirborneVelocity.y;
 
@@ -652,27 +659,43 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (PlayerInput.SincePressed(PlayerInput.Key.Jump) <= greenKickTicks / 2 &&
-            _wallTickCount <= greenKickTicks / 2)
+        if (PlayerInput.SincePressed(PlayerInput.Key.Jump) != 0)
+            wallkickDisplay.text = "-" + PlayerInput.SincePressed(PlayerInput.Key.Jump);
+        else
+            wallkickDisplay.text = "+" + _wallTickCount;
+
+        if (_wallTickCount < wallJumpForgiveness)
         {
-            velocity += jumpDir * greenKickSpeed;
-            source.PlayOneShot(wallKick);
             Accelerate(new Vector3(0, 1, 0), GetJumpHeight(8), 40);
-            c.a = 1;
-            c.r = 0;
-            c.b = 0;
-            c.g = 1;
+
+            var c = wallkickDisplay.color;
+            if (Flatten(velocity).magnitude > Flatten(_lastAirborneVelocity).magnitude)
+            {
+                c.g = 1;
+                c.r = 0;
+                c.b = 0;
+                c.a = 1;
+                source.PlayOneShot(wallKick);
+            }
+            else
+            {
+                c.g = 0;
+                c.r = 1;
+                c.b = 0;
+                c.a = 1;
+                source.PlayOneShot(wallJump);
+            }
+
+            wallkickDisplay.color = c;
         }
         else
         {
             Accelerate(new Vector3(0, 1, 0), GetJumpHeight(7), 40);
+            source.PlayOneShot(wallJump);
         }
 
         _momentumBuffer.Clear();
 
-        source.PlayOneShot(wallJump);
-
-        wallkickDisplay.color = c;
         _wallTickCount = 0;
         grindSound.volume = 0;
     }
@@ -711,8 +734,6 @@ public class PlayerMovement : MonoBehaviour
         if (grindSound.volume <= 0)
         {
             source.PlayOneShot(wallLand);
-            var slideBoost = -_lastAirborneVelocity.y / 10;
-            velocity += Flatten(velocity).normalized * slideBoost;
         }
 
         grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
@@ -722,7 +743,7 @@ public class PlayerMovement : MonoBehaviour
         var projection = Vector3.Dot(Flatten(_slideLeanVector).normalized, camera.transform.right);
         CameraRotation = projection * 15 * _crouchAmount;
 
-        ApplyFriction(f / 8);
+        ApplyFriction(f / 12);
         _slideLeanVector = Vector3.Lerp(_slideLeanVector, velocity, f * 4);
         AirAccelerate(Wishdir, surfAcceleration * f);
         Accelerate(Flatten(velocity).normalized, movementSpeed, runAcceleration * f);

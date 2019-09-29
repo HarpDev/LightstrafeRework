@@ -1,5 +1,80 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2479358280691854796
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 536529251877597692}
+  - component: {fileID: 7806271763685200708}
+  m_Layer: 9
+  m_Name: Camera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &536529251877597692
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2479358280691854796}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 8023130151277321243}
+  m_Father: {fileID: 8023130152235894421}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!20 &7806271763685200708
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2479358280691854796}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 4
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_FocalLength: 50
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.1
+  far clip plane: 1000
+  field of view: 105
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 256
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
 --- !u!1 &4765196597486450979
 GameObject:
   m_ObjectHideFlags: 0
@@ -146,7 +221,7 @@ GameObject:
   - component: {fileID: 6519163768624394517}
   - component: {fileID: 5300701105398848791}
   - component: {fileID: 3490817467204877439}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: radiusIndicator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -221,7 +296,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8023130150354116967}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: top
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -260,7 +335,7 @@ GameObject:
   - component: {fileID: 3116331977861670693}
   - component: {fileID: 2008641998251683611}
   - component: {fileID: 5124070473534990130}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -299,6 +374,7 @@ MonoBehaviour:
   camera: {fileID: 8023130152235894417}
   standingHitbox: {fileID: 3116331977861670693}
   slidingHitbox: {fileID: 2008641998251683611}
+  wallkickDisplay: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   deceleration: 10
@@ -313,18 +389,16 @@ MonoBehaviour:
   jumpHeight: 12
   fallSpeed: 60
   wallSpeed: 12
-  wallFriction: 0.7
-  wallJumpSpeed: 14
-  greenKickSpeed: 3
-  greenKickTicks: 4
+  wallFriction: 0.1
+  wallJumpSpeed: 3
   wallJumpForgiveness: 10
   wallKickFlingThreshold: 15
+  wallKickFriction: 8
   wallBumpThreshold: 8
   wallBumpSpeed: 20
   grappleSwingForce: 40
   grappleDetachFrictionScale: 0.12
   slopeAngle: 45
-  wallkickDisplay: {fileID: 0}
   source: {fileID: 8023130150563290714}
   grindSound: {fileID: 5542439263401049636}
   grappleDuring: {fileID: 2380960297985531293}
@@ -332,7 +406,7 @@ MonoBehaviour:
   jumpair: {fileID: 8300000, guid: 265a4c60d4d4dca40ab4ca3658956647, type: 3}
   ding: {fileID: 8300000, guid: a2d224f9af0df7b48b91992fac96a3da, type: 3}
   wallLand: {fileID: 8300000, guid: 93e282d6a3e016543bd36ff54984a173, type: 3}
-  wallKick: {fileID: 8300000, guid: a2d224f9af0df7b48b91992fac96a3da, type: 3}
+  wallKick: {fileID: 8300000, guid: 9918cb47f1361474abc7618bef88f4eb, type: 3}
   wallJump: {fileID: 8300000, guid: 9e6ecb5ae0c63aa4b85ef45139122555, type: 3}
   grappleAttach: {fileID: 8300000, guid: 50eb0cb4b1932f540a35e69898f19925, type: 3}
   grappleRelease: {fileID: 8300000, guid: 2ba0d66ae3b67c44799bdeaa41874207, type: 3}
@@ -794,7 +868,7 @@ GameObject:
   - component: {fileID: 8023130150596892145}
   - component: {fileID: 8023130150596892149}
   - component: {fileID: 8023130150596892148}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: Bow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1011,7 +1085,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8023130150759736865}
   - component: {fileID: 8023130150759736866}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: nock
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1156,7 +1230,7 @@ GameObject:
   - component: {fileID: 8023130151135111717}
   - component: {fileID: 8023130151135111715}
   - component: {fileID: 8023130151135111716}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: arrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1233,7 +1307,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8023130151277321243}
   - component: {fileID: 8023130151277321242}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: HUD
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1247,12 +1321,12 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8023130151277321244}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 8023130150596892147}
-  m_Father: {fileID: 8023130152235894421}
+  m_Father: {fileID: 536529251877597692}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8023130151277321242
@@ -1278,7 +1352,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8023130151782532118}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: bottom
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1313,7 +1387,7 @@ GameObject:
   - component: {fileID: 1048158983340295895}
   - component: {fileID: 360158247203074145}
   - component: {fileID: 8353354138593115890}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: Snipe Arrow
   m_TagString: Arrow
   m_Icon: {fileID: 0}
@@ -6176,7 +6250,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
-  - {fileID: 8023130151277321243}
+  - {fileID: 536529251877597692}
   m_Father: {fileID: 8023130150563290705}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -6211,7 +6285,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 1591
   m_RenderingPath: 3
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
