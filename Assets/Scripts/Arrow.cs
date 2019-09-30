@@ -58,8 +58,7 @@ public class Arrow : MonoBehaviour
         var trans = transform;
         var lookDir = trans.position - _prevPosition;
         RaycastHit hit;
-        var layermask = ~(1 << 9);
-        Physics.Raycast(_prevPosition, lookDir.normalized, out hit, lookDir.magnitude, layermask);
+        Physics.Raycast(_prevPosition, lookDir.normalized, out hit, lookDir.magnitude);
         if (hit.collider != null) Collide(hit);
 
         _prevPosition = transform.position;
@@ -95,6 +94,15 @@ public class Arrow : MonoBehaviour
     {
         if (hit.collider.CompareTag("Player")) return;
         if (!Fired) return;
+        if (hit.collider.isTrigger)
+        {
+            if (hit.collider.CompareTag("Rail"))
+            {
+                Game.I.Player.SetRail(hit.collider.gameObject.transform.parent.gameObject.GetComponent<CurvedLineRenderer>());
+                Destroy(gameObject);
+            }
+            return;
+        }
         radiusIndicator.gameObject.SetActive(true);
         transform.position = hit.point;
         Hit = true;

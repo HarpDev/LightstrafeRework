@@ -5,7 +5,6 @@ using System.Collections.Generic;
 [RequireComponent(typeof(LineRenderer))]
 public class CurvedLineRenderer : MonoBehaviour
 {
-    //PUBLIC
     public float lineSegmentSize = 0.15f;
     public float lineWidth = 0.1f;
     [Header("Gizmos")] public bool showGizmos = true;
@@ -13,12 +12,12 @@ public class CurvedLineRenderer : MonoBehaviour
 
     public Color gizmoColor = new Color(1, 0, 0, 0.5f);
 
-    //PRIVATE
     private CurvedLinePoint[] _linePoints = new CurvedLinePoint[0];
     private Vector3[] _linePositions = new Vector3[0];
     private Vector3[] _linePositionsOld = new Vector3[0];
 
-    // Update is called once per frame
+    public LineRenderer line;
+
     public void Update()
     {
         GetPoints();
@@ -27,10 +26,8 @@ public class CurvedLineRenderer : MonoBehaviour
 
     private void GetPoints()
     {
-        //find curved points in children
         _linePoints = GetComponentsInChildren<CurvedLinePoint>();
 
-        //add positions
         _linePositions = new Vector3[_linePoints.Length];
         for (var i = 0; i < _linePoints.Length; i++)
         {
@@ -38,34 +35,58 @@ public class CurvedLineRenderer : MonoBehaviour
         }
     }
 
+    public Vector3[] smoothedPoints;
+
     private void SetPointsToLine()
     {
-        //create old positions if they dont match
         if (_linePositionsOld.Length != _linePositions.Length)
         {
             _linePositionsOld = new Vector3[_linePositions.Length];
         }
 
-        //check if line points have moved
         var moved = false;
-        for (var i = 0; i < _linePositions.Length; i++)
+        foreach (var point in _linePoints)
         {
-            //compare
-            if (_linePositions[i] != _linePositionsOld[i])
-            {
-                moved = true;
-            }
+            if (!point.transform.hasChanged) continue;
+            moved = true;
+            point.transform.hasChanged = false;
         }
 
-        //update if moved
         if (moved)
         {
-            var line = GetComponent<LineRenderer>();
+            line = GetComponent<LineRenderer>();
 
-            //get smoothed values
-            var smoothedPoints = LineSmoother.SmoothLine(_linePositions, lineSegmentSize);
+            smoothedPoints = LineSmoother.SmoothLine(_linePositions, lineSegmentSize);
 
-            //set line settings
+            var previousPoint = new Vector3();
+            var first = true;
+            for (var i = transform.childCount - 1; i > 0; i--)
+            {
+                if (transform.GetChild(i).name == "hitbox")
+                {
+                    DestroyImmediate(transform.GetChild(i).gameObject);
+                }
+            }
+            foreach (var point in smoothedPoints)
+            {
+                if (!first)
+                {
+                    var obj = new GameObject {name = "hitbox"};
+                    obj.tag = "Rail";
+                    obj.transform.parent = gameObject.transform;
+                    var capsule = (CapsuleCollider) obj.AddComponent(typeof(CapsuleCollider));
+                    obj.transform.position = Vector3.Lerp(point, previousPoint, 0.5f);
+                    capsule.height = (previousPoint - point).magnitude + 0.5f;
+                    capsule.radius = lineWidth;
+                    capsule.direction = 2;
+                    capsule.isTrigger = true;
+                    obj.transform.rotation = Quaternion.LookRotation((previousPoint - point).normalized);
+                }
+
+                first = false;
+                previousPoint = point;
+            }
+
             line.positionCount = smoothedPoints.Length;
             line.SetPositions(smoothedPoints);
             line.startWidth = lineWidth;
@@ -85,7 +106,6 @@ public class CurvedLineRenderer : MonoBehaviour
             GetPoints();
         }
 
-        //settings for gizmos
         foreach (var linePoint in _linePoints)
         {
             linePoint.showGizmo = showGizmos;

@@ -141,6 +141,9 @@ public class Bow : MonoBehaviour
     {
         var a = Instantiate(arrow.gameObject).GetComponent<Arrow>();
         a.gameObject.layer = 0;
+        a.model.layer = 0;
+        a.radiusIndicator.gameObject.layer = 0;
+        
         a.transform.localScale = new Vector3(1, 1, 1);
         a.Fire(Quaternion.LookRotation(vel), Drawback * 100 * vel);
         a.transform.position = from;

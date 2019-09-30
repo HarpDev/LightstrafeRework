@@ -14,6 +14,7 @@ public class PlayerMovement : MonoBehaviour
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
+    public Vector2 rotation;
 
     /* Movement Stuff */
     public float deceleration = 10f;
@@ -89,6 +90,7 @@ public class PlayerMovement : MonoBehaviour
     private float _cameraRoll;
     private float _removeInvertY;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
+    private CurvedLineRenderer _currentRail;
 
     public static bool DoubleJumpAvailable { get; set; }
 
@@ -131,6 +133,11 @@ public class PlayerMovement : MonoBehaviour
         get { return Environment.TickCount - _wallTimestamp < 150; }
     }
 
+    public bool IsOnRail
+    {
+        get { return _currentRail != null; }
+    }
+
     public float CameraRotation { get; set; }
 
     public Vector3 InterpolatedPosition
@@ -153,10 +160,10 @@ public class PlayerMovement : MonoBehaviour
         _firstMove = false;
         Game.StopTimer();
         Game.ResetTimer();
+        Yaw += transform.rotation.eulerAngles.y;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        Yaw = transform.rotation.eulerAngles.y;
 
         wallkickDisplay.gameObject.SetActive(true);
         var c = wallkickDisplay.color;
@@ -190,10 +197,10 @@ public class PlayerMovement : MonoBehaviour
 
         var cam = camera.transform;
         _cameraRoll = Mathf.Lerp(_cameraRoll, CameraRotation, Time.deltaTime * 10);
-        camera.transform.rotation =
-            Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, Yaw, _cameraRoll));
+        camera.transform.localRotation =
+            Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, 0, _cameraRoll));
         CrosshairDirection = cam.forward;
-        rigidbody.transform.rotation = Quaternion.Euler(new Vector3(0, Yaw, 0));
+        transform.rotation = Quaternion.Euler(0, Yaw, 0);
 
         _motionInterpolationDelta += Time.deltaTime;
 
@@ -221,13 +228,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        var t = MovementDirectionRadians;
-
-        t += Mathf.Deg2Rad * Yaw;
-        if (Math.Abs(PlayerInput.GetAxisStrafeRight()) > 0.05f || Math.Abs(PlayerInput.GetAxisStrafeForward()) > 0.05f)
-            Wishdir = new Vector3(Mathf.Sin(t), 0, Mathf.Cos(t));
-        else
-            Wishdir = new Vector3();
+        Wishdir = transform.right * PlayerInput.GetAxisStrafeRight() +
+                  transform.forward * PlayerInput.GetAxisStrafeForward();
 
         if (PlayerInput.JustPressed(PlayerInput.Key.RestartLevel)) Game.RestartLevel();
         if ((Wishdir.magnitude > 0 || PlayerInput.JustPressed(PlayerInput.Key.FireBow)) && !_firstMove)
@@ -247,6 +249,7 @@ public class PlayerMovement : MonoBehaviour
         SlideMove(factor);
         GroundMove(factor);
         AirMove(factor);
+        RailMove(factor);
 
         if (PlayerInput.JustPressed(PlayerInput.Key.Jump))
         {
@@ -335,6 +338,14 @@ public class PlayerMovement : MonoBehaviour
         _momentumBuffer.Clear();
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Rail"))
+        {
+            SetRail(other.gameObject.transform.parent.gameObject.GetComponent<CurvedLineRenderer>());
+        }
+    }
+
     private void OnCollisionStay(Collision other)
     {
         var moved = (rigidbody.transform.position - _displacePosition - _previousPosition) / Time.fixedDeltaTime;
@@ -389,6 +400,69 @@ public class PlayerMovement : MonoBehaviour
         _wallNormal = other.contacts[0].normal;
         _currentWall = other.collider;
         _wallTimestamp = Environment.TickCount;
+    }
+
+    public void SetRail(CurvedLineRenderer rail)
+    {
+        _currentRail = rail;
+    }
+
+    public void RailMove(float f)
+    {
+        if (!IsOnRail) return;
+        var closest = 0;
+        var closestDistance = float.MaxValue;
+        for (var i = 0; i < _currentRail.smoothedPoints.Length; i++)
+        {
+            var point = _currentRail.smoothedPoints[i];
+            var distance = Vector3.Distance(transform.position, point);
+            if (distance > closestDistance) continue;
+            closestDistance = distance;
+            closest = i;
+        }
+
+        var close = _currentRail.smoothedPoints[closest];
+        var p1Angle = closest == 0 ? 90 : Vector3.Angle(velocity, _currentRail.smoothedPoints[closest - 1] - close);
+        var p2Angle = closest == _currentRail.smoothedPoints.Length - 1
+            ? 90
+            : Vector3.Angle(velocity, _currentRail.smoothedPoints[closest + 1] - close);
+        
+        if (closest <= 1 || closest >= _currentRail.smoothedPoints.Length - 2)
+        {
+            CameraRotation = 0;
+            _currentRail = null;
+            return;
+        }
+
+        Vector3 p;
+        Vector3 advance;
+        if (p1Angle < p2Angle)
+        {
+            p = _currentRail.smoothedPoints[closest - 1];
+            advance = _currentRail.smoothedPoints[closest - 2];
+        }
+        else
+        {
+            p = _currentRail.smoothedPoints[closest + 1];
+            advance = _currentRail.smoothedPoints[closest + 2];
+        }
+
+        var position = transform.position;
+
+        var forward = (p - close).normalized;
+        var leanVector = advance - forward * Vector3.Dot(advance - close, forward) - close;
+
+        var balance = leanVector + Flatten(leanVector) * velocity.magnitude + Vector3.up * (gravity * 18);
+
+        Debug.DrawRay(close, balance, Color.blue, 5);
+        var direction = (position - p - balance.normalized).normalized;
+
+        var totalAngle = Vector3.Angle(Vector3.up, leanVector) / 3f;
+        var projection = Vector3.Dot(leanVector.normalized * totalAngle, -transform.right);
+        CameraRotation = projection;
+
+        velocity = Vector3.Lerp(velocity.magnitude * -direction, velocity, f * 6);
+        Accelerate(velocity.normalized, 18, f);
     }
 
     private void OnTriggerStay(Collider other)
@@ -508,7 +582,7 @@ public class PlayerMovement : MonoBehaviour
         var didHit = Physics.CapsuleCast(pos - new Vector3(0, 2f, 0), pos + new Vector3(0, 1f, 0),
             0.5f, velocity.normalized, out hit, velocity.magnitude * t,
             layermask);
-        if (didHit && !IsGrounded && !IsOnWall &&
+        if (didHit && !hit.collider.isTrigger && !IsGrounded && !IsOnWall &&
             Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < Tolerance &&
             !hit.collider.CompareTag("Kill Block"))
         {
@@ -605,7 +679,8 @@ public class PlayerMovement : MonoBehaviour
             source.pitch = 1;
 
             velocity.y *= newspeed;
-            if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude && _wallTickCount < wallJumpForgiveness)
+            if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude &&
+                _wallTickCount < wallJumpForgiveness)
                 ApplyFriction(wallFriction * f * wallKickFriction);
             else
                 ApplyFriction(wallFriction * f);
