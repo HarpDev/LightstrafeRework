@@ -89,6 +89,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _lastAirborneVelocity;
     private float _cameraRoll;
     private float _removeInvertY;
+    private int _railDirection;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
     private CurvedLineRenderer _currentRail;
 
@@ -291,9 +292,9 @@ public class PlayerMovement : MonoBehaviour
                 else
                 {
                     RaycastHit stair;
-                    if (Math.Abs(angle - 90) < 0.05f &&
-                        Physics.Raycast(hit.point - hit.normal + new Vector3(0, 3, 0), new Vector3(0, -1, 0),
-                            out stair, 6) &&
+                    var didHit = Physics.Raycast(hit.point - hit.normal + new Vector3(0, 3, 0), Vector3.down,
+                        out stair, 6, 1, QueryTriggerInteraction.Ignore);
+                    if (Math.Abs(angle - 90) < 0.05f && didHit &&
                         stair.point.y - (nextPosition.y - 1) < (IsSliding ? stairHeight + 0.7f : stairHeight))
                     {
                         _displacePosition += new Vector3(0, stair.point.y - (nextPosition.y - 1), 0);
@@ -404,65 +405,117 @@ public class PlayerMovement : MonoBehaviour
 
     public void SetRail(CurvedLineRenderer rail)
     {
+        if (IsOnRail) return;
         _currentRail = rail;
+        if (GrappleHooked) DetachGrapple();
     }
+
+    private Vector3 GetBalanceVector(int i)
+    {
+        var range = Mathf.RoundToInt(5 / _currentRail.lineSegmentSize);
+        var index = i;
+        if (index < range) index = range;
+        if (index >= _currentRail.smoothedPoints.Length - range) index = _currentRail.smoothedPoints.Length - range - 1;
+        var point = _currentRail.smoothedPoints[index];
+
+        var p1 = _currentRail.smoothedPoints[index - range];
+        var p2 = _currentRail.smoothedPoints[index + range];
+
+        var a = Vector3.Dot(point - p1, (p2 - p1).normalized);
+        var b = Vector3.Dot(point - p2, (p1 - p2).normalized);
+
+        var ratio = a / (a + b);
+
+        var p3 = Vector3.Lerp(p1, p2, ratio);
+
+        var leanVector = p3 - point;
+
+        var balance = leanVector + Vector3.up * (gravity * 10 / velocity.magnitude);
+
+        return balance.normalized;
+    }
+
+    private Vector3 _railLeanVector;
 
     public void RailMove(float f)
     {
         if (!IsOnRail) return;
-        var closest = 0;
-        var closestDistance = float.MaxValue;
+
+        var closeIndex = 0;
+        var closeDistance = float.MaxValue;
         for (var i = 0; i < _currentRail.smoothedPoints.Length; i++)
         {
-            var point = _currentRail.smoothedPoints[i];
-            var distance = Vector3.Distance(transform.position, point);
-            if (distance > closestDistance) continue;
-            closestDistance = distance;
-            closest = i;
+            var close = _currentRail.smoothedPoints[i] + GetBalanceVector(i);
+            var distance = Vector3.Distance(transform.position, close);
+            if (distance > closeDistance) continue;
+            closeDistance = distance;
+            closeIndex = i;
         }
 
-        var close = _currentRail.smoothedPoints[closest];
-        var p1Angle = closest == 0 ? 90 : Vector3.Angle(velocity, _currentRail.smoothedPoints[closest - 1] - close);
-        var p2Angle = closest == _currentRail.smoothedPoints.Length - 1
-            ? 90
-            : Vector3.Angle(velocity, _currentRail.smoothedPoints[closest + 1] - close);
-        
-        if (closest <= 1 || closest >= _currentRail.smoothedPoints.Length - 2)
+        grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
+        grindSound.volume = Mathf.Min(velocity.magnitude / 10, 1);
+
+        if (_railDirection == 0)
+        {
+            var c = _currentRail.smoothedPoints[closeIndex];
+            var p1Angle = 90f;
+            if (closeIndex != 0)
+            {
+                var a = _currentRail.smoothedPoints[closeIndex - 1];
+                p1Angle = Vector3.Angle(Flatten(velocity), Flatten(a - c));
+            }
+
+            var p2Angle = 90f;
+            if (closeIndex < _currentRail.smoothedPoints.Length - 1)
+            {
+                var a = _currentRail.smoothedPoints[closeIndex + 1];
+                p2Angle = Vector3.Angle(Flatten(velocity), Flatten(a - c));
+            }
+
+            if (p1Angle < p2Angle)
+            {
+                _railDirection = -1;
+            }
+            else
+            {
+                _railDirection = 1;
+            }
+
+            try
+            {
+                var forward = _currentRail.smoothedPoints[closeIndex - _railDirection] -
+                              _currentRail.smoothedPoints[closeIndex];
+                var p = Vector3.Dot(velocity, forward.normalized);
+                velocity = velocity.normalized * p;
+            }
+            catch (IndexOutOfRangeException)
+            {
+            }
+        }
+
+        if (_railDirection == 1 && closeIndex >= _currentRail.smoothedPoints.Length - 1 ||
+            _railDirection == -1 && closeIndex <= 0)
         {
             CameraRotation = 0;
             _currentRail = null;
+            grindSound.volume = 0;
+            _railDirection = 0;
             return;
         }
 
-        Vector3 p;
-        Vector3 advance;
-        if (p1Angle < p2Angle)
-        {
-            p = _currentRail.smoothedPoints[closest - 1];
-            advance = _currentRail.smoothedPoints[closest - 2];
-        }
-        else
-        {
-            p = _currentRail.smoothedPoints[closest + 1];
-            advance = _currentRail.smoothedPoints[closest + 2];
-        }
+        _railLeanVector = Vector3.Lerp(_railLeanVector, GetBalanceVector(closeIndex + _railDirection), f * 20);
 
-        var position = transform.position;
+        var next = _currentRail.smoothedPoints[closeIndex + _railDirection] + _railLeanVector;
+        velocity = velocity.magnitude * -(transform.position - next).normalized;
 
-        var forward = (p - close).normalized;
-        var leanVector = advance - forward * Vector3.Dot(advance - close, forward) - close;
+        var bonusSpeed = Vector3.Dot(_railLeanVector, Wishdir);
+        Accelerate(velocity.normalized, 15 + bonusSpeed, f);
 
-        var balance = leanVector + Flatten(leanVector) * velocity.magnitude + Vector3.up * (gravity * 18);
+        Debug.DrawRay(next - _railLeanVector, _railLeanVector, Color.cyan, 10);
 
-        Debug.DrawRay(close, balance, Color.blue, 5);
-        var direction = (position - p - balance.normalized).normalized;
-
-        var totalAngle = Vector3.Angle(Vector3.up, leanVector) / 3f;
-        var projection = Vector3.Dot(leanVector.normalized * totalAngle, -transform.right);
+        var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 3f;
+        var projection = Vector3.Dot(_railLeanVector.normalized * totalAngle, -transform.right);
         CameraRotation = projection;
-
-        velocity = Vector3.Lerp(velocity.magnitude * -direction, velocity, f * 6);
-        Accelerate(velocity.normalized, 18, f);
     }
 
     private void OnTriggerStay(Collider other)
@@ -485,6 +538,7 @@ public class PlayerMovement : MonoBehaviour
         Game.I.Hitmarker.Display();
         if (GrappleHooked) return;
         if (Vector3.Distance(position.position, transform.position) > maxGrappleDistance) return;
+        if (IsOnRail) _currentRail = null;
         _grappleAttachPosition = position;
         GrappleHooked = true;
         grappleTether.enabled = true;
@@ -500,7 +554,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (GrappleHooked) GrappleHooked = false;
         if (grappleTether.enabled) grappleTether.enabled = false;
-        ApplyFriction(grappleDetachFrictionScale);
+        CameraRotation = 0;
         grappleDuring.volume = 0;
         source.PlayOneShot(grappleRelease);
     }
@@ -542,9 +596,10 @@ public class PlayerMovement : MonoBehaviour
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
 
-        Accelerate(towardPoint, grappleSwingForce, 1 * f);
-        Accelerate(velocity.normalized, grappleSwingForce, 0.4f * f);
-        Accelerate(Wishdir, grappleSwingForce / 4, 1 * f);
+        ApplyFriction(f);
+
+        Accelerate(towardPoint, grappleSwingForce, runAcceleration * f);
+        Accelerate(Wishdir, grappleSwingForce / 4, runAcceleration * f);
     }
 
     public void WallLean(float t, float f)
@@ -795,7 +850,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void SlideMove(float f)
     {
-        if (!IsGrounded)
+        if (!IsGrounded && !IsOnRail)
         {
             _slideLeanVector = velocity;
             grindSound.volume = 0;
@@ -840,6 +895,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (IsGrounded) return;
+        if (IsOnRail) return;
         if (GrappleHooked) return;
         if (IsOnWall) return;
         _wallTickCount = 0;

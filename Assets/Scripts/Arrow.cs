@@ -98,7 +98,7 @@ public class Arrow : MonoBehaviour
         {
             if (hit.collider.CompareTag("Rail"))
             {
-                Game.I.Player.SetRail(hit.collider.gameObject.transform.parent.gameObject.GetComponent<CurvedLineRenderer>());
+                Game.I.Player.AttachGrapple(hit.transform);
                 Destroy(gameObject);
             }
             return;

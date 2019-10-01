@@ -71,6 +71,7 @@ public class CurvedLineRenderer : MonoBehaviour
             {
                 if (!first)
                 {
+                    if ((previousPoint - point).magnitude < 1f) continue;
                     var obj = new GameObject {name = "hitbox"};
                     obj.tag = "Rail";
                     obj.transform.parent = gameObject.transform;
