@@ -29,7 +29,7 @@ public class Game : MonoBehaviour
         return PlayerPrefs.HasKey("v1.5BestTime" + level) ? PlayerPrefs.GetFloat("v1.5BestTime" + level) : -1f;
     }
 
-    private static bool _timerRunning;
+    public static bool TimerRunning { get; private set; }
     public PlayerMovement Player { get; private set; }
     public Canvas Canvas { get; private set; }
     
@@ -62,7 +62,7 @@ public class Game : MonoBehaviour
 
     private void Update()
     {
-        if (_timerRunning) CurrentLevelTime += Time.unscaledDeltaTime;
+        if (TimerRunning) CurrentLevelTime += Time.unscaledDeltaTime;
     }
 
     private void Find()
@@ -84,17 +84,17 @@ public class Game : MonoBehaviour
 
     public static void StopTimer()
     {
-        _timerRunning = false;
+        TimerRunning = false;
     }
 
     public static void StartTimer()
     {
-        _timerRunning = true;
+        TimerRunning = true;
     }
 
     public static void EndTimer()
     {
-        _timerRunning = false;
+        TimerRunning = false;
         var level = SceneManager.GetActiveScene().name;
         if (CurrentLevelTime < GetBestLevelTime(level) || GetBestLevelTime(level) < 0f)
         {

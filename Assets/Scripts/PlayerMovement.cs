@@ -63,7 +63,6 @@ public class PlayerMovement : MonoBehaviour
     public float Pitch { get; set; }
     public float LookScale { get; set; }
 
-    private bool _firstMove;
     private bool _approachingWall;
     private float _approachingWallDistance;
     private int _groundTimestamp;
@@ -75,7 +74,6 @@ public class PlayerMovement : MonoBehaviour
     private int _wallJumpTimestamp;
     private Vector3 _wallNormal;
     private int _grappleAttachTimestamp;
-    private float _targetSpeed;
     private Transform _grappleAttachPosition;
     private Vector3 _previousPosition;
     private Collision _previousCollision;
@@ -90,6 +88,7 @@ public class PlayerMovement : MonoBehaviour
     private float _cameraRoll;
     private float _removeInvertY;
     private int _railDirection;
+    private Vector3 _railLeanVector;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
     private CurvedLineRenderer _currentRail;
 
@@ -97,25 +96,12 @@ public class PlayerMovement : MonoBehaviour
 
     public static bool Inverted { get; set; }
 
-    public float MovementDirectionRadians
-    {
-        get { return Mathf.Atan2(PlayerInput.GetAxisStrafeRight(), PlayerInput.GetAxisStrafeForward()); }
-    }
-
     public float GetJumpHeight(float distance)
     {
         var vx = Flatten(velocity).magnitude;
         var t = distance / vx;
         var y = gravity * fallSpeed * Mathf.Pow(t, 2) / t;
         if (vx < Tolerance || y > jumpHeight) y = jumpHeight;
-        return Inverted ? -y : y;
-    }
-
-    public float GetJumpHeightUncapped(float distance)
-    {
-        var vx = Flatten(velocity).magnitude;
-        var t = distance / vx;
-        var y = gravity * fallSpeed * Mathf.Pow(t, 2) / t;
         return Inverted ? -y : y;
     }
 
@@ -158,7 +144,6 @@ public class PlayerMovement : MonoBehaviour
     {
         LookScale = 1;
 
-        _firstMove = false;
         Game.StopTimer();
         Game.ResetTimer();
         Yaw += transform.rotation.eulerAngles.y;
@@ -196,6 +181,7 @@ public class PlayerMovement : MonoBehaviour
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
 
+        // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
         var cam = camera.transform;
         _cameraRoll = Mathf.Lerp(_cameraRoll, CameraRotation, Time.deltaTime * 10);
         camera.transform.localRotation =
@@ -203,6 +189,7 @@ public class PlayerMovement : MonoBehaviour
         CrosshairDirection = cam.forward;
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
 
+        // This value is used to calcuate the positions in between each fixedupdate tick
         _motionInterpolationDelta += Time.deltaTime;
 
         var position = cameraPosition;
@@ -229,40 +216,54 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Set Wishdir
         Wishdir = transform.right * PlayerInput.GetAxisStrafeRight() +
                   transform.forward * PlayerInput.GetAxisStrafeForward();
 
+        // Check for level restart
         if (PlayerInput.JustPressed(PlayerInput.Key.RestartLevel)) Game.RestartLevel();
-        if ((Wishdir.magnitude > 0 || PlayerInput.JustPressed(PlayerInput.Key.FireBow)) && !_firstMove)
+        
+        // Start the timer when the player moves
+        if ((Wishdir.magnitude > 0 || PlayerInput.JustPressed(PlayerInput.Key.FireBow)) && !Game.TimerRunning)
         {
-            _firstMove = true;
             Game.StartTimer();
         }
 
+        // This value gets set to 0 on successful jump
         _sinceJumpCounter++;
+        
+        // Ensure the rigidbody will stay stationary unless acted upon by this script
         rigidbody.velocity = new Vector3();
+        
+        // Remove inversion
+        if (transform.position.y > _removeInvertY && Inverted) Inverted = false;
+        
+        // Keep wall tick count at 0 when not on walls
+        if (!IsOnWall) _wallTickCount = 0;
 
+        // Movement happens here
         var factor = Time.fixedDeltaTime;
+        if (GrappleHooked)
+            GrappleMove(factor);
+        else if (IsOnRail)
+            RailMove(factor);
+        else if (IsOnWall)
+            WallMove(factor);
+        else if (IsGrounded)
+            GroundMove(factor);
+        else
+            AirMove(factor);
 
-        Gravity(factor);
+        if (PlayerInput.JustPressed(PlayerInput.Key.Jump)) Jump();
 
-        GrappleMove(factor);
-        SlideMove(factor);
-        GroundMove(factor);
-        AirMove(factor);
-        RailMove(factor);
-
-        if (PlayerInput.JustPressed(PlayerInput.Key.Jump))
-        {
-            Jump();
-        }
-
-        WallMove(factor);
-
+        // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         _motionInterpolationDelta = 0;
+        
+        // Set is surfing to false, if the player is surfing it will be set to true again on the next collision
         _isSurfing = false;
+        
+        // Here we measure how much the current collider the player is standing on has moved, and move their position by that amount
         var platformMotion = new Vector3();
-
         if (_previousCollision != null)
         {
             if (_previousCollision.transform.hasChanged && IsGrounded && _previousCollisionLocalPosition.magnitude > 0)
@@ -278,9 +279,13 @@ public class PlayerMovement : MonoBehaviour
         }
         else _previousCollisionLocalPosition = new Vector3();
 
+        // Calculate the players position for the next tick
         _previousPosition = rigidbody.transform.position;
         var nextPosition = _previousPosition + platformMotion + velocity * factor;
 
+        // Here we check if the next position will collide with a surface, and if needed, adjust the next position so that they either:
+        // A: collide with it instead of going through it
+        // B: if the top of the surface is close enough, adjust the next position to be on top of the surface (step)
         RaycastHit hit;
         var difference = nextPosition - _previousPosition;
         if (rigidbody.SweepTest(difference.normalized, out hit, difference.magnitude))
@@ -323,6 +328,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        // The previous collision is set in oncollision, executed after fixedupdate
         _previousCollision = null;
         _previousPosition -= _displacePosition;
         rigidbody.MovePosition(nextPosition + _displacePosition);
@@ -403,6 +409,14 @@ public class PlayerMovement : MonoBehaviour
         _wallTimestamp = Environment.TickCount;
     }
 
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag("Arrow"))
+        {
+            other.GetComponent<Arrow>().Explode();
+        }
+    }
+
     public void SetRail(CurvedLineRenderer rail)
     {
         if (IsOnRail) return;
@@ -434,8 +448,6 @@ public class PlayerMovement : MonoBehaviour
 
         return balance.normalized;
     }
-
-    private Vector3 _railLeanVector;
 
     public void RailMove(float f)
     {
@@ -518,14 +530,6 @@ public class PlayerMovement : MonoBehaviour
         CameraRotation = projection;
     }
 
-    private void OnTriggerStay(Collider other)
-    {
-        if (other.CompareTag("Arrow"))
-        {
-            other.GetComponent<Arrow>().Explode();
-        }
-    }
-
     public void Teleport(Vector3 position)
     {
         _displacePosition += position - _displacePosition - transform.position;
@@ -561,7 +565,6 @@ public class PlayerMovement : MonoBehaviour
 
     public void GrappleMove(float f)
     {
-        if (!GrappleHooked) return;
         var camTrans = camera.transform;
 
         var list = new List<Vector3>
@@ -674,8 +677,6 @@ public class PlayerMovement : MonoBehaviour
 
     public void WallMove(float f)
     {
-        if (!IsOnWall) return;
-
         if (PlayerInput.SincePressed(PlayerInput.Key.Jump) < wallJumpForgiveness)
         {
             if (_sinceJumpCounter < wallJumpForgiveness)
@@ -832,16 +833,18 @@ public class PlayerMovement : MonoBehaviour
 
     public void Gravity(float f)
     {
-        if (IsOnWall) return;
-        if (GrappleHooked) return;
         var direction = Inverted ? Vector3.up : Vector3.down;
         Accelerate(direction, fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
     {
-        if (!IsGrounded) return;
-        if (IsSliding) return;
+        Gravity(f);
+        if (IsSliding)
+        {
+            SlideMove(f);
+            return;
+        }
         ApplyFriction(f);
         DoubleJumpAvailable = true;
 
@@ -850,20 +853,10 @@ public class PlayerMovement : MonoBehaviour
 
     public void SlideMove(float f)
     {
-        if (!IsGrounded && !IsOnRail)
-        {
-            _slideLeanVector = velocity;
-            grindSound.volume = 0;
-            return;
-        }
-
-        if (!IsSliding) return;
-        if (GrappleHooked) return;
-        if (IsOnWall) return;
-
         if (grindSound.volume <= 0)
         {
             source.PlayOneShot(wallLand);
+            _slideLeanVector = velocity;
         }
 
         grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
@@ -881,25 +874,8 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirMove(float f)
     {
-        if (_targetSpeed > 0)
-        {
-            if (Flatten(velocity).magnitude > _targetSpeed)
-                ApplyFriction(airFriction * f);
-            else
-                _targetSpeed = -1;
-        }
-
-        if (transform.position.y > _removeInvertY)
-        {
-            Inverted = false;
-        }
-
-        if (IsGrounded) return;
-        if (IsOnRail) return;
-        if (GrappleHooked) return;
-        if (IsOnWall) return;
-        _wallTickCount = 0;
         _lastAirborneVelocity = velocity;
+        Gravity(f);
 
         if (Flatten(velocity).magnitude < movementSpeed / 1.5f)
         {
