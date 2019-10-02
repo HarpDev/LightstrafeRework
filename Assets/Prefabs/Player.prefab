@@ -241,11 +241,10 @@ MonoBehaviour:
   wallkickDisplay: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
-  rotation: {x: 0, y: 0}
   deceleration: 10
   friction: 5
   runAcceleration: 8
-  airFriction: 0.1
+  railSpeed: 20
   strafeAcceleration: 200
   stairHeight: 0.6
   surfAcceleration: 900
@@ -262,8 +261,10 @@ MonoBehaviour:
   wallBumpThreshold: 8
   wallBumpSpeed: 20
   grappleSwingForce: 20
-  grappleDetachFrictionScale: 0.12
+  grappleDetachFriction: 0.1
   slopeAngle: 45
+  coyoteTime: 20
+  railCooldown: 40
   source: {fileID: 8023130150563290714}
   grindSound: {fileID: 5542439263401049636}
   grappleDuring: {fileID: 2380960297985531293}
@@ -278,7 +279,6 @@ MonoBehaviour:
   grappleTether: {fileID: 6236329095573178393}
   grappleYOffset: -0.7
   maxGrappleTimeMillis: 5000
-  maxGrappleDistance: 120
 --- !u!114 &6904482860086597783
 MonoBehaviour:
   m_ObjectHideFlags: 0

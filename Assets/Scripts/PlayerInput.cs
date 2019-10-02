@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PlayerInput : MonoBehaviour
 {
-    public static int TickCount;
+    public static int tickCount;
     
     public enum Key
     {
@@ -21,22 +21,14 @@ public class PlayerInput : MonoBehaviour
 
     private class KeyData
     {
-        public bool pressed;
         public int pressedTimestamp;
     }
 
     private static Dictionary<Key, KeyData> keys = new Dictionary<Key, KeyData>();
 
-    public static bool JustPressed(Key key)
-    {
-        var justPressed = keys[key].pressed;
-        if (keys[key].pressed) keys[key].pressed = false;
-        return justPressed;
-    }
-
     public static int SincePressed(Key key)
     {
-        return TickCount - keys[key].pressedTimestamp;
+        return tickCount - keys[key].pressedTimestamp;
     }
 
     public static float GetAxisStrafeRight()
@@ -65,7 +57,7 @@ public class PlayerInput : MonoBehaviour
 
     private void FixedUpdate()
     {
-        TickCount++;
+        tickCount++;
     }
 
     private void Update()
@@ -75,8 +67,7 @@ public class PlayerInput : MonoBehaviour
         {
             if (Input.GetKeyDown((KeyCode) key))
             {
-                keys[key].pressed = true;
-                keys[key].pressedTimestamp = TickCount;
+                keys[key].pressedTimestamp = tickCount;
             }
         }
     }

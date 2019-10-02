@@ -9,6 +9,7 @@ public class CurvedLineRenderer : MonoBehaviour
     public float lineWidth = 0.1f;
     [Header("Gizmos")] public bool showGizmos = true;
     public float gizmoSize = 0.1f;
+    public float hitboxSize = 1;
 
     public Color gizmoColor = new Color(1, 0, 0, 0.5f);
 
@@ -78,7 +79,7 @@ public class CurvedLineRenderer : MonoBehaviour
                     var capsule = (CapsuleCollider) obj.AddComponent(typeof(CapsuleCollider));
                     obj.transform.position = Vector3.Lerp(point, previousPoint, 0.5f);
                     capsule.height = (previousPoint - point).magnitude + 0.5f;
-                    capsule.radius = lineWidth;
+                    capsule.radius = hitboxSize;
                     capsule.direction = 2;
                     capsule.isTrigger = true;
                     obj.transform.rotation = Quaternion.LookRotation((previousPoint - point).normalized);

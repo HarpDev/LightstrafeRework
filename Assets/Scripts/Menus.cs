@@ -6,12 +6,11 @@ using UnityEngine.Rendering.PostProcessing;
 
 public class Menus : MonoBehaviour
 {
-
     public GameObject pauseMenu;
 
-    private void FixedUpdate()
+    private void Update()
     {
-        if (PlayerInput.JustPressed(PlayerInput.Key.Pause))
+        if (Input.GetKeyDown((KeyCode) PlayerInput.Key.Pause))
         {
             if (IsPaused())
                 Unpause();
@@ -31,7 +30,7 @@ public class Menus : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         pauseMenu.SetActive(true);
-        
+
         Blur blur;
         Game.I.PostProcessVolume.profile.TryGetSettings(out blur);
         blur.BlurIterations.value = 8;
@@ -44,7 +43,7 @@ public class Menus : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         pauseMenu.SetActive(false);
-        
+
         Blur blur;
         Game.I.PostProcessVolume.profile.TryGetSettings(out blur);
         blur.BlurIterations.value = 0;
