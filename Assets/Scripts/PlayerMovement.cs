@@ -540,6 +540,12 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        if (_wishJump)
+        {
+            Jump();
+            return;
+        }
+
         if (_railDirection == 1 && closeIndex >= _currentRail.smoothedPoints.Length - 1 ||
             _railDirection == -1 && closeIndex <= 0)
         {
@@ -564,8 +570,6 @@ public class PlayerMovement : MonoBehaviour
         CameraRotation = projection;
         
         railSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
-
-        if (_wishJump) Jump();
     }
 
     public void Teleport(Vector3 position)

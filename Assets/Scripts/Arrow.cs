@@ -96,6 +96,10 @@ public class Arrow : MonoBehaviour
         if (!Fired) return;
         if (hit.collider.isTrigger)
         {
+            if (hit.collider.CompareTag("Target"))
+            {
+                hit.collider.gameObject.GetComponent<Target>().Hit(rigidbody.velocity);
+            }
             return;
         }
         radiusIndicator.gameObject.SetActive(true);
