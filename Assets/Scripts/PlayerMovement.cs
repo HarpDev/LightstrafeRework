@@ -454,9 +454,9 @@ public class PlayerMovement : MonoBehaviour
         if (!IsOnRail) return;
         CameraRotation = 0;
         _currentRail = null;
-        railSound.volume = 0;
+        railSound.Stop();
         _railDirection = 0;
-        source.PlayOneShot(railEnd);
+        railSound.PlayOneShot(railEnd);
     }
 
     private Vector3 GetBalanceVector(int i)
@@ -478,7 +478,7 @@ public class PlayerMovement : MonoBehaviour
         var p3 = Vector3.Lerp(p1, p2, ratio);
 
         var leanVector = p3 - point;
-        if (leanVector.y < 0) leanVector.y *= -1;
+        leanVector.y = Mathf.Abs(leanVector.y);
 
         var balance = leanVector + Vector3.up * (gravity * 3);
 
@@ -500,8 +500,6 @@ public class PlayerMovement : MonoBehaviour
             closeIndex = i;
         }
 
-        grindSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
-        grindSound.volume = Mathf.Min(velocity.magnitude / 10, 1);
         DoubleJumpAvailable = true;
 
         if (_railDirection == 0)
@@ -564,6 +562,8 @@ public class PlayerMovement : MonoBehaviour
         var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 2f;
         var projection = Vector3.Dot(_railLeanVector.normalized * totalAngle, -transform.right);
         CameraRotation = projection;
+        
+        railSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
 
         if (_wishJump) Jump();
     }
