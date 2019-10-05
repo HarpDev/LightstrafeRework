@@ -93,6 +93,7 @@ public class PlayerMovement : MonoBehaviour
     private float _removeInvertY;
     private int _railDirection;
     private Vector3 _railLeanVector;
+    private GameObject _lastRail;
     private bool _wishJump;
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
     private CurvedLineRenderer _currentRail;
@@ -207,7 +208,7 @@ public class PlayerMovement : MonoBehaviour
             if (_crouchAmount > 0)
             {
                 _crouchAmount -= Time.deltaTime * 6;
-                CameraRotation = 0;
+                if (!IsOnRail) CameraRotation = 0;
             }
         }
 
@@ -365,8 +366,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Rail") && PlayerInput.tickCount - _railCooldownTimestamp > railCooldown)
+        if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > railCooldown || other.transform.parent.gameObject != _lastRail))
         {
+            _lastRail = other.transform.parent.gameObject;
             SetRail(other.gameObject.transform.parent.gameObject.GetComponent<CurvedLineRenderer>());
         }
     }
@@ -429,14 +431,6 @@ public class PlayerMovement : MonoBehaviour
         _wallNormal = other.contacts[0].normal;
         _currentWall = other.collider;
         IsOnWall = true;
-    }
-
-    private void OnTriggerStay(Collider other)
-    {
-        if (other.CompareTag("Arrow"))
-        {
-            other.GetComponent<Arrow>().Explode();
-        }
     }
 
     public void SetRail(CurvedLineRenderer rail)
@@ -567,7 +561,7 @@ public class PlayerMovement : MonoBehaviour
 
         var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 2f;
         var projection = Vector3.Dot(_railLeanVector.normalized * totalAngle, -transform.right);
-        CameraRotation = projection;
+        CameraRotation = Mathf.Lerp(CameraRotation, projection, f * 8);
         
         railSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
     }

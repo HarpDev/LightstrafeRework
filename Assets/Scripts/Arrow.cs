@@ -102,7 +102,7 @@ public class Arrow : MonoBehaviour
             }
             return;
         }
-        radiusIndicator.gameObject.SetActive(true);
+        //radiusIndicator.gameObject.SetActive(true);
         transform.position = hit.point;
         Hit = true;
         _hitTransform = hit.transform;
