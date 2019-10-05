@@ -96,11 +96,6 @@ public class Arrow : MonoBehaviour
         if (!Fired) return;
         if (hit.collider.isTrigger)
         {
-            if (hit.collider.CompareTag("Rail"))
-            {
-                Game.I.Player.AttachGrapple(hit.transform);
-                Destroy(gameObject);
-            }
             return;
         }
         radiusIndicator.gameObject.SetActive(true);

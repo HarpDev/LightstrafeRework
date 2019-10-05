@@ -260,7 +260,7 @@ MonoBehaviour:
   wallKickFriction: 7
   wallBumpThreshold: 8
   wallBumpSpeed: 20
-  grappleSwingForce: 20
+  grappleSwingForce: 30
   grappleDetachFriction: 0.3
   slopeAngle: 45
   coyoteTime: 20
@@ -276,6 +276,9 @@ MonoBehaviour:
   wallJump: {fileID: 8300000, guid: 9e6ecb5ae0c63aa4b85ef45139122555, type: 3}
   grappleAttach: {fileID: 8300000, guid: 50eb0cb4b1932f540a35e69898f19925, type: 3}
   grappleRelease: {fileID: 8300000, guid: 2ba0d66ae3b67c44799bdeaa41874207, type: 3}
+  railSound: {fileID: 2805646102872565045}
+  railLand: {fileID: 8300000, guid: 87e697ae7a8139b4e9fd75973199b572, type: 3}
+  railEnd: {fileID: 8300000, guid: 220859fa06fd4364691cf00808c3eb38, type: 3}
   grappleTether: {fileID: 6236329095573178393}
   grappleYOffset: -0.7
   maxGrappleTimeMillis: 5000
@@ -589,11 +592,11 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: c085e089c75963947a53cb832aa4b438, type: 3}
+  m_audioClip: {fileID: 8300000, guid: be62e8db57800a04c986a8b645512898, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0

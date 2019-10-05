@@ -53,6 +53,9 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip wallJump;
     public AudioClip grappleAttach;
     public AudioClip grappleRelease;
+    public AudioSource railSound;
+    public AudioClip railLand;
+    public AudioClip railEnd;
 
     public LineRenderer grappleTether;
     public float grappleYOffset;
@@ -243,14 +246,7 @@ public class PlayerMovement : MonoBehaviour
 
         // Remove inversion
         if (transform.position.y > _removeInvertY && Inverted) Inverted = false;
-
-        // Count how many ticks the player has been on a wall (include coyote time)
-        if (PlayerInput.tickCount - _wallTimestamp < coyoteTime)
-            _wallTickCount++;
-        else
-            _wallTickCount = 0;
-
-
+        
         // Movement happens here
         var factor = Time.fixedDeltaTime;
         if (GrappleHooked)
@@ -263,6 +259,12 @@ public class PlayerMovement : MonoBehaviour
             GroundMove(factor);
         else
             AirMove(factor);
+
+        // Count how many ticks the player has been on a wall (include coyote time)
+        if (PlayerInput.tickCount - _wallTimestamp < coyoteTime)
+            _wallTickCount++;
+        else
+            _wallTickCount = 0;
 
         // Wish jump should only be on for 1 tick when the input is sent
         _wishJump = false;
@@ -441,12 +443,25 @@ public class PlayerMovement : MonoBehaviour
     {
         if (IsOnRail) return;
         _currentRail = rail;
+        source.PlayOneShot(railLand);
+        railSound.Play();
+        railSound.volume = 1;
         if (GrappleHooked) DetachGrapple(0);
+    }
+
+    public void EndRail()
+    {
+        if (!IsOnRail) return;
+        CameraRotation = 0;
+        _currentRail = null;
+        railSound.volume = 0;
+        _railDirection = 0;
+        source.PlayOneShot(railEnd);
     }
 
     private Vector3 GetBalanceVector(int i)
     {
-        var range = Mathf.RoundToInt(5 / _currentRail.lineSegmentSize);
+        var range = Mathf.Min((_currentRail.smoothedPoints.Length - 1) / 2, Mathf.RoundToInt(5 / _currentRail.lineSegmentSize));
         var index = i;
         if (index < range) index = range;
         if (index >= _currentRail.smoothedPoints.Length - range) index = _currentRail.smoothedPoints.Length - range - 1;
@@ -530,17 +545,17 @@ public class PlayerMovement : MonoBehaviour
         if (_railDirection == 1 && closeIndex >= _currentRail.smoothedPoints.Length - 1 ||
             _railDirection == -1 && closeIndex <= 0)
         {
-            CameraRotation = 0;
-            _currentRail = null;
-            grindSound.volume = 0;
-            _railDirection = 0;
+            EndRail();
             return;
         }
 
         _railLeanVector = Vector3.Lerp(_railLeanVector, GetBalanceVector(closeIndex + _railDirection), f * 20);
 
+        var current = _currentRail.smoothedPoints[closeIndex] + _railLeanVector;
         var next = _currentRail.smoothedPoints[closeIndex + _railDirection] + _railLeanVector;
-        velocity = velocity.magnitude * -(transform.position - next).normalized;
+        var railVector = -(current - next).normalized;
+        var correctionVector = -(transform.position - next).normalized;
+        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
 
         var bonusSpeed = Vector3.Dot(_railLeanVector, Wishdir) * 5;
         Accelerate(velocity.normalized, railSpeed + bonusSpeed, f);
@@ -564,7 +579,7 @@ public class PlayerMovement : MonoBehaviour
         source.PlayOneShot(grappleAttach);
         Game.I.Hitmarker.Display();
         if (GrappleHooked) return;
-        if (IsOnRail) _currentRail = null;
+        if (IsOnRail) EndRail();
         _grappleAttachPosition = position;
         GrappleHooked = true;
         grappleTether.enabled = true;
@@ -575,7 +590,7 @@ public class PlayerMovement : MonoBehaviour
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         velocity -= towardPoint * yankProjection;
 
-        ApplyFriction(1);
+        velocity.y = 0;
     }
 
     public void DetachGrapple(float f)
@@ -637,8 +652,12 @@ public class PlayerMovement : MonoBehaviour
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
 
+        var direction = Wishdir;
+        if (Input.GetKey((KeyCode) PlayerInput.Key.Slide)) direction.y = -1;
+        if (Input.GetKey((KeyCode) PlayerInput.Key.Jump)) direction.y = 1;
+
         Accelerate(towardPoint, grappleSwingForce, f * 2);
-        Accelerate(Wishdir, grappleSwingForce / 4, f * 2);
+        Accelerate(direction.normalized, grappleSwingForce / 4, f * 2);
     }
 
     public void WallLean(float t, float f)
@@ -719,6 +738,10 @@ public class PlayerMovement : MonoBehaviour
             {
                 velocity.y = _lastJumpBeforeYVelocity;
                 _lastAirborneVelocity.y = _lastJumpBeforeYVelocity;
+                
+                var slam = HudMovement.RotationSlamVector;
+                slam.y -= 20;
+                HudMovement.RotationSlamVector = slam;
             }
 
             if (_wallTickCount == 0)
@@ -995,17 +1018,18 @@ public class PlayerMovement : MonoBehaviour
         
         if (!groundJump && !railJump && !DoubleJumpAvailable) return;
         var speed = GetJumpHeight(7);
+        if (railJump) speed += velocity.y;
         if (_momentumBuffer.Count > 1 && _momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed)
             speed += _momentumBuffer[0].y;
 
         _lastJumpBeforeYVelocity = velocity.y;
         if (velocity.y < speed) velocity.y = speed;
 
-        if (groundJump || railJump)
+        if (groundJump)
         {
             source.PlayOneShot(jump);
         }
-        else
+        else if (!railJump)
         {
             DoubleJumpAvailable = false;
             source.PlayOneShot(jumpair);
@@ -1017,7 +1041,7 @@ public class PlayerMovement : MonoBehaviour
         grindSound.volume = 0;
         IsGrounded = false;
 
-        if (IsOnRail) _currentRail = null;
+        if (IsOnRail) EndRail();
 
         var slam = HudMovement.RotationSlamVector;
         slam.y += 20;

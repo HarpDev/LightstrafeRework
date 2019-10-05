@@ -78,7 +78,7 @@ public class CurvedLineRenderer : MonoBehaviour
                     obj.transform.parent = gameObject.transform;
                     var capsule = (CapsuleCollider) obj.AddComponent(typeof(CapsuleCollider));
                     obj.transform.position = Vector3.Lerp(point, previousPoint, 0.5f);
-                    capsule.height = (previousPoint - point).magnitude + 0.5f;
+                    capsule.height = (previousPoint - point).magnitude + hitboxSize;
                     capsule.radius = hitboxSize;
                     capsule.direction = 2;
                     capsule.isTrigger = true;
