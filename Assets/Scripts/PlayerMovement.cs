@@ -461,7 +461,7 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector3 GetBalanceVector(int i)
     {
-        var range = Mathf.Min((_currentRail.smoothedPoints.Length - 1) / 2, Mathf.RoundToInt(5 / _currentRail.lineSegmentSize));
+        var range = Mathf.Min((_currentRail.smoothedPoints.Length - 1) / 2, 8);
         var index = i;
         if (index < range) index = range;
         if (index >= _currentRail.smoothedPoints.Length - range) index = _currentRail.smoothedPoints.Length - range - 1;
@@ -480,7 +480,7 @@ public class PlayerMovement : MonoBehaviour
         var leanVector = p3 - point;
         if (leanVector.y < 0) leanVector.y *= -1;
 
-        var balance = leanVector + Vector3.up * (gravity * 20 / velocity.magnitude);
+        var balance = leanVector + Vector3.up * (gravity * 3);
 
         return balance.normalized;
     }
@@ -561,7 +561,7 @@ public class PlayerMovement : MonoBehaviour
         Accelerate(velocity.normalized, railSpeed + bonusSpeed, f);
         Gravity(f);
 
-        var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 3f;
+        var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 2f;
         var projection = Vector3.Dot(_railLeanVector.normalized * totalAngle, -transform.right);
         CameraRotation = projection;
 
