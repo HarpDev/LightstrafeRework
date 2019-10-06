@@ -25,13 +25,13 @@ public class CurvedLineRenderer : MonoBehaviour
         GetPoints();
         if (_linePoints.Any(point => point.transform.hasChanged))
         {
-            foreach (var point in _linePoints) point.transform.hasChanged = false;
             smoothedPoints = getCurvePoints(_linePositions, detail);
             GenerateHitboxes();
 
             line.positionCount = smoothedPoints.Length;
             line.SetPositions(smoothedPoints);
         }
+        foreach (var point in _linePoints) point.transform.hasChanged = false;
     }
 
 
