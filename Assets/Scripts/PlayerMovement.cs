@@ -894,7 +894,7 @@ public class PlayerMovement : MonoBehaviour
                 var currentspeed = Vector3.Dot(velocity, wishdir);
                 var addspeed = Mathf.Abs(wishspeed) - currentspeed;
 
-                SetCameraRotation(_wadeTicks / 4f * Vector3.Dot(-transform.right, Wishdir), 6, true);
+                SetCameraRotation(_wadeTicks / 4f * Vector3.Dot(-right, PlayerInput.GetAxisStrafeRight() * right), 6, true);
                 if (addspeed > 0)
                 {
                     var accelspeed = Mathf.Abs(accel) * Mathf.Abs(wishspeed);
@@ -902,7 +902,7 @@ public class PlayerMovement : MonoBehaviour
                         accelspeed = addspeed;
 
                     var add = wishdir * accelspeed;
-                    var wade = Wishdir * add.magnitude;
+                    var wade = PlayerInput.GetAxisStrafeRight() * add.magnitude * right;
 
                     velocity += add;
                     velocity += wade;
