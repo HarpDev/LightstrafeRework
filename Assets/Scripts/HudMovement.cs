@@ -51,7 +51,7 @@ public class HudMovement : MonoBehaviour
         hudTransform.y = -_positionSlamVectorLerp.y / 32;
         transform1.localPosition = hudTransform;
 
-        _hudRotation = Mathf.Lerp(_hudRotation, player.CameraRotation, Time.deltaTime * 8);
+        _hudRotation = Mathf.Lerp(_hudRotation, player.CameraRoll, Time.deltaTime * 8);
         
         transform.localRotation = Quaternion.Euler(-_hudPitchOffset, -_hudYawOffset, _hudRotation);
         
