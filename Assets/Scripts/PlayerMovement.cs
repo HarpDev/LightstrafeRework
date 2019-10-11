@@ -329,6 +329,7 @@ public class PlayerMovement : MonoBehaviour
         var difference = nextPosition - _previousPosition;
         if (rigidbody.SweepTest(difference.normalized, out hit, difference.magnitude, QueryTriggerInteraction.Ignore))
         {
+            
             var angle = Vector3.Angle(Vector3.up, hit.normal);
             if (angle < slopeAngle)
             {
@@ -337,11 +338,12 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 RaycastHit stair;
-                var didHit = Physics.Raycast(hit.point - hit.normal + new Vector3(0, 3, 0), Vector3.down,
+                var didHit = Physics.Raycast(hit.point - (hit.normal * 0.3f) + new Vector3(0, 3, 0), Vector3.down,
                     out stair, 6, 1, QueryTriggerInteraction.Ignore);
-                if (Math.Abs(angle - 90) < 0.05f && didHit &&
+                if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle && didHit &&
                     stair.point.y - (nextPosition.y - 1) < stairHeight)
                 {
+                    Debug.Log("stair");
                     _displacePosition += new Vector3(0, stair.point.y - (nextPosition.y - 1), 0);
 
                     var projection = Vector3.Dot(velocity, new Vector3(0, 1, 0));
@@ -353,6 +355,7 @@ public class PlayerMovement : MonoBehaviour
                 }
                 else
                 {
+                    Debug.Log("future collision");
                     var projection = Vector3.Dot(velocity, -hit.normal);
                     if (projection > 0)
                     {
@@ -384,6 +387,7 @@ public class PlayerMovement : MonoBehaviour
         _momentumBuffer.Clear();
         IsGrounded = false;
         IsOnWall = false;
+        SetCameraRotation(0, 50, false);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -440,14 +444,16 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Wall Grab
+        var meshCollider = other.collider as MeshCollider;
+        if (meshCollider != null && !meshCollider.convex) return;
+
         var position = transform.position;
         var close = other.collider.ClosestPoint(position);
         var compare = close.y - position.y;
         if (compare < -0.9f || compare > 0.2f ||
             Math.Abs(Vector3.Angle(Vector3.up, other.contacts[0].normal) - 90) > Tolerance || IsGrounded)
         {
-            if (!IsGrounded)
-                _isSurfing = true;
+            if (!IsGrounded) _isSurfing = true;
             return;
         }
 
@@ -894,7 +900,8 @@ public class PlayerMovement : MonoBehaviour
                 var currentspeed = Vector3.Dot(velocity, wishdir);
                 var addspeed = Mathf.Abs(wishspeed) - currentspeed;
 
-                SetCameraRotation(_wadeTicks / 4f * Vector3.Dot(-right, PlayerInput.GetAxisStrafeRight() * right), 6, true);
+                SetCameraRotation(_wadeTicks / 4f * Vector3.Dot(-right, PlayerInput.GetAxisStrafeRight() * right), 6,
+                    true);
                 if (addspeed > 0)
                 {
                     var accelspeed = Mathf.Abs(accel) * Mathf.Abs(wishspeed);
@@ -925,23 +932,17 @@ public class PlayerMovement : MonoBehaviour
         _lastAirborneVelocity = velocity;
         Gravity(f);
 
-        if (Flatten(velocity).magnitude < movementSpeed / 1.5f)
+        if (_isSurfing)
         {
-            Accelerate(Wishdir, movementSpeed, groundAcceleration * f);
+            Accelerate(Wishdir, 1, surfAcceleration);
         }
         else
         {
-            if (_isSurfing)
-            {
-                Accelerate(Wishdir, 1, surfAcceleration);
-            }
-            else
-            {
-                var time = (Environment.TickCount - _wallJumpTimestamp) / 500f;
-                if (time > 1) time = 1;
-                AirAccelerate(Wishdir, strafeAcceleration * f * time);
-            }
+            var time = (Environment.TickCount - _wallJumpTimestamp) / 500f;
+            if (time > 1) time = 1;
+            AirAccelerate(Wishdir, strafeAcceleration * f * time);
         }
+        rollSound.volume = 0;
 
         var t = 0.25f;
 
