@@ -243,20 +243,19 @@ MonoBehaviour:
   velocity: {x: 0, y: 0, z: 0}
   wadeTime: 40
   deceleration: 10
-  friction: 5
+  friction: 0.2
   groundAcceleration: 1
   groundTurnAcceleration: 50
   railSpeed: 20
-  strafeAcceleration: 200
+  airAcceleration: 800
   stairHeight: 1.2
-  surfAcceleration: 900
   gravity: 0.3
   movementSpeed: 15
   jumpHeight: 12
   fallSpeed: 60
+  wallCatchFriction: 4
   wallSpeed: 12
   wallAcceleration: 4
-  wallFriction: 0.5
   wallJumpSpeed: 3
   wallJumpForgiveness: 10
   wallKickFlingThreshold: 15
