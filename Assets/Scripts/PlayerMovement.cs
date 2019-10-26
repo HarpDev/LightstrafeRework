@@ -28,6 +28,7 @@ public class PlayerMovement : MonoBehaviour
     public float movementSpeed = 11;
     public float jumpHeight = 12f;
     public float fallSpeed = 60f;
+    public int wallAngleGive = 10;
     public float wallCatchFriction = 4f;
     public float wallSpeed = 12f;
     public float wallAcceleration = 8f;
@@ -307,8 +308,7 @@ public class PlayerMovement : MonoBehaviour
                 _previousCollision.transform.hasChanged = false;
             }
 
-            _previousCollisionLocalPosition =
-                _previousCollision.transform.InverseTransformPoint(rigidbody.transform.position);
+            _previousCollisionLocalPosition = _previousCollision.transform.InverseTransformPoint(rigidbody.transform.position);
         }
         else _previousCollisionLocalPosition = new Vector3();
 
@@ -323,12 +323,12 @@ public class PlayerMovement : MonoBehaviour
         {
             if (Mathf.Abs(Vector3.Angle(Vector3.up, futureHit.normal) - 90) < 0.05f)
             {
-                var didHit = Physics.Raycast(futureHit.point - futureHit.normal * 0.3f + new Vector3(0, 3, 0), Vector3.down,
+                var didHit = Physics.Raycast(futureHit.point - futureHit.normal * 0.5f + new Vector3(0, 3, 0), Vector3.down,
                     out RaycastHit stair, 6, 1, QueryTriggerInteraction.Ignore);
 
                 var stepHeight = stair.point.y - (_previousPosition.y + movement.y - 1);
 
-                if (didHit && stepHeight < stairHeight && stepHeight > 0)
+                if (didHit && stepHeight < stairHeight && stepHeight > 0 && Mathf.Abs(Vector3.Angle(Vector3.up, stair.normal)) < 0.05f)
                 {
                     _displacePosition += new Vector3(0, stepHeight, 0);
 
@@ -338,8 +338,9 @@ public class PlayerMovement : MonoBehaviour
                         var impulse = new Vector3(0, -1, 0) * projection;
                         velocity += impulse;
                     }
+                    Debug.Log("step");
+                    break;
                 }
-                break;
             }
         }
         if (rigidbody.SweepTest(movement.normalized, out RaycastHit hit, movement.magnitude, QueryTriggerInteraction.Ignore))
@@ -358,7 +359,6 @@ public class PlayerMovement : MonoBehaviour
         _previousCollision = null;
         if (_momentumBuffer.Count < 2) return;
         if (Mathf.Abs(_momentumBuffer[0].x) > Mathf.Abs(velocity.x)) velocity.x = _momentumBuffer[0].x;
-        if (_momentumBuffer[0].y > velocity.y) velocity.y = _momentumBuffer[0].y;
         if (Mathf.Abs(_momentumBuffer[0].z) > Mathf.Abs(velocity.z)) velocity.z = _momentumBuffer[0].z;
         _momentumBuffer.Clear();
         IsGrounded = false;
@@ -406,7 +406,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 IsGrounded = true;
             }
-            else if (Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < 10 && !IsGrounded)
+            else if (Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
             {
                 if (Mathf.Abs(point.point.y - (transform.position.y + 1)) < 0.9f)
                 {
@@ -856,8 +856,8 @@ public class PlayerMovement : MonoBehaviour
                 var currentspeed = Vector3.Dot(velocity, wishdir);
                 var addspeed = Mathf.Abs(wishspeed) - currentspeed;
 
-                SetCameraRotation(_wadeTicks / 4f * Vector3.Dot(-right, PlayerInput.GetAxisStrafeRight() * right), 6,
-                    true);
+                var factor = 1 - Mathf.Pow(Mathf.Min(velocity.magnitude / wishspeed, 1), 2);
+                SetCameraRotation(_wadeTicks / 3f * Vector3.Dot(-right, PlayerInput.GetAxisStrafeRight() * right) * factor, 6, true);
                 if (addspeed > 0)
                 {
                     var accelspeed = Mathf.Abs(accel) * Mathf.Abs(wishspeed);
@@ -897,7 +897,7 @@ public class PlayerMovement : MonoBehaviour
 
         var didHit = rigidbody.SweepTest(velocity.normalized, out RaycastHit hit, velocity.magnitude * t,
             QueryTriggerInteraction.Ignore);
-        if (didHit && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < Tolerance &&
+        if (didHit && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive &&
             !hit.collider.CompareTag("Kill Block"))
         {
             if (!_approachingWall)
@@ -991,12 +991,14 @@ public class PlayerMovement : MonoBehaviour
 
         if (!groundJump && !railJump && !DoubleJumpAvailable) return;
         var speed = GetJumpHeight(7);
-        if (railJump) speed += velocity.y;
-        if (_momentumBuffer.Count > 1 && _momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed)
-            speed += _momentumBuffer[0].y;
+        //if (_momentumBuffer.Count > 1 && _momentumBuffer.Count > 0 && _momentumBuffer[0].y > speed) speed += _momentumBuffer[0].y;
 
         _lastJumpBeforeYVelocity = velocity.y;
-        if (velocity.y < speed) velocity.y = speed;
+
+        if (groundJump || railJump)
+        {
+            speed += velocity.y;
+        }
 
         if (groundJump)
         {
@@ -1007,6 +1009,8 @@ public class PlayerMovement : MonoBehaviour
             DoubleJumpAvailable = false;
             source.PlayOneShot(jumpair);
         }
+
+        if (velocity.y < speed) velocity.y = speed;
 
         SetCameraRotation(0, 50, false);
         _sinceJumpCounter = 0;
