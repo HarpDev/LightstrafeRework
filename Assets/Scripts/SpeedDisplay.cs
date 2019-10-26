@@ -7,7 +7,6 @@ public class SpeedDisplay : MonoBehaviour
     public string prefix;
     public bool flatten;
 
-    // Update is called once per frame
     private void Update()
     {
         var display = Mathf.RoundToInt(flatten ? (Flatten(Game.I.Player.velocity) * 2).magnitude : (Game.I.Player.velocity * 2).magnitude);

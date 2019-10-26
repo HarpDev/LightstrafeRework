@@ -320,14 +320,13 @@ public class PlayerMovement : MonoBehaviour
 
         // Calculate the players position for the next tick
         _previousPosition = rigidbody.transform.position;
-        var nextPosition = _previousPosition + platformMotion + velocity * factor;
+        var movement = platformMotion + velocity * factor;
 
         // Here we check if the next position will collide with a surface, and if needed, adjust the next position so that they either:
         // A: collide with it instead of going through it
         // B: if the top of the surface is close enough, adjust the next position to be on top of the surface (step)
         RaycastHit hit;
-        var difference = nextPosition - _previousPosition;
-        if (rigidbody.SweepTest(difference.normalized, out hit, difference.magnitude, QueryTriggerInteraction.Ignore))
+        if (rigidbody.SweepTest(movement.normalized, out hit, movement.magnitude, QueryTriggerInteraction.Ignore))
         {
             
             var angle = Vector3.Angle(Vector3.up, hit.normal);
@@ -338,13 +337,15 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 RaycastHit stair;
-                var didHit = Physics.Raycast(hit.point - (hit.normal * 0.3f) + new Vector3(0, 3, 0), Vector3.down,
+                var didHit = Physics.Raycast(hit.point - hit.normal * 0.3f + new Vector3(0, 3, 0), Vector3.down,
                     out stair, 6, 1, QueryTriggerInteraction.Ignore);
-                if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle && didHit &&
-                    stair.point.y - (nextPosition.y - 1) < stairHeight)
+
+                var stepHeight = stair.point.y - (_previousPosition.y + movement.y - 1);
+                
+                if (Vector3.Angle(Vector3.up, hit.normal) < slopeAngle && didHit && stepHeight < stairHeight)
                 {
-                    Debug.Log("stair");
-                    _displacePosition += new Vector3(0, stair.point.y - (nextPosition.y - 1), 0);
+                    Debug.Log("step");
+                    _displacePosition += new Vector3(0, stepHeight, 0);
 
                     var projection = Vector3.Dot(velocity, new Vector3(0, 1, 0));
                     if (projection > 0)
@@ -355,17 +356,11 @@ public class PlayerMovement : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log("future collision");
-                    var projection = Vector3.Dot(velocity, -hit.normal);
-                    if (projection > 0)
-                    {
-                        var impulse = hit.normal * (projection - 4f);
-                        velocity += impulse;
-                    }
-
-                    nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor,
-                        nextPosition,
-                        hit.distance / difference.magnitude);
+                    var penetration = movement.magnitude - hit.distance;
+                    Debug.Log(penetration);
+                    //nextPosition = Vector3.Lerp(_previousPosition + platformMotion + velocity * factor,
+                      //  nextPosition,
+                        //hit.distance / difference.magnitude);
                 }
             }
         }
@@ -373,7 +368,7 @@ public class PlayerMovement : MonoBehaviour
         // The previous collision is set in oncollision, executed after fixedupdate
         _previousCollision = null;
         _previousPosition -= _displacePosition;
-        rigidbody.MovePosition(nextPosition + _displacePosition);
+        rigidbody.MovePosition(_previousPosition + movement);
         _displacePosition = new Vector3();
     }
 
