@@ -681,7 +681,7 @@ public class PlayerMovement : MonoBehaviour
                 for (var i = 0; i < PlayerInput.SincePressed(PlayerInput.Key.Jump); i++)
                 {
                     if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude)
-                        ApplyFriction(friction * f * wallKickFriction);
+                        ApplyFriction(f * wallKickFriction);
                     else
                         ApplyFriction(friction * f);
                 }
@@ -717,7 +717,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude &&
             _wallTickCount < wallJumpForgiveness)
-            ApplyFriction(friction * f * wallKickFriction);
+            ApplyFriction(f * wallKickFriction);
         else
             ApplyFriction(friction * f);
 
