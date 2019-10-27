@@ -9,7 +9,6 @@ public class PlayerMovement : MonoBehaviour
     public new Rigidbody rigidbody;
     public new Camera camera;
     public Collider standingHitbox;
-    public Collider slidingHitbox;
     public Text wallkickDisplay;
 
     public Vector3 cameraPosition;
@@ -75,7 +74,7 @@ public class PlayerMovement : MonoBehaviour
     private int _railTimestamp = -100000;
     private int _railCooldownTimestamp = -100000;
     private float _lastJumpBeforeYVelocity;
-    private Vector3 _currentAvgCollisionPoint;
+    //private Vector3 _currentAvgCollisionPoint;
     private int _wallTickCount;
     private int _wallJumpTimestamp;
     private Vector3 _wallNormal;
@@ -343,9 +342,7 @@ public class PlayerMovement : MonoBehaviour
                 }
             }
         }
-        if (rigidbody.SweepTest(movement.normalized, out RaycastHit hit, movement.magnitude, QueryTriggerInteraction.Ignore))
-        {
-        }
+        //if (rigidbody.SweepTest(movement.normalized, out RaycastHit hit, movement.magnitude, QueryTriggerInteraction.Ignore)){ }
 
         // The previous collision is set in oncollision, executed after fixedupdate
         _previousCollision = null;
@@ -398,10 +395,8 @@ public class PlayerMovement : MonoBehaviour
         _previousCollision.transform.hasChanged = false;
 
         var validCollision = false;
-        var avgPoint = new Vector3();
         foreach (var point in other.contacts)
         {
-            avgPoint += point.point;
             if (Vector3.Angle(Vector3.up, point.normal) < slopeAngle)
             {
                 IsGrounded = true;
@@ -410,7 +405,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 if (Mathf.Abs(point.point.y - (transform.position.y + 1)) < 0.9f)
                 {
-                    _wallNormal = other.contacts[0].normal;
+                    _wallNormal = point.normal;
                     IsOnWall = true;
                 }
             }
@@ -421,9 +416,6 @@ public class PlayerMovement : MonoBehaviour
             var impulse = point.normal * projection;
             velocity += impulse;
         }
-        avgPoint /= other.contactCount;
-
-        _currentAvgCollisionPoint = avgPoint;
 
         if (!validCollision) return;
 
@@ -693,14 +685,11 @@ public class PlayerMovement : MonoBehaviour
 
         DoubleJumpAvailable = true;
 
-        var relativePoint = camera.transform.InverseTransformPoint(_currentAvgCollisionPoint);
+        var normal = Flatten(_wallNormal);
 
-        var value = Mathf.Atan2(relativePoint.z, relativePoint.x) * Mathf.Rad2Deg;
-        value = Mathf.Abs(value);
-        value -= 90;
-        value /= 90;
+        var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
 
-        SetCameraRotation(20 * -value, 10, true);
+        SetCameraRotation(20 * -projection, 10, true);
 
         var speed = Mathf.Abs(velocity.y);
         var control = speed < deceleration ? deceleration : speed;
@@ -712,7 +701,6 @@ public class PlayerMovement : MonoBehaviour
             newspeed /= speed;
         velocity.y *= newspeed;
 
-        var towardWall = Flatten(_currentAvgCollisionPoint - InterpolatedPosition).normalized;
         source.pitch = 1;
 
         if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude &&
@@ -721,13 +709,13 @@ public class PlayerMovement : MonoBehaviour
         else
             ApplyFriction(friction * f);
 
-        var direction = new Vector3(-towardWall.z, 0, towardWall.x);
+        var direction = new Vector3(_wallNormal.z, 0, -_wallNormal.x);
         if (Vector3.Angle(CrosshairDirection, direction) < 90)
             Accelerate(direction, wallSpeed, wallAcceleration * f);
         else
             Accelerate(-direction, wallSpeed, wallAcceleration * f);
 
-        Accelerate(towardWall, 4, 10 * f);
+        Accelerate(-_wallNormal, fallSpeed, gravity * f);
     }
 
     public void WallJump()
