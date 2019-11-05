@@ -26,6 +26,7 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = 0.3f;
     public float movementSpeed = 11;
     public float jumpHeight = 12f;
+    public float jumpCameraThunk = 5f;
     public float fallSpeed = 60f;
     public int wallAngleGive = 10;
     public float wallCatchFriction = 4f;
@@ -664,7 +665,7 @@ public class PlayerMovement : MonoBehaviour
                 _lastAirborneVelocity.y = _lastJumpBeforeYVelocity;
 
                 var slam = HudMovement.RotationSlamVector;
-                slam.y -= 20;
+                slam.y -= jumpCameraThunk;
                 HudMovement.RotationSlamVector = slam;
             }
 
@@ -1009,7 +1010,7 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnRail) EndRail();
 
         var slam = HudMovement.RotationSlamVector;
-        slam.y += 20;
+        slam.y += jumpCameraThunk;
         HudMovement.RotationSlamVector = slam;
     }
 

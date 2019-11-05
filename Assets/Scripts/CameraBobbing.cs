@@ -8,9 +8,9 @@ public class CameraBobbing : MonoBehaviour
     
     private const float Tolerance = 0.05f;
     
-    private const float BobbingSpeed = 0.58f;
-    private const float BobbingWidth = 0.2f;
-    private const float BobbingHeight = 0.2f;
+    private const float BobbingSpeed = 0.3f;
+    private const float BobbingWidth = 0.05f;
+    private const float BobbingHeight = 0f;
     private float _bobbingPos;
     
     public static Vector3 BobbingVector { get; set; }
