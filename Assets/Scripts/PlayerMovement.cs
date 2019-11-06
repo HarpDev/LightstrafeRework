@@ -75,7 +75,6 @@ public class PlayerMovement : MonoBehaviour
     private int _railTimestamp = -100000;
     private int _railCooldownTimestamp = -100000;
     private float _lastJumpBeforeYVelocity;
-    //private Vector3 _currentAvgCollisionPoint;
     private int _wallTickCount;
     private int _wallJumpTimestamp;
     private Vector3 _wallNormal;
@@ -92,6 +91,7 @@ public class PlayerMovement : MonoBehaviour
     private float _removeInvertY;
     private int _railDirection;
     private Vector3 _railLeanVector;
+    private Vector3 _slideLeanVector;
     private GameObject _lastRail;
     private bool _wishJump;
     private int _wadeTicks;
@@ -404,8 +404,9 @@ public class PlayerMovement : MonoBehaviour
             }
             else if (Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
             {
-                if (Mathf.Abs(point.point.y - (transform.position.y + 1)) < 0.9f)
+                if (IsSliding || Mathf.Abs(point.point.y - (transform.position.y + 1)) < 0.9f)
                 {
+                    // Wall Grab
                     _wallNormal = point.normal;
                     IsOnWall = true;
                 }
@@ -808,17 +809,21 @@ public class PlayerMovement : MonoBehaviour
         {
             source.PlayOneShot(groundLand);
         }
+        rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
+        rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
 
         Gravity(f);
         DoubleJumpAvailable = true;
-        var leanProjection = Vector3.Dot(Flatten(velocity).normalized, camera.transform.right);
         if (IsSliding)
         {
+            _slideLeanVector = Vector3.Lerp(_slideLeanVector, Flatten(velocity).normalized, f);
+            var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
             AirAccelerate(Wishdir, airAcceleration * f);
             SetCameraRotation(leanProjection * 15, 6, true);
         }
         else
         {
+            _slideLeanVector = Flatten(velocity).normalized;
             ApplyFriction(friction * f);
 
             AirAccelerate(Wishdir, groundTurnAcceleration * f);
@@ -864,9 +869,6 @@ public class PlayerMovement : MonoBehaviour
             {
                 SetCameraRotation(0, 6, true);
             }
-
-            rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
-            rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
         }
 
         if (_wishJump) Jump();
@@ -876,6 +878,7 @@ public class PlayerMovement : MonoBehaviour
     {
         _lastAirborneVelocity = velocity;
         Gravity(f);
+        _slideLeanVector = Flatten(velocity).normalized;
 
         var time = (Environment.TickCount - _wallJumpTimestamp) / 500f;
         if (time > 1) time = 1;
