@@ -29,7 +29,7 @@ public class PlayerMovement : MonoBehaviour
     public float jumpCameraThunk = 5f;
     public float fallSpeed = 60f;
     public int wallAngleGive = 10;
-    public float wallCatchFriction = 4f;
+    public float wallCatchThreshold = 30f;
     public float wallSpeed = 12f;
     public float wallAcceleration = 8f;
     public float wallJumpSpeed = 3f;
@@ -130,14 +130,14 @@ public class PlayerMovement : MonoBehaviour
         get { return _currentRail != null; }
     }
 
-    public Vector3 InterpolatedPosition
+    /*public Vector3 InterpolatedPosition
     {
         get
         {
             return Vector3.Lerp(_previousPosition, rigidbody.transform.position,
                 _motionInterpolationDelta / Time.fixedDeltaTime);
         }
-    }
+    }*/
 
     public Vector3 Wishdir { get; set; }
 
@@ -238,7 +238,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         position.y -= 0.6f * _crouchAmount;
-        camera.transform.position = InterpolatedPosition + position;
+        camera.transform.position = transform.position + position;
     }
 
     private void FixedUpdate()
@@ -265,9 +265,6 @@ public class PlayerMovement : MonoBehaviour
         // This value gets set to 0 on successful jump
         _sinceJumpCounter++;
 
-        // Ensure the rigidbody will stay stationary unless acted upon by this script
-        rigidbody.velocity = new Vector3();
-
         // Remove inversion
         if (transform.position.y > _removeInvertY && Inverted) Inverted = false;
 
@@ -289,9 +286,6 @@ public class PlayerMovement : MonoBehaviour
             _wallTickCount++;
         else
             _wallTickCount = 0;
-
-        // Wish jump should only be on for 1 tick when the input is sent
-        _wishJump = false;
 
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         _motionInterpolationDelta = 0;
@@ -347,7 +341,8 @@ public class PlayerMovement : MonoBehaviour
 
         // The previous collision is set in oncollision, executed after fixedupdate
         _previousCollision = null;
-        rigidbody.MovePosition(_previousPosition + movement + _displacePosition);
+        //rigidbody.MovePosition(_previousPosition + movement + _displacePosition);
+        rigidbody.velocity = (movement + _displacePosition) / Time.fixedDeltaTime;
         _previousPosition -= _displacePosition;
         _displacePosition = new Vector3();
     }
@@ -398,8 +393,18 @@ public class PlayerMovement : MonoBehaviour
         var validCollision = false;
         foreach (var point in other.contacts)
         {
+            var projection = Vector3.Dot(velocity, -point.normal);
+            if (projection <= 0) continue;
+            validCollision = true;
+            var impulse = point.normal * projection * 0.9f;
+            velocity += impulse;
+
             if (Vector3.Angle(Vector3.up, point.normal) < slopeAngle)
             {
+                if (!IsGrounded)
+                {
+                    source.PlayOneShot(groundLand);
+                }
                 IsGrounded = true;
             }
             else if (Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
@@ -411,12 +416,6 @@ public class PlayerMovement : MonoBehaviour
                     IsOnWall = true;
                 }
             }
-
-            var projection = Vector3.Dot(velocity, -point.normal);
-            if (projection <= 0) continue;
-            validCollision = true;
-            var impulse = point.normal * projection;
-            velocity += impulse;
         }
 
         if (!validCollision) return;
@@ -691,17 +690,7 @@ public class PlayerMovement : MonoBehaviour
 
         var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
 
-        SetCameraRotation(20 * -projection, 10, true);
-
-        var speed = Mathf.Abs(velocity.y);
-        var control = speed < deceleration ? deceleration : speed;
-        var drop = control * wallCatchFriction * f;
-        var newspeed = speed - drop;
-        if (newspeed < 0)
-            newspeed = 0;
-        if (speed > 0)
-            newspeed /= speed;
-        velocity.y *= newspeed;
+        SetCameraRotation(20 * -projection, 5, true);
 
         source.pitch = 1;
 
@@ -711,13 +700,19 @@ public class PlayerMovement : MonoBehaviour
         else
             ApplyFriction(friction * f);
 
-        var direction = new Vector3(_wallNormal.z, 0, -_wallNormal.x);
-        if (Vector3.Angle(CrosshairDirection, direction) < 90)
-            Accelerate(direction, wallSpeed, wallAcceleration * f);
-        else
-            Accelerate(-direction, wallSpeed, wallAcceleration * f);
 
-        Accelerate(-_wallNormal, fallSpeed, gravity * f);
+        if (Mathf.Abs(velocity.y) < wallCatchThreshold)
+        {
+            velocity.y = 0;
+
+            var direction = new Vector3(_wallNormal.z, 0, -_wallNormal.x);
+            if (Vector3.Angle(CrosshairDirection, direction) < 90)
+                Accelerate(direction, wallSpeed, wallAcceleration * f);
+            else
+                Accelerate(-direction, wallSpeed, wallAcceleration * f);
+
+            Accelerate(-_wallNormal, fallSpeed, gravity * f);
+        }
     }
 
     public void WallJump()
@@ -805,10 +800,6 @@ public class PlayerMovement : MonoBehaviour
 
     public void GroundMove(float f)
     {
-        if (rollSound.volume <= 0)
-        {
-            source.PlayOneShot(groundLand);
-        }
         rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
         rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
 
@@ -901,14 +892,14 @@ public class PlayerMovement : MonoBehaviour
 
             var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
 
-            SetCameraRotation(20 * -projection, 50, false);
+            SetCameraRotation(20 * -projection, 60, false);
         }
         else
         {
             if (_approachingWall)
             {
                 _approachingWall = false;
-                SetCameraRotation(0, 50, false);
+                //SetCameraRotation(0, 50, false);
             }
         }
 
@@ -928,7 +919,7 @@ public class PlayerMovement : MonoBehaviour
             newspeed /= speed;
 
         velocity.x *= newspeed;
-        if (!IsGrounded)
+        if (!IsGrounded && !IsOnWall)
             velocity.y *= newspeed;
         velocity.z *= newspeed;
     }
@@ -968,6 +959,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void Jump()
     {
+        _wishJump = false;
         if (Inverted) Inverted = false;
 
         if (PlayerInput.tickCount - _wallTimestamp < coyoteTime)

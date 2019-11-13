@@ -114,7 +114,7 @@ public class Bow : MonoBehaviour
 
         var finalPosition = bowPos + new Vector3(xCalc, -yCalc, zCalc);
 
-        if (player.IsGrounded || player.IsOnRail) finalPosition -= Vector3.up * 0.1f;
+        if (player.IsGrounded || player.IsOnRail || player.IsOnWall) finalPosition -= Vector3.up * 0.1f;
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector;
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);

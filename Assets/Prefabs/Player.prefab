@@ -254,7 +254,7 @@ MonoBehaviour:
   jumpCameraThunk: 5
   fallSpeed: 60
   wallAngleGive: 10
-  wallCatchFriction: 4
+  wallCatchThreshold: 30
   wallSpeed: 12
   wallAcceleration: 4
   wallJumpSpeed: 3.5
@@ -722,9 +722,9 @@ Rigidbody:
   m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 112
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!1 &8023130150596892150
 GameObject:
   m_ObjectHideFlags: 0
