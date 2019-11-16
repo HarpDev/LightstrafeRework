@@ -10,10 +10,6 @@ public class Arrow : MonoBehaviour
 
     public GameObject model;
 
-    public new SphereCollider collider;
-
-    public MeshRenderer radiusIndicator;
-
     public Vector3 beforeFiredRotation = new Vector3(90, 0, 0);
     public Vector3 afterFiredRotation;
 
@@ -36,9 +32,6 @@ public class Arrow : MonoBehaviour
     private void Start()
     {
         _prevPosition = transform.position;
-        radiusIndicator.transform.localScale = new Vector3(radius * 2, radius * 2, radius * 2);
-        collider.radius = radius;
-        radiusIndicator.gameObject.SetActive(false);
     }
 
     private void Update()
@@ -58,7 +51,7 @@ public class Arrow : MonoBehaviour
         var trans = transform;
         var lookDir = trans.position - _prevPosition;
         RaycastHit hit;
-        Physics.Raycast(_prevPosition, lookDir.normalized, out hit, lookDir.magnitude);
+        Physics.Raycast(_prevPosition - lookDir, lookDir.normalized, out hit, lookDir.magnitude * 2);
         if (hit.collider != null) Collide(hit);
 
         _prevPosition = transform.position;
@@ -77,14 +70,12 @@ public class Arrow : MonoBehaviour
     public void Explode()
     {
         if (!Hit || HasExploded) return;
-        collider.enabled = false;
         HasExploded = true;
 
         Game.I.Player.Accelerate(Vector3.up, power, power);
         Time.timeScale = 0.1f;
 
         model.SetActive(false);
-        radiusIndicator.gameObject.SetActive(false);
 
         if (explodeSound != null) explodeSound.Play();
         if (explodeParticle != null) explodeParticle.Play();
@@ -112,6 +103,15 @@ public class Arrow : MonoBehaviour
         if (action != null) action.Hit(hit);
         var kill = hit.collider.gameObject.GetComponent<KillBlock>();
         if (kill != null) kill.Hit();
+
+        /*model.SetActive(false);
+        var vector = (Game.I.Player.transform.position - hit.point).normalized;
+        vector.x = Mathf.Round(vector.x);
+        vector.y = Mathf.Round(vector.y);
+        vector.z = Mathf.Round(vector.z);
+        Game.I.Player.Accelerate(vector.normalized, power, power);
+        if (explodeSound != null) explodeSound.Play();
+        if (explodeParticle != null) explodeParticle.Play();*/
     }
 
     private static Vector3 Flatten(Vector3 vec)

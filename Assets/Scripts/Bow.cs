@@ -61,7 +61,7 @@ public class Bow : MonoBehaviour
         var ease = Drawback < .5
             ? 4 * Drawback * Drawback * Drawback
             : (Drawback - 1) * (2 * Drawback - 2) * (2 * Drawback - 2) + 1;
-        activeTrans.position = position + trans.up * (boltPosition.z - ease / 2f) +
+        activeTrans.position = position + trans.up * (boltPosition.z - Drawback / 2f) +
                                trans.forward * boltPosition.y + trans.right * boltPosition.x;
         activeTrans.rotation = trans.rotation;
 
@@ -77,7 +77,7 @@ public class Bow : MonoBehaviour
 
         if (Application.isPlaying && Game.I.Player.IsSliding)
         {
-            bowAngle -= ease * 10;
+            bowAngle -= Drawback * 10;
             bowAngle += 180;
             bowAngle = -bowAngle;
             bowPos.x -= 0.38f;
@@ -86,7 +86,7 @@ public class Bow : MonoBehaviour
         }
         else
         {
-            bowAngle -= ease * 65;
+            bowAngle -= Drawback * 65;
             bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
         }
 
@@ -95,7 +95,7 @@ public class Bow : MonoBehaviour
 
         var yCalc = player.velocity.y / yVelocityReduction;
 
-        yCalc -= ease / 3f;
+        yCalc -= Drawback / 3f;
 
         yCalc = Mathf.Max(yCalc, -yVelocityLimit);
         yCalc = Mathf.Min(yCalc, yVelocityLimit / 6);
@@ -107,7 +107,7 @@ public class Bow : MonoBehaviour
 
         var zCalc = player.velocity.z / hVelocityReduction;
 
-        zCalc += ease / 5;
+        zCalc += Drawback / 5;
 
         zCalc = Mathf.Max(zCalc, -hVelocityLimit);
         zCalc = Mathf.Min(zCalc, hVelocityLimit);
@@ -118,23 +118,23 @@ public class Bow : MonoBehaviour
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector;
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);
-        if (Input.GetKey((KeyCode)PlayerInput.Key.FireBow))
+        if (Input.GetKey((KeyCode)PlayerInput.Key.PullBow))
         {
             if (Drawback < 1)
             {
-                Drawback += Time.deltaTime;
+                Drawback += Time.deltaTime * 2f;
             }
-        }
-        else if (Drawback >= 0.6f)
-        {
-            Fire(player.camera.transform.position, player.CrosshairDirection);
         }
         else
         {
             if (Drawback > 0)
             {
-                Drawback -= Time.deltaTime;
+                Drawback -= Time.deltaTime * 2f;
             }
+        }
+        if (Input.GetKey((KeyCode)PlayerInput.Key.FireBow) && Drawback >= 0.8f)
+        {
+            Fire(player.camera.transform.position, player.CrosshairDirection);
         }
     }
 
@@ -143,7 +143,6 @@ public class Bow : MonoBehaviour
         var a = Instantiate(arrow.gameObject).GetComponent<Arrow>();
         a.gameObject.layer = 0;
         a.model.layer = 0;
-        a.radiusIndicator.gameObject.layer = 0;
         
         a.transform.localScale = new Vector3(1, 1, 1);
         a.Fire(Quaternion.LookRotation(vel), Drawback * 100 * vel);

@@ -15,6 +15,7 @@ public class PlayerInput : MonoBehaviour
         Slide = KeyCode.LeftControl,
         RestartLevel = KeyCode.R,
         FireBow = KeyCode.Mouse0,
+        PullBow = KeyCode.Mouse1,
         Jump = KeyCode.Space,
         Pause = KeyCode.Escape
     }
@@ -29,6 +30,11 @@ public class PlayerInput : MonoBehaviour
     public static int SincePressed(Key key)
     {
         return tickCount - keys[key].pressedTimestamp;
+    }
+
+    public static void ClearSincePressed(Key key)
+    {
+        keys[key].pressedTimestamp = 0;
     }
 
     public static float GetAxisStrafeRight()
