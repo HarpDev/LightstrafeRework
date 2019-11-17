@@ -118,7 +118,7 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsSliding
     {
-        get { return Input.GetKey((KeyCode)PlayerInput.Key.Slide); }
+        get { return (velocity.magnitude >= movementSpeed && IsGrounded) || IsOnRail; }
     }
 
     public bool IsOnWall { get; set; }
@@ -426,7 +426,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 IsGrounded = false;
             }
-            if (Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
+            if (!other.collider.CompareTag("Kill Block") && Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
             {
                 if (IsSliding || Mathf.Abs(point.point.y - (transform.position.y + 1)) < 0.9f)
                 {
@@ -439,7 +439,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (!validCollision) return;
 
-        if (other.collider.CompareTag("Kill Block"))
+        if (other.collider.CompareTag("Kill Block") && IsGrounded)
         {
             Game.RestartLevel();
         }
