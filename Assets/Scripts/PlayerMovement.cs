@@ -118,7 +118,7 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsSliding
     {
-        get { return (velocity.magnitude >= movementSpeed && IsGrounded) || IsOnRail; }
+        get { return (velocity.magnitude >= movementSpeed - 1 && IsGrounded) || IsOnRail; }
     }
 
     public bool IsOnWall { get; set; }
@@ -396,11 +396,17 @@ public class PlayerMovement : MonoBehaviour
                     source.PlayOneShot(groundLand);
                 }
                 IsGrounded = true;
+
+                if (other.collider.CompareTag("Kill Block"))
+                {
+                    Game.RestartLevel();
+                    return;
+                }
             } else if (IsGrounded && Vector3.Angle(Vector3.up, point.normal) > 90)
             {
                 IsGrounded = false;
             }
-            if (!other.collider.CompareTag("Kill Block") && Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
+            if (other.collider.CompareTag("Wall") && Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
             {
                 if (IsSliding || Mathf.Abs(point.point.y - (transform.position.y + 1)) < 0.9f)
                 {
@@ -412,11 +418,6 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (!validCollision) return;
-
-        if (other.collider.CompareTag("Kill Block") && IsGrounded)
-        {
-            Game.RestartLevel();
-        }
         else if (other.collider.CompareTag("Launch Block"))
         {
             other.gameObject.GetComponent<LaunchBlock>().ActivateLaunch();
@@ -821,11 +822,10 @@ public class PlayerMovement : MonoBehaviour
         {
             _slideLeanVector = Flatten(velocity).normalized;
             ApplyFriction(friction * f);
-            if (Flatten(velocity).magnitude > movementSpeed)
-                AirAccelerate(Wishdir, groundTurnAcceleration * f);
-            else
-                Accelerate(Wishdir, movementSpeed, groundAcceleration * f);
-
+        }
+        if (velocity.magnitude < movementSpeed)
+        {
+            Accelerate(Wishdir, movementSpeed, groundAcceleration * f);
         }
 
         if (_wishJump) Jump();
@@ -846,8 +846,7 @@ public class PlayerMovement : MonoBehaviour
 
         var didHit = rigidbody.SweepTest(velocity.normalized, out RaycastHit hit, velocity.magnitude * t,
             QueryTriggerInteraction.Ignore);
-        if (didHit && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive &&
-            !hit.collider.CompareTag("Kill Block"))
+        if (didHit && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive && hit.collider.CompareTag("Wall"))
         {
             if (!_approachingWall)
             {
@@ -892,7 +891,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirAccelerate(Vector3 wishdir, float accel)
     {
-        const float wishSpeed = 0.4f;
+        const float wishSpeed = 0.5f;
 
         var currentSpeed = Vector3.Dot(velocity, wishdir);
         var addSpeed = wishSpeed - currentSpeed;
