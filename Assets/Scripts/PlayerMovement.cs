@@ -318,32 +318,6 @@ public class PlayerMovement : MonoBehaviour
         _previousPosition = rigidbody.transform.position;
         var movement = platformMotion + velocity * factor;
 
-        // Here we check if the next position will collide with a surface, and if needed, adjust the next position to be on top of the surface (step)
-        foreach (var futureHit in rigidbody.SweepTestAll(movement.normalized, movement.magnitude, QueryTriggerInteraction.Ignore))
-        {
-            if (Mathf.Abs(Vector3.Angle(Vector3.up, futureHit.normal) - 90) < 0.05f)
-            {
-                var didHit = Physics.Raycast(futureHit.point - futureHit.normal * 0.5f + new Vector3(0, 3, 0), Vector3.down,
-                    out RaycastHit stair, 6, 1, QueryTriggerInteraction.Ignore);
-
-                var stepHeight = stair.point.y - (_previousPosition.y + movement.y - 1);
-
-                if (didHit && stepHeight < stairHeight && stepHeight > 0 && Mathf.Abs(Vector3.Angle(Vector3.up, stair.normal)) < 0.05f)
-                {
-                    _displacePosition += new Vector3(0, stepHeight, 0);
-
-                    var projection = Vector3.Dot(velocity, new Vector3(0, 1, 0));
-                    if (projection > 0)
-                    {
-                        var impulse = new Vector3(0, -1, 0) * projection;
-                        velocity += impulse;
-                    }
-                    Debug.Log("step");
-                    break;
-                }
-            }
-        }
-
         // The previous collision is set in oncollision, executed after fixedupdate
         _previousCollision = null;
         // cant use MovePosition() because it doesnt use continuous collision
