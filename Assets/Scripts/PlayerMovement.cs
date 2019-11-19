@@ -15,7 +15,6 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 velocity;
 
     /* Movement Stuff */
-    public int wadeTime = 40;
     public float deceleration = 10f;
     public float friction = 0.5f;
     public float wallFriction = 0.1f;
@@ -73,6 +72,7 @@ public class PlayerMovement : MonoBehaviour
     private int _railTimestamp = -100000;
     private int _railCooldownTimestamp = -100000;
     private float _lastJumpBeforeYVelocity;
+    private float _lastGroundJumpBeforeYVelocity;
     private int _wallTickCount;
     private int _wallJumpTimestamp;
     private Vector3 _wallNormal;
@@ -91,7 +91,6 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _slideLeanVector;
     private GameObject _lastRail;
     private bool _wishJump;
-    private int _wadeTicks;
     private float _cameraRotation;
     private float _cameraRotationSpeed;
     private bool _smoothRotation;
@@ -127,15 +126,6 @@ public class PlayerMovement : MonoBehaviour
     {
         get { return _currentRail != null; }
     }
-
-    /*public Vector3 InterpolatedPosition
-    {
-        get
-        {
-            return Vector3.Lerp(_previousPosition, rigidbody.transform.position,
-                _motionInterpolationDelta / Time.fixedDeltaTime);
-        }
-    }*/
 
     public Vector3 Wishdir { get; set; }
 
@@ -219,9 +209,6 @@ public class PlayerMovement : MonoBehaviour
         _motionInterpolationDelta += Time.deltaTime;
 
         if (Input.GetKeyDown((KeyCode)PlayerInput.Key.Jump)) _wishJump = true;
-
-        if (Input.GetKeyDown((KeyCode)PlayerInput.Key.StrafeRight) ||
-            Input.GetKeyDown((KeyCode)PlayerInput.Key.StrafeLeft)) _wadeTicks = wadeTime;
 
         // Check for level restart
         if (Input.GetKeyDown((KeyCode)PlayerInput.Key.RestartLevel)) Game.RestartLevel();
@@ -402,7 +389,8 @@ public class PlayerMovement : MonoBehaviour
                     Game.RestartLevel();
                     return;
                 }
-            } else if (IsGrounded && Vector3.Angle(Vector3.up, point.normal) > 90)
+            }
+            else if (IsGrounded && Vector3.Angle(Vector3.up, point.normal) > 90)
             {
                 IsGrounded = false;
             }
@@ -929,6 +917,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (PlayerInput.tickCount - _wallTimestamp < coyoteTime)
         {
+            _lastGroundJumpBeforeYVelocity = 0;
             WallJump();
             return;
         }
@@ -943,11 +932,6 @@ public class PlayerMovement : MonoBehaviour
 
         _lastJumpBeforeYVelocity = velocity.y;
 
-        if (groundJump || railJump)
-        {
-            speed += velocity.y;
-        }
-
         if (groundJump)
         {
             source.PlayOneShot(jump);
@@ -956,9 +940,18 @@ public class PlayerMovement : MonoBehaviour
         {
             DoubleJumpAvailable = false;
             source.PlayOneShot(jumpair);
+            //if (velocity.y < 0) velocity.y = 0;
+            if (_lastGroundJumpBeforeYVelocity < 0) _lastGroundJumpBeforeYVelocity = 0;
+            if (velocity.y < _lastGroundJumpBeforeYVelocity + speed)
+            {
+                velocity.y = Mathf.Min(velocity.y + speed * 2, _lastGroundJumpBeforeYVelocity + speed);
+            }
+            _lastGroundJumpBeforeYVelocity = 0;
+            return;
         }
 
-        if (velocity.y < speed) velocity.y = speed;
+        _lastGroundJumpBeforeYVelocity = velocity.y;
+        velocity.y = Mathf.Max(speed, velocity.y + speed);
 
         SetCameraRotation(0, 50, false);
         _sinceJumpCounter = 0;
