@@ -432,9 +432,15 @@ public class PlayerMovement : MonoBehaviour
         IsDashing = true;
         source.Play();
 
+        if (PlayerInput.GetAxisStrafeForward() == 1) wishdir = Flatten(CrosshairDirection).normalized;
+        if (wishdir.magnitude <= 0 || IsStrafing) wishdir = Flatten(velocity).normalized;
+
         HudMovement.RotationSlamVector += Vector3.up * 20;
 
         velocity = (Flatten(velocity).magnitude + speed) * wishdir.normalized;
+
+        if (velocity.magnitude < movementSpeed) velocity = velocity.normalized * movementSpeed;
+
         _dashSpeedReduction = 0;
     }
 
@@ -1026,7 +1032,7 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = Mathf.Min(velocity.y + speed * 2, _lastGroundJumpBeforeYVelocity + speed);
             }
             _lastGroundJumpBeforeYVelocity = 0;*/
-            Dash(Flatten(CrosshairDirection), 10, 1);
+            Dash(Wishdir, 10, 1);
             return;
         }
 
