@@ -163,14 +163,13 @@ MonoBehaviour:
   wallkickDisplay: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
-  wadeTime: 40
   deceleration: 10
   friction: 0.5
   wallFriction: 0.1
   groundAcceleration: 1.3
   groundTurnAcceleration: 50
   railSpeed: 20
-  airAcceleration: 2000
+  airAcceleration: 35
   stairHeight: 1.2
   gravity: 0.3
   movementSpeed: 15
@@ -179,6 +178,7 @@ MonoBehaviour:
   fallSpeed: 60
   wallAngleGive: 10
   wallCatchThreshold: 20
+  wallCatchFriction: 15
   wallSpeed: 12
   wallAcceleration: 4
   wallJumpSpeed: 3
@@ -193,7 +193,7 @@ MonoBehaviour:
   rollSound: {fileID: 5542439263401049636}
   grappleDuring: {fileID: 2380960297985531293}
   jump: {fileID: 8300000, guid: 9e6ecb5ae0c63aa4b85ef45139122555, type: 3}
-  jumpair: {fileID: 8300000, guid: 265a4c60d4d4dca40ab4ca3658956647, type: 3}
+  jumpair: {fileID: 8300000, guid: de6a20422d5c06d4b8256e5b5a009f4c, type: 3}
   ding: {fileID: 8300000, guid: a2d224f9af0df7b48b91992fac96a3da, type: 3}
   groundLand: {fileID: 8300000, guid: 24a0e5dadc4cbd046983b2d0bb9c2995, type: 3}
   wallKick: {fileID: 8300000, guid: 9918cb47f1361474abc7618bef88f4eb, type: 3}
@@ -256,7 +256,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: a2d224f9af0df7b48b91992fac96a3da, type: 3}
+  m_audioClip: {fileID: 8300000, guid: de6a20422d5c06d4b8256e5b5a009f4c, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1

@@ -48,7 +48,7 @@ public class HudMovement : MonoBehaviour
         _hudPitchOffset = Mathf.Lerp(_hudPitchOffset, 0, 0.05f);
         var transform1 = transform;
         var hudTransform = transform1.localPosition;
-        hudTransform.y = -_positionSlamVectorLerp.y / 32;
+        hudTransform = _positionSlamVectorLerp / 50;
         transform1.localPosition = hudTransform;
 
         _hudRotation = Mathf.Lerp(_hudRotation, player.CameraRoll, Time.deltaTime * 8);
