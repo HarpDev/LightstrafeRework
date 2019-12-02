@@ -9,7 +9,7 @@ public class SpeedDisplay : MonoBehaviour
 
     private void Update()
     {
-        var display = Mathf.RoundToInt(flatten ? (Flatten(Game.I.Player.velocity) * 2).magnitude : (Game.I.Player.velocity * 2).magnitude);
+        var display = Mathf.RoundToInt(flatten ? (Flatten(Game.I.Level.player.velocity) * 2).magnitude : (Game.I.Level.player.velocity * 2).magnitude);
         speedText.text = prefix + display;
     }
 

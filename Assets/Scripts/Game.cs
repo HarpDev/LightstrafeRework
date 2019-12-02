@@ -8,6 +8,11 @@ public class Game : MonoBehaviour
 {
     public static Game I;
 
+    public Canvas Chapter1Select;
+    public Canvas Options;
+    public Canvas Pause;
+    public Canvas Finish;
+
     public static float Sensitivity
     {
         get
@@ -17,8 +22,6 @@ public class Game : MonoBehaviour
         }
         set { PlayerPrefs.SetFloat("Sensitivity", value); }
     }
-
-    public static float CurrentLevelTime { get; set; }
     public static void SetBestLevelTime(string level, float time)
     {
         PlayerPrefs.SetFloat("v1.5BestTime" + level, time);
@@ -29,18 +32,56 @@ public class Game : MonoBehaviour
         return PlayerPrefs.HasKey("v1.5BestTime" + level) ? PlayerPrefs.GetFloat("v1.5BestTime" + level) : -1f;
     }
 
-    public static bool TimerRunning { get; private set; }
-    public PlayerMovement Player { get; private set; }
-    public Canvas Canvas { get; private set; }
-    
-    public PostProcessVolume PostProcessVolume { get; private set; }
-    
-    public Hitmarker Hitmarker { get; private set; }
+    private Level level;
+    public Level Level
+    {
+        get
+        {
+            if (level == null)
+            {
+                var levelObj = GameObject.Find("Level");
+                if (levelObj != null) level = levelObj.GetComponent<Level>();
+            }
+            return level;
+        }
+        private set { level = value; }
+    }
 
-    public Notification notification;
+    private Canvas canvas;
+    public Canvas Canvas
+    {
+        get
+        {
+            if (canvas == null)
+            {
+                var canvasObj = GameObject.Find("Canvas");
+                if (canvasObj != null) canvas = canvasObj.GetComponent<Canvas>();
+            }
+            return canvas;
+        }
+        private set { canvas = value; }
+    }
+
+    public List<Canvas> UiTree { get; private set; }
+
+    private PostProcessVolume postProcessVolume;
+    public PostProcessVolume PostProcessVolume
+    {
+        get
+        {
+            if (postProcessVolume == null)
+            {
+                var levelObj = GameObject.Find("Level");
+                if (levelObj != null) postProcessVolume = levelObj.GetComponent<PostProcessVolume>();
+            }
+            return postProcessVolume;
+        }
+        private set { postProcessVolume = value; }
+    }
 
     private void Awake()
     {
+        UiTree = new List<Canvas>();
         Time.timeScale = 1;
         if (I == null)
         {
@@ -50,56 +91,71 @@ public class Game : MonoBehaviour
         }
         else if (I != this)
         {
-            I.Find();
             Destroy(gameObject);
         }
     }
 
-    private void Start()
-    {
-        I.Find();
-    }
-
     private void Update()
     {
-        if (TimerRunning) CurrentLevelTime += Time.unscaledDeltaTime;
-    }
-
-    private void Find()
-    {
-        var playerObj = GameObject.Find("Player");
-        if (playerObj != null) Player = playerObj.GetComponent<PlayerMovement>();
-        var canvasObj = GameObject.Find("Canvas");
-        if (canvasObj != null) Canvas = canvasObj.GetComponent<Canvas>();
-        var postprocessObj = GameObject.Find("Level");
-        if (postprocessObj != null) PostProcessVolume = postprocessObj.GetComponent<PostProcessVolume>();
-        var hitmarkerObj = GameObject.Find("hitmarker");
-        if (hitmarkerObj != null) Hitmarker = hitmarkerObj.GetComponent<Hitmarker>();
-    }
-
-    public static void ResetTimer()
-    {
-        CurrentLevelTime = 0;
-    }
-
-    public static void StopTimer()
-    {
-        TimerRunning = false;
-    }
-
-    public static void StartTimer()
-    {
-        TimerRunning = true;
-    }
-
-    public static void EndTimer()
-    {
-        TimerRunning = false;
-        var level = SceneManager.GetActiveScene().name;
-        if (CurrentLevelTime < GetBestLevelTime(level) || GetBestLevelTime(level) < 0f)
+        if (Input.GetKeyDown(PlayerInput.Pause))
         {
-            SetBestLevelTime(level, CurrentLevelTime);
+            if (UiTree.Count > 0)
+            {
+                var obj = UiTree[UiTree.Count - 1];
+                UiTree.RemoveAt(UiTree.Count - 1);
+                Destroy(obj.gameObject);
+                if (UiTree.Count > 0)
+                {
+                    UiTree[UiTree.Count - 1].gameObject.SetActive(true);
+                }
+                else
+                {
+                    Canvas.gameObject.SetActive(true);
+                }
+            }
         }
+    }
+
+    public void OpenPauseMenu()
+    {
+        foreach (var canvas in UiTree)
+        {
+            canvas.gameObject.SetActive(false);
+        }
+        Canvas.gameObject.SetActive(false);
+        UiTree.Add(Instantiate(Pause));
+    }
+
+    public void OpenFinishMenu()
+    {
+        foreach (var canvas in UiTree)
+        {
+            Destroy(canvas.gameObject);
+        }
+        UiTree.Clear();
+        Destroy(Canvas.gameObject);
+        Canvas = Instantiate(Finish);
+        Canvas.gameObject.SetActive(true);
+    }
+
+    public void OpenChapter1Select()
+    {
+        foreach (var canvas in UiTree)
+        {
+            canvas.gameObject.SetActive(false);
+        }
+        Canvas.gameObject.SetActive(false);
+        UiTree.Add(Instantiate(Chapter1Select));
+    }
+
+    public void OpenOptionsMenu()
+    {
+        foreach (var canvas in UiTree)
+        {
+            canvas.gameObject.SetActive(false);
+        }
+        Canvas.gameObject.SetActive(false);
+        UiTree.Add(Instantiate(Options));
     }
 
     public static void RestartLevel()

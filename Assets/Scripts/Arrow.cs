@@ -72,7 +72,7 @@ public class Arrow : MonoBehaviour
         if (!Hit || HasExploded) return;
         HasExploded = true;
 
-        Game.I.Player.Accelerate(Vector3.up, power, power);
+        Game.I.Level.player.Accelerate(Vector3.up, power, power);
         Time.timeScale = 0.1f;
 
         model.SetActive(false);
@@ -99,8 +99,6 @@ public class Arrow : MonoBehaviour
         _hitTransform = hit.transform;
         _hitTransform.hasChanged = false;
         GetComponent<Rigidbody>().isKinematic = true;
-        var action = hit.collider.gameObject.GetComponent<BlockAction>();
-        if (action != null) action.Hit(hit);
         var kill = hit.collider.gameObject.GetComponent<KillBlock>();
         if (kill != null) kill.Hit();
 

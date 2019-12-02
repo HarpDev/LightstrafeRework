@@ -16,7 +16,7 @@ public class TimerDisplay : MonoBehaviour
     {
         var seconds = bestTime
             ? Game.GetBestLevelTime(currentLevel ? SceneManager.GetActiveScene().name : level)
-            : Game.CurrentLevelTime;
+            : Game.I.Level.CurrentTime;
         if (seconds < 0) timerText.text = "";
         else timerText.text = prefix + seconds.ToString("0.0");
     }
