@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7660217558146798251}
   - component: {fileID: 7660217558146798248}
+  - component: {fileID: 8991683021963131855}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -45,5 +46,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   notification: {fileID: 2561398769333693278, guid: 44bc5c86addf0004a974d97ab65ba8f9,
     type: 3}
-  pauseMenu: {fileID: 2439232298748036294, guid: 35f4809871330f841b4559ecd416cba6,
-    type: 3}
+--- !u!114 &8991683021963131855
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7660217558146798246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77700910200105a4cb74b24ad2829d3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

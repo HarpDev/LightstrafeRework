@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
-    private const float Tolerance = 0.05f;
     public new Rigidbody rigidbody;
     public new Camera camera;
     public Collider standingHitbox;
@@ -191,7 +190,7 @@ public class PlayerMovement : MonoBehaviour
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
 
-        if (Input.GetKeyDown((KeyCode)PlayerInput.Key.FireBow))
+        if (Input.GetKeyDown(PlayerInput.PrimaryInteract))
         {
             if (Physics.Raycast(InterpolatedPosition, CrosshairDirection, out RaycastHit hit, Mathf.Infinity, 1, QueryTriggerInteraction.Ignore))
             {
@@ -223,10 +222,10 @@ public class PlayerMovement : MonoBehaviour
         // This value is used to calcuate the positions in between each fixedupdate tick
         _motionInterpolationDelta += Time.deltaTime;
 
-        if (Input.GetKeyDown((KeyCode)PlayerInput.Key.Jump)) _wishJump = true;
+        if (Input.GetKeyDown(PlayerInput.Jump)) _wishJump = true;
 
         // Check for level restart
-        if (Input.GetKeyDown((KeyCode)PlayerInput.Key.RestartLevel)) Game.RestartLevel();
+        if (Input.GetKeyDown(PlayerInput.RestartLevel)) Game.RestartLevel();
 
         var position = cameraPosition;
         if (IsSliding)
@@ -267,7 +266,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Start the timer when the player moves
-        if ((Wishdir.magnitude > 0 || PlayerInput.SincePressed(PlayerInput.Key.FireBow) <= 1) && !Game.TimerRunning)
+        if ((Wishdir.magnitude > 0 || PlayerInput.SincePressed(PlayerInput.PrimaryInteract) <= 1) && !Game.TimerRunning)
         {
             Game.StartTimer();
         }
@@ -700,8 +699,7 @@ public class PlayerMovement : MonoBehaviour
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
 
         var direction = Wishdir;
-        if (Input.GetKey((KeyCode)PlayerInput.Key.Slide)) direction.y = -1;
-        if (Input.GetKey((KeyCode)PlayerInput.Key.Jump)) direction.y = 1;
+        if (Input.GetKey(PlayerInput.Jump)) direction.y = 1;
 
         Accelerate(towardPoint, grappleSwingForce, f * 2);
         Accelerate(direction.normalized, grappleSwingForce / 4, f * 2);
@@ -709,7 +707,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void WallMove(float f)
     {
-        if (PlayerInput.SincePressed(PlayerInput.Key.Jump) < wallJumpForgiveness)
+        if (PlayerInput.SincePressed(PlayerInput.Jump) < wallJumpForgiveness)
         {
             if (_sinceJumpCounter < wallJumpForgiveness)
             {
@@ -723,7 +721,7 @@ public class PlayerMovement : MonoBehaviour
 
             if (_wallTickCount == 0)
             {
-                for (var i = 0; i < PlayerInput.SincePressed(PlayerInput.Key.Jump); i++)
+                for (var i = 0; i < PlayerInput.SincePressed(PlayerInput.Jump); i++)
                 {
                     if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude)
                         ApplyFriction(f * wallKickFriction);
@@ -733,7 +731,7 @@ public class PlayerMovement : MonoBehaviour
             }
 
             Jump();
-            PlayerInput.ClearSincePressed(PlayerInput.Key.Jump);
+            PlayerInput.ClearSincePressed(PlayerInput.Jump);
             return;
         }
 
@@ -819,8 +817,8 @@ public class PlayerMovement : MonoBehaviour
             velocity += Vector3.up * jumpHeight;
         }
 
-        if (PlayerInput.SincePressed(PlayerInput.Key.Jump) != 0)
-            wallkickDisplay.text = "-" + PlayerInput.SincePressed(PlayerInput.Key.Jump);
+        if (PlayerInput.SincePressed(PlayerInput.Jump) != 0)
+            wallkickDisplay.text = "-" + PlayerInput.SincePressed(PlayerInput.Jump);
         else
             wallkickDisplay.text = "+" + _wallTickCount;
 

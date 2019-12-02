@@ -118,7 +118,7 @@ public class Bow : MonoBehaviour
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector;
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);
-        if (Input.GetKey((KeyCode)PlayerInput.Key.PullBow))
+        if (Input.GetKey(PlayerInput.SecondaryInteract))
         {
             if (Drawback < 1)
             {
@@ -132,7 +132,7 @@ public class Bow : MonoBehaviour
                 Drawback -= Time.deltaTime * 2f;
             }
         }
-        if (Input.GetKey((KeyCode)PlayerInput.Key.FireBow) && Drawback >= 0.8f)
+        if (Input.GetKey(PlayerInput.PrimaryInteract) && Drawback >= 0.8f)
         {
             Fire(player.camera.transform.position, player.CrosshairDirection);
         }

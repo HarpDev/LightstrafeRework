@@ -5,60 +5,50 @@ using UnityEngine;
 public class PlayerInput : MonoBehaviour
 {
     public static int tickCount;
-    
-    public enum Key
+
+    public static KeyCode MoveForward { get { return (KeyCode)PlayerPrefs.GetInt("MoveForward", (int)KeyCode.W); } set { PlayerPrefs.SetInt("MoveForward", (int)value); } }
+    public static KeyCode MoveBackward { get { return (KeyCode)PlayerPrefs.GetInt("MoveBackward", (int)KeyCode.S); } set { PlayerPrefs.SetInt("MoveBackward", (int)value); } }
+    public static KeyCode MoveRight { get { return (KeyCode)PlayerPrefs.GetInt("MoveRight", (int)KeyCode.D); } set { PlayerPrefs.SetInt("MoveRight", (int)value); } }
+    public static KeyCode MoveLeft { get { return (KeyCode)PlayerPrefs.GetInt("MoveLeft", (int)KeyCode.A); } set { PlayerPrefs.SetInt("MoveLeft", (int)value); } }
+    public static KeyCode RestartLevel { get { return (KeyCode)PlayerPrefs.GetInt("RestartLevel", (int)KeyCode.R); } set { PlayerPrefs.SetInt("RestartLevel", (int)value); } }
+    public static KeyCode PrimaryInteract { get { return (KeyCode)PlayerPrefs.GetInt("PrimaryInteract", (int)KeyCode.Mouse0); } set { PlayerPrefs.SetInt("PrimaryInteract", (int)value); } }
+    public static KeyCode SecondaryInteract { get { return (KeyCode)PlayerPrefs.GetInt("SecondaryInteract", (int)KeyCode.Mouse1); } set { PlayerPrefs.SetInt("SecondaryInteract", (int)value); } }
+    public static KeyCode Jump { get { return (KeyCode)PlayerPrefs.GetInt("Jump", (int)KeyCode.Space); } set { PlayerPrefs.SetInt("Jump", (int)value); } }
+    public static KeyCode Pause { get { return (KeyCode)PlayerPrefs.GetInt("Pause", (int)KeyCode.Escape); } set { PlayerPrefs.SetInt("Pause", (int)value); } }
+
+    private static Dictionary<KeyCode, int> keys = new Dictionary<KeyCode, int>();
+
+    private static int GetData(KeyCode key)
     {
-        StrafeRight = KeyCode.D,
-        StrafeLeft = KeyCode.A,
-        StrafeForward = KeyCode.W,
-        StrafeBack = KeyCode.S,
-        Slide = KeyCode.LeftControl,
-        RestartLevel = KeyCode.R,
-        FireBow = KeyCode.Mouse0,
-        PullBow = KeyCode.Mouse1,
-        Jump = KeyCode.Space,
-        Pause = KeyCode.Escape
+        var exists = keys.TryGetValue(key, out int time);
+        if (exists) return time;
+        else return 0;
     }
 
-    private class KeyData
+    public static int SincePressed(KeyCode key)
     {
-        public int pressedTimestamp;
+        return tickCount - GetData(key);
     }
 
-    private static Dictionary<Key, KeyData> keys = new Dictionary<Key, KeyData>();
-
-    public static int SincePressed(Key key)
+    public static void ClearSincePressed(KeyCode key)
     {
-        return tickCount - keys[key].pressedTimestamp;
-    }
-
-    public static void ClearSincePressed(Key key)
-    {
-        keys[key].pressedTimestamp = 0;
+        keys[key] = 0;
     }
 
     public static float GetAxisStrafeRight()
     {
-        if (Input.GetKey((KeyCode) Key.StrafeRight))
-            return Input.GetKey((KeyCode) Key.StrafeLeft) ? 0 : 1;
+        if (Input.GetKey(MoveRight))
+            return Input.GetKey(MoveLeft) ? 0 : 1;
         else
-            return Input.GetKey((KeyCode) Key.StrafeLeft) ? -1 : 0;
+            return Input.GetKey(MoveLeft) ? -1 : 0;
     }
 
     public static float GetAxisStrafeForward()
     {
-        if (Input.GetKey((KeyCode) Key.StrafeForward))
-            return Input.GetKey((KeyCode) Key.StrafeBack) ? 0 : 1;
+        if (Input.GetKey(MoveForward))
+            return Input.GetKey(MoveBackward) ? 0 : 1;
         else
-            return Input.GetKey((KeyCode) Key.StrafeBack) ? -1 : 0;
-    }
-
-    private void Start()
-    {
-        foreach (var k in Enum.GetValues(typeof(Key)))
-        {
-            keys[(Key) k] = new KeyData();
-        }
+            return Input.GetKey(MoveBackward) ? -1 : 0;
     }
 
     private void FixedUpdate()
@@ -68,12 +58,12 @@ public class PlayerInput : MonoBehaviour
 
     private void Update()
     {
-        var list = new List<Key>(keys.Keys);
+        var list = new List<KeyCode>(keys.Keys);
         foreach (var key in list)
         {
-            if (Input.GetKeyDown((KeyCode) key))
+            if (Input.GetKeyDown(key))
             {
-                keys[key].pressedTimestamp = tickCount;
+                keys[key] = tickCount;
             }
         }
     }

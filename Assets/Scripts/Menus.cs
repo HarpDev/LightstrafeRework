@@ -10,7 +10,7 @@ public class Menus : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown((KeyCode) PlayerInput.Key.Pause))
+        if (Input.GetKeyDown(PlayerInput.Pause))
         {
             if (IsPaused())
                 Unpause();
