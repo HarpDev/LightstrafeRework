@@ -26,9 +26,8 @@ public class Finish : MonoBehaviour
             Time.timeScale -= Time.unscaledDeltaTime * 3;
             if (Time.timeScale < TOLERANCE) Time.timeScale = 0;
             Game.I.Player.LookScale = Time.timeScale;
-            Blur blur;
-            Game.I.PostProcessVolume.profile.TryGetSettings(out blur);
-            if (blur.BlurIterations.value < 8)
+            Game.I.PostProcessVolume.profile.TryGetSettings(out Blur blur);
+            if (blur != null && blur.BlurIterations.value < 8)
             {
                 if (!blur.enabled.value) blur.enabled.value = true;
                 blur.BlurIterations.value = Mathf.RoundToInt(_blurCount);

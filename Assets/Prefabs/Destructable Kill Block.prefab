@@ -45,7 +45,7 @@ GameObject:
   - component: {fileID: 8674876812189792470}
   m_Layer: 0
   m_Name: Destructable Kill Block
-  m_TagString: Kill Block
+  m_TagString: Instant Kill Block
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -99,6 +99,7 @@ MeshRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0

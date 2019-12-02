@@ -44,9 +44,11 @@ public class Menus : MonoBehaviour
         Cursor.visible = false;
         pauseMenu.SetActive(false);
 
-        Blur blur;
-        Game.I.PostProcessVolume.profile.TryGetSettings(out blur);
-        blur.BlurIterations.value = 0;
-        blur.enabled.value = false;
+        Game.I.PostProcessVolume.profile.TryGetSettings(out Blur blur);
+        if (blur != null)
+        {
+            blur.BlurIterations.value = 0;
+            blur.enabled.value = false;
+        }
     }
 }

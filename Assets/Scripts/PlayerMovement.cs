@@ -106,16 +106,6 @@ public class PlayerMovement : MonoBehaviour
 
     public static bool DoubleJumpAvailable { get; set; }
 
-    public float GetJumpHeight(float distance)
-    {
-        var vx = Flatten(velocity).magnitude;
-        var t = distance / vx;
-        var y = gravity * fallSpeed * Mathf.Pow(t, 2) / t;
-        if (vx < Tolerance || y > jumpHeight) y = jumpHeight;
-        return jumpHeight;
-        //return Inverted ? -y : y;
-    }
-
     public bool IsGrounded { get; set; }
 
     public bool IsSliding
@@ -201,6 +191,18 @@ public class PlayerMovement : MonoBehaviour
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
 
+        if (Input.GetKeyDown((KeyCode)PlayerInput.Key.FireBow))
+        {
+            if (Physics.Raycast(InterpolatedPosition, CrosshairDirection, out RaycastHit hit, Mathf.Infinity, 1, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider.gameObject.CompareTag("Destructable"))
+                {
+                    var explosion = hit.collider.gameObject.AddComponent<TriangleExplosion>();
+                    StartCoroutine(explosion.SplitMesh(true));
+                }
+            }
+        }
+
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
         var cam = camera.transform;
 
@@ -231,6 +233,7 @@ public class PlayerMovement : MonoBehaviour
         {
             if (standingHitbox.enabled) standingHitbox.enabled = false;
             if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
+            if (camera.fieldOfView < 110) camera.fieldOfView += Time.deltaTime * 30;
         }
         else
         {
@@ -243,6 +246,7 @@ public class PlayerMovement : MonoBehaviour
                     SetCameraRotation(0, 50, false);
                 }
             }
+            if (camera.fieldOfView > 100) camera.fieldOfView -= Time.deltaTime * 30;
         }
 
         position.y -= 0.6f * _crouchAmount;
@@ -254,6 +258,13 @@ public class PlayerMovement : MonoBehaviour
         // Set Wishdir
         Wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() +
                    transform.forward * PlayerInput.GetAxisStrafeForward()).normalized;
+        if (PlayerInput.GetAxisStrafeForward() == 1)
+        {
+            if (PlayerInput.GetAxisStrafeRight() != 0)
+            {
+                Wishdir = Flatten((transform.forward * (velocity.magnitude / 4)) + (Wishdir * 4)).normalized;
+            }
+        }
 
         // Start the timer when the player moves
         if ((Wishdir.magnitude > 0 || PlayerInput.SincePressed(PlayerInput.Key.FireBow) <= 1) && !Game.TimerRunning)
@@ -360,14 +371,7 @@ public class PlayerMovement : MonoBehaviour
     private void OnCollisionStay(Collision other)
     {
         var moved = (rigidbody.transform.position - _displacePosition - _previousPosition) / Time.fixedDeltaTime;
-        if (other.collider.CompareTag("Launch Block"))
-        {
-            var launch = other.collider.gameObject.GetComponent<LaunchBlock>();
-            if (launch.IsAtApex)
-                _momentumBuffer.Add(launch.maxSpeed * launch.Direction.normalized + moved);
-            else _momentumBuffer.Add(moved);
-        }
-        else _momentumBuffer.Add(moved);
+        _momentumBuffer.Add(moved);
 
         if (_momentumBuffer.Count > 2) _momentumBuffer.RemoveAt(0);
 
@@ -378,13 +382,15 @@ public class PlayerMovement : MonoBehaviour
         {
             Accelerate(Vector3.up, 30, 30);
         }
+        if (other.collider.CompareTag("Instant Kill Block"))
+        {
+            Game.RestartLevel();
+        }
 
-        var validCollision = false;
         foreach (var point in other.contacts)
         {
             var projection = Vector3.Dot(velocity, -point.normal);
             if (projection <= 0) continue;
-            validCollision = true;
             var impulse = point.normal * projection * 0.9f;
             velocity += impulse;
 
@@ -416,12 +422,6 @@ public class PlayerMovement : MonoBehaviour
                 }
             }
         }
-
-        if (!validCollision) return;
-        else if (other.collider.CompareTag("Launch Block"))
-        {
-            other.gameObject.GetComponent<LaunchBlock>().ActivateLaunch();
-        }
     }
 
     public void Dash(Vector3 wishdir, float speed, float friction)
@@ -432,7 +432,6 @@ public class PlayerMovement : MonoBehaviour
         IsDashing = true;
         source.Play();
 
-        if (PlayerInput.GetAxisStrafeForward() == 1) wishdir = Flatten(CrosshairDirection).normalized;
         if (wishdir.magnitude <= 0 || IsStrafing) wishdir = Flatten(velocity).normalized;
 
         HudMovement.RotationSlamVector += Vector3.up * 20;
@@ -459,6 +458,8 @@ public class PlayerMovement : MonoBehaviour
         velocity.z *= newspeed;
 
         _dashSpeedReduction += Mathf.Max(0, speed - Flatten(velocity).magnitude);
+
+        AirAccelerate(Wishdir, f * airAcceleration * 4);
 
         if (IsGrounded || IsOnRail || GrappleHooked || _dashSpeedReduction >= _dashSpeed || Flatten(velocity).magnitude < _dashStartSpeed || Flatten(velocity).magnitude < movementSpeed)
         {
@@ -825,7 +826,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (_wallTickCount < wallJumpForgiveness)
         {
-            Accelerate(new Vector3(0, 1, 0), GetJumpHeight(8), 40);
+            Accelerate(new Vector3(0, 1, 0), jumpHeight, 40);
 
             var c = wallkickDisplay.color;
             if (Flatten(velocity).magnitude > Flatten(_lastAirborneVelocity).magnitude)
@@ -849,7 +850,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            Accelerate(new Vector3(0, 1, 0), GetJumpHeight(7), 40);
+            Accelerate(new Vector3(0, 1, 0), jumpHeight, 40);
             source.PlayOneShot(wallJump);
         }
 
@@ -956,7 +957,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirAccelerate(Vector3 wishdir, float accel)
     {
-        const float wishSpeed = 0.7f;
+        const float wishSpeed = 0.5f;
 
         if (wishdir.magnitude > 0 && Vector3.Angle(wishdir, Flatten(velocity)) < 90 && !IsStrafing)
         {
@@ -1013,7 +1014,7 @@ public class PlayerMovement : MonoBehaviour
         _railTimestamp = -coyoteTime;
 
         if (!groundJump && !railJump && !DoubleJumpAvailable) return;
-        var speed = GetJumpHeight(7);
+        var speed = jumpHeight;
 
         _lastJumpBeforeYVelocity = velocity.y;
 
@@ -1024,14 +1025,6 @@ public class PlayerMovement : MonoBehaviour
         else if (!railJump)
         {
             DoubleJumpAvailable = false;
-            /*
-            //if (velocity.y < 0) velocity.y = 0;
-            if (_lastGroundJumpBeforeYVelocity < 0) _lastGroundJumpBeforeYVelocity = 0;
-            if (velocity.y < _lastGroundJumpBeforeYVelocity + speed)
-            {
-                velocity.y = Mathf.Min(velocity.y + speed * 2, _lastGroundJumpBeforeYVelocity + speed);
-            }
-            _lastGroundJumpBeforeYVelocity = 0;*/
             Dash(Wishdir, 10, 1);
             return;
         }
