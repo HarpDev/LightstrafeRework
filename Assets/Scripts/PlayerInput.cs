@@ -58,9 +58,10 @@ public class PlayerInput : MonoBehaviour
 
     private void Update()
     {
-        var list = new List<KeyCode>(keys.Keys);
-        foreach (var key in list)
+        var properties = typeof(PlayerInput).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly);
+        foreach (var prop in properties)
         {
+            var key = (KeyCode)prop.GetValue(null, null);
             if (Input.GetKeyDown(key))
             {
                 keys[key] = tickCount;

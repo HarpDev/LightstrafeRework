@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteAlways]
 public class ButtonAlignment : MonoBehaviour
 {
 
     private void Update()
     {
-        var position = transform.position;
-        position.x -= (position.x % 20);
-        position.y -= (position.y % 20);
-        transform.position = position;
+        var position = transform.localPosition;
+        position.x -= position.x % 165;
+        position.y -= position.y % 35;
+        transform.localPosition = position;
     }
 }
