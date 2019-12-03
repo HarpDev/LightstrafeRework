@@ -85,7 +85,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8023130150563290705}
   - component: {fileID: 8023130150563290708}
-  - component: {fileID: 9154037261077206699}
+  - component: {fileID: 3390459175339689158}
   - component: {fileID: 5644266550209549845}
   - component: {fileID: 8023130150563290714}
   - component: {fileID: 5542439263401049636}
@@ -128,7 +128,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 5124070473534990130}
   camera: {fileID: 8023130152235894417}
-  standingHitbox: {fileID: 9154037261077206699}
+  standingHitbox: {fileID: 3390459175339689158}
   wallkickDisplay: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
@@ -138,7 +138,8 @@ MonoBehaviour:
   groundAcceleration: 1.8
   groundTurnAcceleration: 50
   railSpeed: 20
-  airAcceleration: 35
+  airAcceleration: 20
+  dashAcceleration: 800
   stairHeight: 1.2
   gravity: 0.3
   movementSpeed: 15
@@ -151,7 +152,7 @@ MonoBehaviour:
   wallSpeed: 12
   wallAcceleration: 4
   wallJumpSpeed: 3
-  wallJumpForgiveness: 5
+  wallJumpForgiveness: 10
   wallKickFriction: 2
   grappleSwingForce: 30
   grappleDetachFriction: 0.3
@@ -175,8 +176,8 @@ MonoBehaviour:
   grappleTether: {fileID: 6236329095573178393}
   grappleYOffset: -0.7
   maxGrappleTimeMillis: 5000
---- !u!64 &9154037261077206699
-MeshCollider:
+--- !u!136 &3390459175339689158
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -185,10 +186,10 @@ MeshCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Convex: 1
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 2534964839176971238, guid: 5f583d0717a25d64aa6ea7ac8721d35d, type: 3}
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!136 &5644266550209549845
 CapsuleCollider:
   m_ObjectHideFlags: 0
