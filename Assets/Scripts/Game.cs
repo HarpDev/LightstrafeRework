@@ -11,7 +11,6 @@ public class Game : MonoBehaviour
     public Canvas Chapter1Select;
     public Canvas Options;
     public Canvas Pause;
-    public Canvas Finish;
 
     public static float Sensitivity
     {
@@ -32,8 +31,8 @@ public class Game : MonoBehaviour
         return PlayerPrefs.HasKey("v1.5BestTime" + level) ? PlayerPrefs.GetFloat("v1.5BestTime" + level) : -1f;
     }
 
-    private Level level;
-    public Level Level
+    private static Level level;
+    public static Level Level
     {
         get
         {
@@ -47,8 +46,8 @@ public class Game : MonoBehaviour
         private set { level = value; }
     }
 
-    private Canvas canvas;
-    public Canvas Canvas
+    private static Canvas canvas;
+    public static Canvas Canvas
     {
         get
         {
@@ -62,10 +61,10 @@ public class Game : MonoBehaviour
         private set { canvas = value; }
     }
 
-    public List<Canvas> UiTree { get; private set; }
+    public static List<Canvas> UiTree { get; private set; }
 
-    private PostProcessVolume postProcessVolume;
-    public PostProcessVolume PostProcessVolume
+    private static PostProcessVolume postProcessVolume;
+    public static PostProcessVolume PostProcessVolume
     {
         get
         {
@@ -95,67 +94,52 @@ public class Game : MonoBehaviour
         }
     }
 
-    private void Update()
+    public static void CloseMenu()
     {
-        if (Input.GetKeyDown(PlayerInput.Pause))
+        if (UiTree.Count > 0)
         {
+            var obj = UiTree[UiTree.Count - 1];
+            UiTree.RemoveAt(UiTree.Count - 1);
+            Destroy(obj.gameObject);
             if (UiTree.Count > 0)
             {
-                var obj = UiTree[UiTree.Count - 1];
-                UiTree.RemoveAt(UiTree.Count - 1);
-                Destroy(obj.gameObject);
-                if (UiTree.Count > 0)
-                {
-                    UiTree[UiTree.Count - 1].gameObject.SetActive(true);
-                }
-                else
-                {
-                    Canvas.gameObject.SetActive(true);
-                }
+                UiTree[UiTree.Count - 1].gameObject.SetActive(true);
+            }
+            else
+            {
+                Canvas.gameObject.SetActive(true);
             }
         }
     }
 
-    public void OpenPauseMenu()
+    public static void OpenPauseMenu()
     {
         foreach (var canvas in UiTree)
         {
             canvas.gameObject.SetActive(false);
         }
         Canvas.gameObject.SetActive(false);
-        UiTree.Add(Instantiate(Pause));
+        UiTree.Add(Instantiate(I.Pause));
     }
 
-    public void OpenFinishMenu()
-    {
-        foreach (var canvas in UiTree)
-        {
-            Destroy(canvas.gameObject);
-        }
-        UiTree.Clear();
-        Destroy(Canvas.gameObject);
-        Canvas = Instantiate(Finish);
-        Canvas.gameObject.SetActive(true);
-    }
-
-    public void OpenChapter1Select()
+    public static void OpenChapter1Select()
     {
         foreach (var canvas in UiTree)
         {
             canvas.gameObject.SetActive(false);
         }
         Canvas.gameObject.SetActive(false);
-        UiTree.Add(Instantiate(Chapter1Select));
+        UiTree.Add(Instantiate(I.Chapter1Select));
     }
 
-    public void OpenOptionsMenu()
+    public static void OpenOptionsMenu()
     {
         foreach (var canvas in UiTree)
         {
             canvas.gameObject.SetActive(false);
         }
         Canvas.gameObject.SetActive(false);
-        UiTree.Add(Instantiate(Options));
+        UiTree.Add(Instantiate(I.Options));
     }
 
     public static void RestartLevel()

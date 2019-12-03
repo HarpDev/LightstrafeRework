@@ -10,7 +10,7 @@ public class Finish : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            Game.I.Level.EndTimer();
+            Game.Level.EndTimer();
         }
     }
 }

@@ -25,6 +25,6 @@ public class KillBlock : MonoBehaviour
         IsHit = true;
         _toPosition = to.position;
         _toRotation = to.rotation;
-        Game.I.Level.hitmarker.Display();
+        Game.Level.hitmarker.Display();
     }
 }

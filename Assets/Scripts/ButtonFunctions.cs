@@ -19,14 +19,26 @@ public class ButtonFunctions : MonoBehaviour
         SceneManager.LoadScene(name);
     }
 
-    public void LevelSelect()
+    public void MainMenu()
     {
-        SceneManager.LoadScene("LevelSelect");
+        SceneManager.LoadScene(0);
     }
 
     public void QuitGame()
     {
         Application.Quit();
     }
+
+    public void OpenOptions()
+    {
+        Game.OpenOptionsMenu();
+    }
+
+    public void OpenChapter1Select()
+    {
+        Game.OpenChapter1Select();
+    }
+
+   
 
 }

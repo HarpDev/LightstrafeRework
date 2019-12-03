@@ -10,7 +10,7 @@ public class KillPlane : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Game.I.Level.player.transform.position.y < yLimit)
+        if (Game.Level.player.transform.position.y < yLimit)
         {
             Game.RestartLevel();
         }

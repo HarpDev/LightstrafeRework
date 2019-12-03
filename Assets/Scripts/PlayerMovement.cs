@@ -153,8 +153,8 @@ public class PlayerMovement : MonoBehaviour
     {
         LookScale = 1;
 
-        Game.I.Level.StopTimer();
-        Game.I.Level.ResetTimer();
+        Game.Level.StopTimer();
+        Game.Level.ResetTimer();
         Yaw += transform.rotation.eulerAngles.y;
 
         Cursor.lockState = CursorLockMode.Locked;
@@ -266,9 +266,9 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Start the timer when the player moves
-        if ((Wishdir.magnitude > 0 || PlayerInput.SincePressed(PlayerInput.PrimaryInteract) <= 1) && !Game.I.Level.TimerRunning)
+        if ((Wishdir.magnitude > 0 || PlayerInput.SincePressed(PlayerInput.PrimaryInteract) <= 1) && !Game.Level.TimerRunning)
         {
-            Game.I.Level.StartTimer();
+            Game.Level.StartTimer();
         }
 
         // Timestamps used for coyote time
@@ -623,7 +623,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!enabled) return;
         source.PlayOneShot(grappleAttach);
-        Game.I.Level.hitmarker.Display();
+        Game.Level.hitmarker.Display();
         if (GrappleHooked) return;
         if (IsOnRail) EndRail();
         _grappleAttachPosition = position;

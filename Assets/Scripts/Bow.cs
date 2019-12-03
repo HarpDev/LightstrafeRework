@@ -58,9 +58,6 @@ public class Bow : MonoBehaviour
         var trans = transform;
         var activeTrans = arrow.transform;
         var position = trans.position;
-        var ease = Drawback < .5
-            ? 4 * Drawback * Drawback * Drawback
-            : (Drawback - 1) * (2 * Drawback - 2) * (2 * Drawback - 2) + 1;
         activeTrans.position = position + trans.up * (boltPosition.z - Drawback / 2f) +
                                trans.forward * boltPosition.y + trans.right * boltPosition.x;
         activeTrans.rotation = trans.rotation;
@@ -75,7 +72,7 @@ public class Bow : MonoBehaviour
         var bowAngle = player.velocity.y * 1.8f - 10;
         var bowPos = bowPosition;
 
-        if (Application.isPlaying && Game.I.Level.player.IsSliding)
+        if (Application.isPlaying && Game.Level.player.IsSliding)
         {
             bowAngle -= Drawback * 10;
             bowAngle += 180;

@@ -91,7 +91,7 @@ GameObject:
   - component: {fileID: 1134193636350943058}
   - component: {fileID: 7838358972264435218}
   m_Layer: 5
-  m_Name: Level Select
+  m_Name: Menu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -197,7 +197,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 5831417592419774621}
-        m_MethodName: LevelSelect
+        m_MethodName: MainMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -309,6 +309,7 @@ GameObject:
   - component: {fileID: 6201490661973330231}
   - component: {fileID: 1503501988854003174}
   - component: {fileID: 5831417592419774621}
+  - component: {fileID: 120658285150605215}
   m_Layer: 5
   m_Name: PauseMenu
   m_TagString: Untagged
@@ -413,6 +414,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c68d6a21909b46ec941e2efd34bacdbd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &120658285150605215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4630400470094481160}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0de92824e77677488f482e0bb56fcda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6282797275336503598
 GameObject:
   m_ObjectHideFlags: 0
@@ -489,7 +502,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: LEVEL SELECT
+  m_Text: MENU
 --- !u!1 &6948111396117815253
 GameObject:
   m_ObjectHideFlags: 0
