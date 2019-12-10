@@ -422,7 +422,7 @@ public class PlayerMovement : MonoBehaviour
         IsDashing = true;
         source.Play();
 
-        HudMovement.RotationSlamVector += Vector3.up * 20;
+        HudMovement.RotationSlamVector += Vector3.up * jumpCameraThunk;
 
         var x = Flatten(velocity).magnitude;
         var dirChange = velocity.magnitude * wishdir.normalized;
@@ -431,7 +431,7 @@ public class PlayerMovement : MonoBehaviour
         var bonus = Mathf.Min(Mathf.Max(potentialVariant.magnitude - Flatten(velocity).magnitude, 0), Mathf.Abs(velocity.y));
         if (wishdir.y > 0 && velocity.y <= 0 || wishdir.y < 0 && velocity.y >= 0) bonus = 0;
 
-        velocity = (Flatten(velocity).magnitude + bonus) * wishdir.normalized;
+        velocity = Mathf.Min(Flatten(velocity).magnitude + bonus, velocity.magnitude) * wishdir.normalized;
 
         /*
         var x = Flatten(velocity).magnitude;
@@ -781,28 +781,25 @@ public class PlayerMovement : MonoBehaviour
             ApplyFriction(wallFriction * f);
 
 
-        if (Mathf.Abs(velocity.y) < wallCatchThreshold)
-        {
-            var speed = velocity.magnitude;
-            var control = speed < deceleration ? deceleration : speed;
-            var drop = control * f * wallCatchFriction;
+        var speed = velocity.magnitude;
+        var control = speed < deceleration ? deceleration : speed;
+        var drop = control * f * wallCatchFriction;
 
-            var newspeed = speed - drop;
-            if (newspeed < 0)
-                newspeed = 0;
-            if (speed > 0)
-                newspeed /= speed;
+        var newspeed = speed - drop;
+        if (newspeed < 0)
+            newspeed = 0;
+        if (speed > 0)
+            newspeed /= speed;
 
-            velocity.y *= newspeed;
+        velocity.y *= newspeed;
 
-            var direction = new Vector3(_wallNormal.z, 0, -_wallNormal.x);
-            if (Vector3.Angle(CrosshairDirection, direction) < 90)
-                Accelerate(direction, wallSpeed, wallAcceleration * f);
-            else
-                Accelerate(-direction, wallSpeed, wallAcceleration * f);
+        var direction = new Vector3(_wallNormal.z, 0, -_wallNormal.x);
+        if (Vector3.Angle(CrosshairDirection, direction) < 90)
+            Accelerate(direction, wallSpeed, wallAcceleration * f);
+        else
+            Accelerate(-direction, wallSpeed, wallAcceleration * f);
 
-            Accelerate(-_wallNormal, fallSpeed, gravity * f);
-        }
+        Accelerate(-_wallNormal, fallSpeed, gravity * f);
     }
 
     public void WallJump()
@@ -811,7 +808,6 @@ public class PlayerMovement : MonoBehaviour
         _wallTimestamp = -coyoteTime;
         SetCameraRotation(0, 50, false);
 
-        // Undo dash
         UndoDash();
 
         var x = velocity.normalized.x + _wallNormal.x / 4;
@@ -833,12 +829,7 @@ public class PlayerMovement : MonoBehaviour
         DoubleJumpAvailable = true;
         _wallJumpTimestamp = Environment.TickCount;
 
-        var up = _lastAirborneVelocity.y;
-
-        if (up > wallCatchThreshold)
-        {
-            velocity += Vector3.up * jumpHeight;
-        }
+        velocity += Vector3.up * jumpHeight;
 
         if (PlayerInput.SincePressed(PlayerInput.Jump) != 0)
             wallkickDisplay.text = "-" + PlayerInput.SincePressed(PlayerInput.Jump);
