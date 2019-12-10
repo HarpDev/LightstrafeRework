@@ -22,6 +22,7 @@ public class PlayerMovement : MonoBehaviour
     public float railSpeed = 20f;
     public float airAcceleration = 800f;
     public float dashAcceleration = 800f;
+    public float dashBurst = 4f;
     public float stairHeight = 0.6f;
     public float gravity = 0.3f;
     public float movementSpeed = 11;
@@ -101,6 +102,7 @@ public class PlayerMovement : MonoBehaviour
     private float _dashSpeedReduction;
     private float _dashStartSpeed;
     private int _cancelLeanTickCount;
+    private bool _landed;
 
     public float CameraRoll { get; set; }
 
@@ -185,18 +187,6 @@ public class PlayerMovement : MonoBehaviour
         Pitch -= Input.GetAxis("Mouse Y") * (Game.Sensitivity / 10) * LookScale;
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
-
-        if (Input.GetKeyDown(PlayerInput.PrimaryInteract))
-        {
-            if (Physics.Raycast(InterpolatedPosition, CrosshairDirection, out RaycastHit hit, Mathf.Infinity, 1, QueryTriggerInteraction.Ignore))
-            {
-                if (hit.collider.gameObject.CompareTag("Destructable"))
-                {
-                    var explosion = hit.collider.gameObject.AddComponent<TriangleExplosion>();
-                    StartCoroutine(explosion.SplitMesh(true));
-                }
-            }
-        }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
         var cam = camera.transform;
@@ -330,6 +320,10 @@ public class PlayerMovement : MonoBehaviour
         rigidbody.velocity = (movement + _displacePosition) / Time.fixedDeltaTime;
         _previousPosition -= _displacePosition;
         _displacePosition = new Vector3();
+
+        if (!IsGrounded && !IsOnWall) _landed = false;
+        IsOnWall = false;
+        IsGrounded = false;
     }
 
     private void OnCollisionExit(Collision other)
@@ -343,7 +337,6 @@ public class PlayerMovement : MonoBehaviour
         if (Mathf.Abs(_momentumBuffer[0].z) > Mathf.Abs(velocity.z)) velocity.z = _momentumBuffer[0].z;
         _momentumBuffer.Clear();
 
-        IsGrounded = false;
         if (IsOnWall)
         {
             rollSound.volume = 0;
@@ -373,10 +366,6 @@ public class PlayerMovement : MonoBehaviour
         _previousCollision = other;
         _previousCollision.transform.hasChanged = false;
 
-        if (other.collider.CompareTag("Bounce Block"))
-        {
-            Accelerate(Vector3.up, 30, 30);
-        }
         if (other.collider.CompareTag("Instant Kill Block"))
         {
             Game.RestartLevel();
@@ -387,32 +376,38 @@ public class PlayerMovement : MonoBehaviour
         foreach (var point in other.contacts)
         {
             var projection = Vector3.Dot(velocity, -point.normal);
-            if (projection <= 0) continue;
 
             if (Vector3.Angle(Vector3.up, point.normal) < slopeAngle)
             {
-                if (!IsGrounded)
-                {
-                    source.PlayOneShot(groundLand);
-                }
-                IsGrounded = true;
 
+                if (_sinceJumpCounter > 20)
+                {
+                    if (!_landed)
+                    {
+                        _landed = true;
+                        source.PlayOneShot(groundLand);
+                    }
+                    IsGrounded = true;
+                }
+
+                if (other.collider.CompareTag("Bounce Block"))
+                {
+                    Accelerate(Vector3.up, 30, 30);
+                    return;
+                }
                 if (other.collider.CompareTag("Kill Block"))
                 {
                     Game.RestartLevel();
                     return;
                 }
             }
-            else if (IsGrounded && Vector3.Angle(Vector3.up, point.normal) > 90)
-            {
-                IsGrounded = false;
-            }
             if (other.collider.CompareTag("Wall") && Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded)
             {
                 // Wall Grab
                 _wallNormal = point.normal;
-                if (!IsOnWall)
+                if (!_landed)
                 {
+                    _landed = true;
                     source.PlayOneShot(groundLand);
                 }
                 IsOnWall = true;
@@ -424,33 +419,48 @@ public class PlayerMovement : MonoBehaviour
     {
         _dashSpeed = speed;
         _dashFriction = friction;
-        _dashStartSpeed = Flatten(velocity).magnitude;
         IsDashing = true;
         source.Play();
 
-        if (wishdir.magnitude <= 0) wishdir = Flatten(velocity).normalized;
-        if (IsStrafing)
-        {
-            var magnitude = velocity.magnitude;
-            AirAccelerate(wishdir, dashAcceleration);
-            velocity = velocity.normalized * magnitude;
-            wishdir = Flatten(velocity.normalized);
-        }
-
         HudMovement.RotationSlamVector += Vector3.up * 20;
 
-        var y = velocity.y;
-        velocity = (Flatten(velocity).magnitude + speed) * wishdir.normalized;
-        velocity.y = y;
+        var x = Flatten(velocity).magnitude;
+        var dirChange = velocity.magnitude * wishdir.normalized;
+        var adjustedY = (dirChange.y * x) / Flatten(dirChange).magnitude;
+        var potentialVariant = new Vector2(x, adjustedY);
+        var bonus = Mathf.Min(Mathf.Max(potentialVariant.magnitude - Flatten(velocity).magnitude, 0), Mathf.Abs(velocity.y));
+        if (wishdir.y > 0 && velocity.y <= 0 || wishdir.y < 0 && velocity.y >= 0) bonus = 0;
 
-        if (velocity.magnitude < movementSpeed) velocity = velocity.normalized * movementSpeed;
+        velocity = (Flatten(velocity).magnitude + bonus) * wishdir.normalized;
+
+        /*
+        var x = Flatten(velocity).magnitude;
+        var y = velocity.y;
+        
+        var adjustedX = (Flatten(velocity).magnitude * y) / velocity.y;
+        var adjustedY = (velocity.y * x) / Flatten(velocity).magnitude;
+
+        if (Flatten(velocity).magnitude > x)
+        {
+            var potentialVariant = new Vector2(x, adjustedY);
+            velocity = wishdir.normalized * Mathf.Max(potentialVariant.magnitude, movementSpeed);
+            Debug.Log("potential");
+        } else
+        {
+            var speedVariant = new Vector2(adjustedX, y);
+            velocity = wishdir.normalized * Mathf.Max(speedVariant.magnitude, movementSpeed);
+            Debug.Log("speed");
+        }*/
+
+        _dashStartSpeed = velocity.magnitude;
+        velocity = (velocity.magnitude + speed) * velocity.normalized;
 
         _dashSpeedReduction = 0;
     }
 
     public void DashMove(float f)
     {
-        var speed = Flatten(velocity).magnitude;
+        var speed = velocity.magnitude;
         var drop = speed * f * _dashFriction;
 
         var newspeed = speed - drop;
@@ -459,33 +469,33 @@ public class PlayerMovement : MonoBehaviour
         if (speed > 0)
             newspeed /= speed;
 
-        velocity.x *= newspeed;
-        velocity.z *= newspeed;
+        velocity *= newspeed;
 
-        var y = Mathf.Abs(velocity.y);
-        var ydrop = y * f * 10;
-
-        var ynewspeed = y - ydrop;
-        if (ynewspeed < 0)
-            ynewspeed = 0;
-        if (y > 0)
-            ynewspeed /= y;
-
-        velocity.y *= ynewspeed;
-
-        _dashSpeedReduction += Mathf.Max(0, speed - Flatten(velocity).magnitude);
+        _dashSpeedReduction += Mathf.Max(0, speed - velocity.magnitude);
 
         AirAccelerate(Wishdir, f * dashAcceleration);
 
-        if (IsGrounded || IsOnRail || GrappleHooked || _dashSpeedReduction >= _dashSpeed || Flatten(velocity).magnitude < _dashStartSpeed || Flatten(velocity).magnitude < movementSpeed)
+        if (IsGrounded || GrappleHooked || _dashSpeedReduction >= _dashSpeed || velocity.magnitude < _dashStartSpeed || velocity.magnitude < movementSpeed)
         {
             IsDashing = false;
+        }
+    }
+
+    public void UndoDash()
+    {
+        if (IsDashing)
+        {
+            source.Stop();
+            var take = _dashSpeed - _dashSpeedReduction;
+            IsDashing = false;
+            velocity = velocity.normalized * (velocity.magnitude - take);
         }
     }
 
     public void SetRail(CurvedLineRenderer rail)
     {
         if (IsOnRail) return;
+        UndoDash();
         _currentRail = rail;
         source.PlayOneShot(railLand);
         railSound.Play();
@@ -802,13 +812,7 @@ public class PlayerMovement : MonoBehaviour
         SetCameraRotation(0, 50, false);
 
         // Undo dash
-        if (IsDashing)
-        {
-            source.Stop();
-            var take = _dashSpeed - _dashSpeedReduction;
-            IsDashing = false;
-            velocity = velocity.normalized * (velocity.magnitude - take);
-        }
+        UndoDash();
 
         var x = velocity.normalized.x + _wallNormal.x / 4;
         var z = velocity.normalized.z + _wallNormal.z / 4;
@@ -912,7 +916,7 @@ public class PlayerMovement : MonoBehaviour
     public void AirMove(float f)
     {
         _lastAirborneVelocity = velocity;
-        if (!IsDashing) Gravity(f);
+        Gravity(f);
         _slideLeanVector = Flatten(velocity).normalized;
 
         var time = (Environment.TickCount - _wallJumpTimestamp) / 500f;
@@ -991,8 +995,8 @@ public class PlayerMovement : MonoBehaviour
             if (accelSpeed > addSpeed)
                 accelSpeed = addSpeed;
 
-            var wishspeed = accelSpeed * 0.92f;
-            var forwardspeed = accelSpeed * 0.08f;
+            var wishspeed = accelSpeed * 0.95f;
+            var forwardspeed = accelSpeed * 0.05f;
 
             velocity += wishspeed * wishdir;
             velocity += forwardspeed * Flatten(velocity).normalized;
@@ -1040,7 +1044,7 @@ public class PlayerMovement : MonoBehaviour
         if (!groundJump && !railJump)
         {
             DoubleJumpAvailable = false;
-            Dash(Wishdir, 10, 1);
+            Dash(CrosshairDirection, dashBurst, 1);
             return;
         }
 
