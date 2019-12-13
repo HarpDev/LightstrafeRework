@@ -456,29 +456,34 @@ public class PlayerMovement : MonoBehaviour
         velocity = (velocity.magnitude + speed) * velocity.normalized;
 
         _dashSpeedReduction = 0;
+
+        Invoke("UndoDash", 0.5f);
     }
 
     public void DashMove(float f)
     {
-        var speed = velocity.magnitude;
-        var drop = speed * f * _dashFriction;
-
-        var newspeed = speed - drop;
-        if (newspeed < 0)
-            newspeed = 0;
-        if (speed > 0)
-            newspeed /= speed;
-
-        velocity *= newspeed;
-
-        _dashSpeedReduction += Mathf.Max(0, speed - velocity.magnitude);
-
         AirAccelerate(Wishdir, f * dashAcceleration);
 
-        if (IsGrounded || GrappleHooked || _dashSpeedReduction >= _dashSpeed || velocity.magnitude < _dashStartSpeed || velocity.magnitude < movementSpeed)
+        if (_dashSpeedReduction < _dashSpeed & velocity.magnitude > _dashStartSpeed && velocity.magnitude > movementSpeed)
         {
-            IsDashing = false;
+            var speed = velocity.magnitude;
+            var drop = speed * f * _dashFriction;
+
+            var newspeed = speed - drop;
+            if (newspeed < 0)
+                newspeed = 0;
+            if (speed > 0)
+                newspeed /= speed;
+
+            //velocity *= newspeed;
+
+            //_dashSpeedReduction += Mathf.Max(0, speed - velocity.magnitude);
         }
+    }
+
+    public void CancelDash()
+    {
+        IsDashing = false;
     }
 
     public void UndoDash()
@@ -874,7 +879,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void Gravity(float f)
     {
-        Accelerate(Vector3.down, fallSpeed, gravity * f);
+        if (!IsDashing) Accelerate(Vector3.down, fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
