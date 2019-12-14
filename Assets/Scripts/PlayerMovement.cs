@@ -631,7 +631,7 @@ public class PlayerMovement : MonoBehaviour
 
         var bonusSpeed = Vector3.Dot(_railLeanVector, Wishdir) * 5;
         Accelerate(velocity.normalized, railSpeed + bonusSpeed, f);
-        Gravity(f);
+        if (velocity.y < 0) Gravity(f);
 
         var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 2f;
         var projection = Vector3.Dot(_railLeanVector.normalized * totalAngle, -transform.right);
@@ -850,10 +850,6 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                c.g = 0;
-                c.r = 1;
-                c.b = 0;
-                c.a = 1;
                 source.PlayOneShot(wallJump);
             }
 
