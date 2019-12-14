@@ -218,7 +218,7 @@ public class PlayerMovement : MonoBehaviour
         {
             if (standingHitbox.enabled) standingHitbox.enabled = false;
             if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
-            if (camera.fieldOfView < 110) camera.fieldOfView += Time.deltaTime * 30;
+            
         }
         else
         {
@@ -231,7 +231,14 @@ public class PlayerMovement : MonoBehaviour
                     SetCameraRotation(0, 50, false);
                 }
             }
-            if (camera.fieldOfView > 100) camera.fieldOfView -= Time.deltaTime * 30;
+        }
+        if (camera.fieldOfView > 100 && !IsSliding && !IsDashing)
+        {
+            camera.fieldOfView -= Time.deltaTime * 30;
+        }
+        else if (camera.fieldOfView < 110 && (IsSliding || IsDashing))
+        {
+            camera.fieldOfView += Time.deltaTime * 30;
         }
 
         position.y -= 0.6f * _crouchAmount;
