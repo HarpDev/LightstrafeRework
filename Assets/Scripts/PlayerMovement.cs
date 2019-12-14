@@ -21,8 +21,9 @@ public class PlayerMovement : MonoBehaviour
     public float groundTurnAcceleration = 50;
     public float railSpeed = 20f;
     public float airAcceleration = 800f;
-    public float dashAcceleration = 800f;
-    public float dashBurst = 4f;
+    public float dashSpeed = 10f;
+    public float dashDistance = 10f;
+    public float dashFriction = 1f;
     public float stairHeight = 0.6f;
     public float gravity = 0.3f;
     public float movementSpeed = 11;
@@ -98,8 +99,7 @@ public class PlayerMovement : MonoBehaviour
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
     private CurvedLineRenderer _currentRail;
     private float _dashSpeed;
-    private float _dashFriction;
-    private float _dashSpeedReduction;
+    private float _currentDashSpeed;
     private float _dashStartSpeed;
     private int _cancelLeanTickCount;
     private bool _landed;
@@ -282,7 +282,7 @@ public class PlayerMovement : MonoBehaviour
         else
             AirMove(factor);
 
-        if (IsDashing) DashMove(factor);
+        DashMove(factor);
 
         // Count how many ticks the player has been on a wall (include coyote time)
         if (PlayerInput.tickCount - _wallTimestamp < coyoteTime)
@@ -415,10 +415,9 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    public void Dash(Vector3 wishdir, float speed, float friction)
+    public void Dash(Vector3 wishdir, float speed, float distance)
     {
         _dashSpeed = speed;
-        _dashFriction = friction;
         IsDashing = true;
         source.Play();
 
@@ -431,43 +430,25 @@ public class PlayerMovement : MonoBehaviour
         var bonus = Mathf.Min(Mathf.Max(potentialVariant.magnitude - Flatten(velocity).magnitude, 0), Mathf.Abs(velocity.y));
         if (wishdir.y > 0 && velocity.y <= 0 || wishdir.y < 0 && velocity.y >= 0) bonus = 0;
 
-        velocity = Mathf.Min(Flatten(velocity).magnitude + bonus, velocity.magnitude) * wishdir.normalized;
-
-        /*
-        var x = Flatten(velocity).magnitude;
-        var y = velocity.y;
-        
-        var adjustedX = (Flatten(velocity).magnitude * y) / velocity.y;
-        var adjustedY = (velocity.y * x) / Flatten(velocity).magnitude;
-
-        if (Flatten(velocity).magnitude > x)
-        {
-            var potentialVariant = new Vector2(x, adjustedY);
-            velocity = wishdir.normalized * Mathf.Max(potentialVariant.magnitude, movementSpeed);
-            Debug.Log("potential");
-        } else
-        {
-            var speedVariant = new Vector2(adjustedX, y);
-            velocity = wishdir.normalized * Mathf.Max(speedVariant.magnitude, movementSpeed);
-            Debug.Log("speed");
-        }*/
+        velocity = Mathf.Max(Mathf.Min(Flatten(velocity).magnitude + bonus, velocity.magnitude), movementSpeed) * wishdir.normalized;
 
         _dashStartSpeed = velocity.magnitude;
         velocity = (velocity.magnitude + speed) * velocity.normalized;
 
-        _dashSpeedReduction = 0;
+        _currentDashSpeed = speed;
 
-        Invoke("UndoDash", 0.5f);
+        var time = distance / velocity.magnitude;
+
+        Invoke("StopDash", time);
     }
 
     public void DashMove(float f)
     {
-        AirAccelerate(Wishdir, f * dashAcceleration);
-
-        if (_dashSpeedReduction < _dashSpeed & velocity.magnitude > _dashStartSpeed && velocity.magnitude > movementSpeed)
+        if (velocity.magnitude < _dashStartSpeed || velocity.magnitude < movementSpeed) _currentDashSpeed = 0;
+        if (_currentDashSpeed > 0 && !IsDashing)
         {
             var speed = velocity.magnitude;
-            var drop = speed * f * _dashFriction;
+            var drop = speed * f * dashFriction;
 
             var newspeed = speed - drop;
             if (newspeed < 0)
@@ -475,13 +456,19 @@ public class PlayerMovement : MonoBehaviour
             if (speed > 0)
                 newspeed /= speed;
 
-            //velocity *= newspeed;
+            velocity *= newspeed;
 
-            //_dashSpeedReduction += Mathf.Max(0, speed - velocity.magnitude);
+            _currentDashSpeed -= Mathf.Max(0, speed - velocity.magnitude);
         }
     }
 
     public void CancelDash()
+    {
+        _currentDashSpeed = 0;
+        IsDashing = false;
+    }
+
+    public void StopDash()
     {
         IsDashing = false;
     }
@@ -491,7 +478,7 @@ public class PlayerMovement : MonoBehaviour
         if (IsDashing)
         {
             source.Stop();
-            var take = _dashSpeed - _dashSpeedReduction;
+            var take = _currentDashSpeed;
             IsDashing = false;
             velocity = velocity.normalized * (velocity.magnitude - take);
         }
@@ -1040,9 +1027,10 @@ public class PlayerMovement : MonoBehaviour
         if (!groundJump && !railJump)
         {
             DoubleJumpAvailable = false;
-            Dash(CrosshairDirection, dashBurst, 1);
+            Dash(CrosshairDirection, dashSpeed, dashDistance);
             return;
         }
+        CancelDash();
 
         velocity.y = Mathf.Max(speed, velocity.y + speed);
 
