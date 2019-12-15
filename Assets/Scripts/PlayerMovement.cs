@@ -387,7 +387,7 @@ public class PlayerMovement : MonoBehaviour
             if (Vector3.Angle(Vector3.up, point.normal) < slopeAngle)
             {
 
-                if (_sinceJumpCounter > 20)
+                if (_sinceJumpCounter > wallJumpForgiveness)
                 {
                     if (!_landed)
                     {
@@ -412,12 +412,15 @@ public class PlayerMovement : MonoBehaviour
             {
                 // Wall Grab
                 _wallNormal = point.normal;
-                if (!_landed)
+                if (_sinceJumpCounter > wallJumpForgiveness)
                 {
-                    _landed = true;
-                    source.PlayOneShot(groundLand);
+                    if (!_landed)
+                    {
+                        _landed = true;
+                        source.PlayOneShot(groundLand);
+                    }
+                    IsOnWall = true;
                 }
-                IsOnWall = true;
             }
         }
     }
@@ -471,6 +474,17 @@ public class PlayerMovement : MonoBehaviour
 
     public void CancelDash()
     {
+        if (_currentDashSpeed > 0)
+        {
+            var c = wallkickDisplay.color;
+            c.g = 1;
+            c.r = 0;
+            c.b = 0;
+            c.a = 1;
+            wallkickDisplay.text = "+" + Mathf.RoundToInt(_currentDashSpeed * 2);
+            source.PlayOneShot(wallKick);
+            wallkickDisplay.color = c;
+        }
         _currentDashSpeed = 0;
         IsDashing = false;
     }
@@ -737,24 +751,12 @@ public class PlayerMovement : MonoBehaviour
         rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
         if (PlayerInput.SincePressed(PlayerInput.Jump) < wallJumpForgiveness)
         {
-            if (_sinceJumpCounter < wallJumpForgiveness)
-            {
-                velocity.y = _lastJumpBeforeYVelocity;
-                _lastAirborneVelocity.y = _lastJumpBeforeYVelocity;
-
-                var slam = HudMovement.RotationSlamVector;
-                slam.y -= jumpCameraThunk;
-                HudMovement.RotationSlamVector = slam;
-            }
-
             if (_wallTickCount == 0)
             {
                 for (var i = 0; i < PlayerInput.SincePressed(PlayerInput.Jump); i++)
                 {
                     if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude)
                         ApplyFriction(f * wallKickFriction);
-                    else
-                        ApplyFriction(wallFriction * f);
                 }
             }
 
@@ -776,8 +778,6 @@ public class PlayerMovement : MonoBehaviour
         if (Flatten(velocity).magnitude + wallJumpSpeed > Flatten(_lastAirborneVelocity).magnitude &&
             _wallTickCount < wallJumpForgiveness)
             ApplyFriction(f * wallKickFriction);
-        else
-            ApplyFriction(wallFriction * f);
 
 
         var speed = velocity.magnitude;
@@ -827,17 +827,18 @@ public class PlayerMovement : MonoBehaviour
 
         DoubleJumpAvailable = true;
         _wallJumpTimestamp = Environment.TickCount;
+        if (velocity.y > jumpHeight) {
+            velocity.y += jumpHeight / 2;
+        }
+        Accelerate(new Vector3(0, 1, 0), jumpHeight, 40);
 
-        velocity += Vector3.up * jumpHeight;
-
-        if (PlayerInput.SincePressed(PlayerInput.Jump) != 0)
+        /*if (PlayerInput.SincePressed(PlayerInput.Jump) != 0)
             wallkickDisplay.text = "-" + PlayerInput.SincePressed(PlayerInput.Jump);
         else
-            wallkickDisplay.text = "+" + _wallTickCount;
+            wallkickDisplay.text = "+" + _wallTickCount;*/
 
         if (_wallTickCount < wallJumpForgiveness)
         {
-            Accelerate(new Vector3(0, 1, 0), jumpHeight, 40);
 
             var c = wallkickDisplay.color;
             if (Flatten(velocity).magnitude > Flatten(_lastAirborneVelocity).magnitude)
@@ -846,6 +847,7 @@ public class PlayerMovement : MonoBehaviour
                 c.r = 0;
                 c.b = 0;
                 c.a = 1;
+                wallkickDisplay.text = "+" + Mathf.RoundToInt((Flatten(velocity).magnitude - Flatten(_lastAirborneVelocity).magnitude) * 2);
                 source.PlayOneShot(wallKick);
             }
             else
@@ -857,7 +859,6 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            Accelerate(new Vector3(0, 1, 0), jumpHeight, 40);
             source.PlayOneShot(wallJump);
         }
 
@@ -1010,6 +1011,8 @@ public class PlayerMovement : MonoBehaviour
     public void Jump()
     {
         _wishJump = false;
+        if (_sinceJumpCounter < wallJumpForgiveness) return;
+        _sinceJumpCounter = 0;
 
         if (PlayerInput.tickCount - _wallTimestamp < coyoteTime)
         {
@@ -1038,7 +1041,6 @@ public class PlayerMovement : MonoBehaviour
         velocity.y = Mathf.Max(speed, velocity.y + speed);
 
         SetCameraRotation(0, 50, false);
-        _sinceJumpCounter = 0;
 
         rollSound.volume = 0;
         IsGrounded = false;
