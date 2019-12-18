@@ -85,7 +85,6 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _displacePosition;
     private float _crouchAmount;
     private int _sinceJumpCounter;
-    private float _lastAirborneSpeed;
     private int _railDirection;
     private Vector3 _railLeanVector;
     private Vector3 _slideLeanVector;
@@ -97,11 +96,11 @@ public class PlayerMovement : MonoBehaviour
     private readonly List<Vector3> _momentumBuffer = new List<Vector3>();
     private CurvedLineRenderer _currentRail;
     private float _currentDashSpeed;
-    private float _dashStartSpeed;
     private int _cancelLeanTickCount;
     private bool _landed;
     private Vector3 _cameraPosition;
     private float _approachingWallDistance;
+    private float _excededSpeed;
 
     public float CameraRoll { get; set; }
 
@@ -313,6 +312,24 @@ public class PlayerMovement : MonoBehaviour
 
         DashMove(factor);
 
+        if (_excededSpeed > 0)
+        {
+            if (Flatten(velocity).magnitude < movementSpeed) _excededSpeed = 0;
+            var speed = Flatten(velocity).magnitude;
+            var drop = speed * factor * 0.2f;
+
+            var newspeed = speed - drop;
+            if (newspeed < 0)
+                newspeed = 0;
+            if (speed > 0)
+                newspeed /= speed;
+
+            velocity.x *= newspeed;
+            velocity.z *= newspeed;
+
+            _excededSpeed -= Mathf.Max(0, speed - Flatten(velocity).magnitude);
+        }
+
         // Count how many ticks the player has been on a wall (include coyote time)
         if (PlayerInput.tickCount - _wallTimestamp < coyoteTime)
             _wallTickCount++;
@@ -462,10 +479,9 @@ public class PlayerMovement : MonoBehaviour
 
         velocity = Mathf.Max(Mathf.Min(Flatten(velocity).magnitude + bonus, velocity.magnitude), movementSpeed) * wishdir.normalized;
 
-        _dashStartSpeed = velocity.magnitude;
         velocity = (velocity.magnitude + speed) * velocity.normalized;
 
-        _currentDashSpeed = speed;
+        _currentDashSpeed += speed;
 
         var time = distance / velocity.magnitude;
 
@@ -474,7 +490,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void DashMove(float f)
     {
-        if (velocity.magnitude < _dashStartSpeed || velocity.magnitude < movementSpeed) _currentDashSpeed = 0;
+        if (Flatten(velocity).magnitude < movementSpeed) _currentDashSpeed = 0;
         if (_currentDashSpeed > 0 && !IsDashing)
         {
             var speed = velocity.magnitude;
@@ -704,7 +720,6 @@ public class PlayerMovement : MonoBehaviour
         if (grappleTether.enabled) grappleTether.enabled = false;
         SetCameraRotation(0, 50, false);
         grappleDuring.volume = 0;
-        //ApplySpeedPotentialFriction(0.3f);
 
         source.PlayOneShot(grappleRelease);
     }
@@ -738,13 +753,21 @@ public class PlayerMovement : MonoBehaviour
 
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
+
         if (Vector3.Distance(position, camTrans.position) > grappleDistance)
         {
-            ApplySpeedPotentialFriction(f / 2);
-            velocity += towardPoint * f * 30;
+            var magnitude = velocity.magnitude;
+            velocity += towardPoint * f * magnitude * 1.3f;
+            velocity = velocity.normalized * magnitude;
         }
 
-        Accelerate(towardPoint, grappleSwingForce, f);
+        if (velocity.magnitude < 30)
+        {
+            velocity += velocity.normalized * f * 10;
+        }
+
+        //if (towardPoint.y < 0) Gravity(f);
+
         Accelerate(Wishdir, grappleSwingForce / 4, f);
     }
 
@@ -763,10 +786,6 @@ public class PlayerMovement : MonoBehaviour
         SetCameraRotation(20 * -projection, 5, true);
 
         source.pitch = 1;
-
-        //if (Flatten(velocity).magnitude + wallJumpSpeed > _lastAirborneSpeed && Flatten(velocity).magnitude > movementSpeed)
-        //ApplyFriction(f * wallKickFriction);
-
 
         var speed = velocity.magnitude;
         var control = speed < deceleration ? deceleration : speed;
@@ -794,8 +813,6 @@ public class PlayerMovement : MonoBehaviour
         IsOnWall = false;
         _wallTimestamp = -coyoteTime;
         SetCameraRotation(0, 50, false);
-
-        UndoDash();
 
         var x = velocity.normalized.x + _wallNormal.x / 4;
         var z = velocity.normalized.z + _wallNormal.z / 4;
@@ -828,7 +845,7 @@ public class PlayerMovement : MonoBehaviour
         if (_wallTickCount < jumpForgiveness)
         {
             var wallKickSpeed = 3;
-            velocity += velocity.normalized * wallKickSpeed;
+            velocity += Flatten(velocity).normalized * wallKickSpeed;
 
             var c = wallkickDisplay.color;
             c.g = 1;
@@ -872,7 +889,19 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             _slideLeanVector = Flatten(velocity).normalized;
-            ApplySpeedPotentialFriction(friction * f);
+            var speed = velocity.magnitude;
+            var control = speed < deceleration ? deceleration : speed;
+            var drop = control * f * friction;
+
+            var newspeed = speed - drop;
+            if (newspeed < 0)
+                newspeed = 0;
+            if (speed > 0)
+                newspeed /= speed;
+
+            velocity.x *= newspeed;
+            velocity.y *= newspeed;
+            velocity.z *= newspeed;
         }
         if (velocity.magnitude < movementSpeed)
         {
@@ -884,7 +913,6 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirMove(float f)
     {
-        _lastAirborneSpeed = Flatten(velocity).magnitude - _currentDashSpeed;
         Gravity(f);
         _slideLeanVector = Flatten(velocity).normalized;
 
@@ -892,22 +920,6 @@ public class PlayerMovement : MonoBehaviour
         if (time > 1) time = 1;
         AirAccelerate(Wishdir, airAcceleration * f * time);
         rollSound.volume = 0;
-
-        if (Flatten(velocity).magnitude > 25)
-        {
-            var speed = Flatten(velocity).magnitude;
-            var control = speed < deceleration ? deceleration : speed;
-            var drop = control * f * 0.04f;
-
-            var newspeed = speed - drop;
-            if (newspeed < 0)
-                newspeed = 0;
-            if (speed > 0)
-                newspeed /= speed;
-
-            velocity.x *= newspeed;
-            velocity.z *= newspeed;
-        }
 
         var t = 0.3f;
 
@@ -946,39 +958,6 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Jump();
-    }
-
-    public void ApplySpeedFriction(float f)
-    {
-        var speed = velocity.magnitude;
-        var control = speed < deceleration ? deceleration : speed;
-        var drop = control * f;
-
-        var newspeed = speed - drop;
-        if (newspeed < 0)
-            newspeed = 0;
-        if (speed > 0)
-            newspeed /= speed;
-
-        velocity.x *= newspeed;
-        velocity.z *= newspeed;
-    }
-
-    public void ApplySpeedPotentialFriction(float f)
-    {
-        var speed = velocity.magnitude;
-        var control = speed < deceleration ? deceleration : speed;
-        var drop = control * f;
-
-        var newspeed = speed - drop;
-        if (newspeed < 0)
-            newspeed = 0;
-        if (speed > 0)
-            newspeed /= speed;
-
-        velocity.x *= newspeed;
-        velocity.y *= newspeed;
-        velocity.z *= newspeed;
     }
 
     public void AirAccelerate(Vector3 wishdir, float accel)
