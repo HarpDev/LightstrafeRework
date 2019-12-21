@@ -132,35 +132,25 @@ MonoBehaviour:
   wallkickDisplay: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
-  deceleration: 10
   friction: 0.5
-  wallFriction: 0.1
   groundAcceleration: 1.8
-  groundTurnAcceleration: 50
   railSpeed: 20
   airAcceleration: 25
+  airAccelSpeedMultiplier: 0.04
   dashSpeed: 10
   dashDistance: 10
-  dashFriction: 1
-  stairHeight: 1.2
+  excedeFrictionRate: 1
+  excedeFrictionSharpness: 1.2
   gravity: 0.6
+  fallSpeed: 30
   movementSpeed: 12
   jumpHeight: 12
-  jumpCameraThunk: 5
-  fallSpeed: 30
-  wallAngleGive: 10
-  wallCatchThreshold: 20
   wallCatchFriction: 5
   wallSpeed: 15
-  wallAcceleration: 4
-  wallJumpSpeed: 3
-  jumpForgiveness: 10
-  wallKickFriction: 1
-  grappleSwingForce: 30
+  wallAcceleration: 1.8
+  wallJumpSpeed: 18
+  grappleSwingSpeed: 30
   grappleDistance: 10
-  slopeAngle: 80
-  coyoteTime: 20
-  railCooldown: 40
   source: {fileID: 8023130150563290714}
   rollSound: {fileID: 5542439263401049636}
   grappleDuring: {fileID: 2380960297985531293}

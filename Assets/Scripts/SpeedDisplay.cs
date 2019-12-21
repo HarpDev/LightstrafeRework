@@ -5,11 +5,11 @@ public class SpeedDisplay : MonoBehaviour
 {
     public Text speedText;
     public string prefix;
-    public bool flatten;
+    public bool potential;
 
     private void Update()
     {
-        var display = Mathf.RoundToInt(flatten ? (Flatten(Game.Level.player.velocity) * 2).magnitude : (Game.Level.player.velocity * 2).magnitude);
+        var display = Mathf.RoundToInt(potential ? Mathf.Abs(Game.Level.player.velocity.y) * 2 : (Flatten(Game.Level.player.velocity).magnitude * 2));
         speedText.text = prefix + display;
     }
 
