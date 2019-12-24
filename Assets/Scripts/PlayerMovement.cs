@@ -310,14 +310,14 @@ public class PlayerMovement : MonoBehaviour
         else
             AirMove(factor);
 
-        if (_dashExcededSpeed > 0)
+        if (Flatten(velocity).magnitude > maxSpeed && !IsDashing)
         {
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
 
-            var newspeed = Mathf.Lerp(speed, speed - _dashExcededSpeed, factor);
+            var newspeed = Mathf.Lerp(speed, maxSpeed, factor * 2);
 
-            _dashExcededSpeed -= speed - newspeed;
+            //_dashExcededSpeed -= speed - newspeed;
             velocity = Flatten(velocity).normalized * newspeed;
             velocity.y = y;
         }
@@ -834,7 +834,8 @@ public class PlayerMovement : MonoBehaviour
 
     public void Gravity(float f, bool inverse = false)
     {
-        if (!IsDashing) Accelerate(Vector3.down, inverse ? -fallSpeed : fallSpeed, gravity * f);
+        //if (!IsDashing) Accelerate(Vector3.down, inverse ? -fallSpeed : fallSpeed, gravity * f);
+        if (!IsDashing) velocity.y = Mathf.Lerp(velocity.y, -fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
