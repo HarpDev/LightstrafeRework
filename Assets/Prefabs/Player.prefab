@@ -132,23 +132,22 @@ MonoBehaviour:
   wallkickDisplay: {fileID: 0}
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
-  friction: 0.5
-  groundAcceleration: 1.8
+  friction: 0.1
+  groundAcceleration: 24
+  movementSpeed: 13
   railSpeed: 20
+  railAcceleration: 24
   airAcceleration: 25
   airAccelSpeedMultiplier: 0.04
-  dashSpeed: 10
-  dashDistance: 10
-  excedeFrictionRate: 1
-  excedeFrictionSharpness: 1.2
-  gravity: 0.6
+  dashSpeed: 15
+  dashDistance: 11
+  gravity: 18
   fallSpeed: 30
-  movementSpeed: 12
   jumpHeight: 12
-  wallCatchFriction: 5
+  wallCatchFriction: 8
   wallSpeed: 15
-  wallAcceleration: 1.8
-  wallJumpSpeed: 18
+  wallAcceleration: 24
+  wallJumpSpeed: 17
   grappleSwingSpeed: 30
   grappleDistance: 10
   source: {fileID: 8023130150563290714}
