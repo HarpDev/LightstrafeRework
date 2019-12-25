@@ -13,36 +13,39 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
-    /* Movement Stuff */
-    public float maxSpeed = 17f;
-    public float friction = 0.5f;
-    public float groundAcceleration = 24f;
-    public float movementSpeed = 13f;
-    public float railSpeed = 20f;
-    public float railAcceleration = 24f;
-    public float airAcceleration = 30f;
-    public float airAccelSpeedMultiplier = 0.04f;
-    public float dashSpeed = 10f;
-    public float dashDistance = 10f;
-    public float gravity = 18f;
-    public float fallSpeed = 30f;
-    public float jumpHeight = 12f;
-    public float wallCatchFriction = 5f;
-    public float wallSpeed = 15f;
-    public float wallAcceleration = 24f;
-    public float wallJumpSpeed = 17f;
-    public float grappleSwingSpeed = 30f;
-    public float grappleDistance = 10f;
-
-    /* Private Constants */
-    private const int coyoteTicks = 20;
-    private const int railCooldownTicks = 40;
-    private const float slopeAngle = 80;
-    private const int jumpForgiveness = 10;
-    private const float jumpCameraThunk = 5f;
+    private const float wallFriction = 0.5f;
+    private const float wallCatchFriction = 5f;
+    private const float wallSpeed = 15f;
+    private const float wallAcceleration = 24f;
+    private const float wallJumpSpeed = 17f;
     private const float wallAngleGive = 10f;
+
+    private const float groundAcceleration = 24f;
+    private const float movementSpeed = 13f;
+    private const float slopeAngle = 80;
+
+    private const float railSpeed = 20f;
+    private const float railAcceleration = 24f;
+    private const int railCooldownTicks = 40;
+
+    private const float airAcceleration = 30f;
+    private const float airAccelSpeedMultiplier = 0.04f;
+
+    private const float dashSpeed = 10f;
+    private const float dashDistance = 10f;
     private const float dashCancelSpeedMult = 1.25f;
     private const float dashStopPotentialMult = 0.65f;
+
+    private const float gravity = 0.6f;
+    private const float fallSpeed = 30f;
+
+    private const float jumpHeight = 12f;
+    private const int coyoteTicks = 20;
+    private const int jumpForgiveness = 10;
+    private const float jumpCameraThunk = 5f;
+
+    private const float grappleSwingSpeed = 30f;
+    private const float grappleDistance = 10f;
 
     /* Audio */
     public AudioSource source;
@@ -62,7 +65,6 @@ public class PlayerMovement : MonoBehaviour
 
     public LineRenderer grappleTether;
     public float grappleYOffset;
-    public int maxGrappleTimeMillis = 5000;
     public bool GrappleHooked { get; set; }
 
     public float Yaw { get; set; }
@@ -101,6 +103,7 @@ public class PlayerMovement : MonoBehaviour
     private float _beforeDashSpeed;
     private float _beforeDashPotential;
     private float _dashExcededSpeed;
+    private int _wallTickCount;
 
     public float CameraRoll { get; set; }
 
@@ -230,7 +233,7 @@ public class PlayerMovement : MonoBehaviour
                 }
             }
         }
-        if (camera.fieldOfView > 100 && !IsSliding && !IsDashing)
+        /*if (camera.fieldOfView > 100 && !IsSliding && !IsDashing)
         {
             if (IsSliding)
                 camera.fieldOfView -= Time.deltaTime * 30;
@@ -243,7 +246,12 @@ public class PlayerMovement : MonoBehaviour
                 camera.fieldOfView += Time.deltaTime * 30;
             else
                 camera.fieldOfView += Time.deltaTime * 60;
-        }
+        }*/
+        var targetFOV = Flatten(velocity).magnitude + (100 - movementSpeed);
+        targetFOV = Mathf.Max(targetFOV, 100);
+        targetFOV = Mathf.Min(targetFOV, 120);
+
+        camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, targetFOV, Time.deltaTime * 5);
 
         position.y -= 0.6f * _crouchAmount;
         //camera.transform.position = InterpolatedPosition + position;
@@ -310,17 +318,23 @@ public class PlayerMovement : MonoBehaviour
         else
             AirMove(factor);
 
-        if (Flatten(velocity).magnitude > maxSpeed && !IsDashing)
+        if (_dashExcededSpeed > 0)
         {
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
 
-            var newspeed = Mathf.Lerp(speed, maxSpeed, factor * 2);
+            var newspeed = Mathf.Lerp(speed, speed - _dashExcededSpeed, factor * 2);
 
-            //_dashExcededSpeed -= speed - newspeed;
+            _dashExcededSpeed -= speed - newspeed;
             velocity = Flatten(velocity).normalized * newspeed;
             velocity.y = y;
         }
+
+        // Count how many ticks the player has been on a wall (include coyote time)
+        if (PlayerInput.tickCount - _wallTimestamp < coyoteTicks)
+            _wallTickCount++;
+        else
+            _wallTickCount = 0;
 
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         _motionInterpolationDelta = 0;
@@ -499,22 +513,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (StopDash())
         {
-            velocity += Flatten(velocity).normalized * 2;
-
-            var c = wallkickDisplay.color;
-            c.g = 1;
-            c.r = 0;
-            c.b = 0;
-            c.a = 1;
-            wallkickDisplay.text = "+" + ((Flatten(velocity).magnitude - _beforeDashSpeed) * 2);
-            source.PlayOneShot(wallKick);
-            wallkickDisplay.color = c;
-
             var beforeSpeed = Flatten(velocity).magnitude;
             velocity += Flatten(velocity).normalized * dashSpeed;
             velocity.x *= dashCancelSpeedMult;
             velocity.z *= dashCancelSpeedMult;
             _dashExcededSpeed += Flatten(velocity).magnitude - beforeSpeed;
+            source.PlayOneShot(wallKick);
             return true;
         }
         return false;
@@ -540,7 +544,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 velocity = newvelocity;
             }
-            if (velocity.y > 0) velocity.y *= dashStopPotentialMult;
+            //if (velocity.y > 0) velocity.y *= dashStopPotentialMult;
             return true;
         }
         return false;
@@ -799,7 +803,7 @@ public class PlayerMovement : MonoBehaviour
         else
             Accelerate(-direction, wallSpeed, wallAcceleration * f);
 
-        ApplyFriction(f * friction, wallSpeed);
+        ApplyFriction(f * wallFriction, wallSpeed);
         Accelerate(-_wallNormal, fallSpeed, gravity * f);
     }
 
@@ -820,12 +824,27 @@ public class PlayerMovement : MonoBehaviour
         DoubleJumpAvailable = true;
         _wallJumpTimestamp = Environment.TickCount;
 
-        Accelerate(Flatten(velocity).normalized, wallJumpSpeed, 0.2f);
+        Accelerate(Flatten(velocity).normalized, wallJumpSpeed, wallJumpSpeed);
 
         if (velocity.y < jumpHeight)
         {
             velocity.y = jumpHeight;
         }
+
+        if (_wallTickCount < jumpForgiveness)
+        {
+            var wallKickSpeed = 2;
+            velocity += Flatten(velocity).normalized * wallKickSpeed;
+
+            var c = wallkickDisplay.color;
+            c.g = 1;
+            c.r = 0;
+            c.b = 0;
+            c.a = 1;
+            wallkickDisplay.text = "+" + wallKickSpeed * 2;
+            wallkickDisplay.color = c;
+        }
+        //source.PlayOneShot(wallJump);
 
         _momentumBuffer.Clear();
 
@@ -843,8 +862,6 @@ public class PlayerMovement : MonoBehaviour
         rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
         rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
 
-        ApplyFriction(f * friction, maxSpeed);
-
         Gravity(f);
         DoubleJumpAvailable = true;
         if (IsSliding)
@@ -857,7 +874,7 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             _slideLeanVector = Flatten(velocity).normalized;
-            ApplyFriction(f);
+            ApplyFriction(f * wallFriction);
         }
         if (velocity.magnitude < movementSpeed)
         {
@@ -956,7 +973,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void Accelerate(Vector3 wishdir, float wishspeed, float accel)
     {
-        var currentspeed = Vector3.Dot(velocity, wishdir);
+        var currentspeed = Vector3.Dot(velocity - (Flatten(velocity).normalized * _dashExcededSpeed), wishdir);
         var addspeed = Mathf.Abs(wishspeed) - currentspeed;
 
         if (addspeed <= 0)

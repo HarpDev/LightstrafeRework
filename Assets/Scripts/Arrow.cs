@@ -72,7 +72,7 @@ public class Arrow : MonoBehaviour
         if (!Hit || HasExploded) return;
         HasExploded = true;
 
-        Game.Level.player.Accelerate(Vector3.up, power, power);
+        //Game.Level.player.Accelerate(Vector3.up, power, power);
         Time.timeScale = 0.1f;
 
         model.SetActive(false);
