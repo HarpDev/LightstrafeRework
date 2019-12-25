@@ -513,6 +513,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (StopDash())
         {
+            Accelerate(Flatten(velocity).normalized, wallSpeed, wallJumpSpeed);
             var beforeSpeed = Flatten(velocity).magnitude;
             velocity += Flatten(velocity).normalized * dashSpeed;
             velocity.x *= dashCancelSpeedMult;
@@ -544,7 +545,6 @@ public class PlayerMovement : MonoBehaviour
             {
                 velocity = newvelocity;
             }
-            //if (velocity.y > 0) velocity.y *= dashStopPotentialMult;
             return true;
         }
         return false;
@@ -854,7 +854,7 @@ public class PlayerMovement : MonoBehaviour
     public void Gravity(float f, bool inverse = false)
     {
         //if (!IsDashing) Accelerate(Vector3.down, inverse ? -fallSpeed : fallSpeed, gravity * f);
-        if (!IsDashing) velocity.y = Mathf.Lerp(velocity.y, -fallSpeed, gravity * f);
+        if (!IsDashing && velocity.y > -fallSpeed) velocity.y = Mathf.Lerp(velocity.y, -fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
