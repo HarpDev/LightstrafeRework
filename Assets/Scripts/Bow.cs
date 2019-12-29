@@ -37,7 +37,7 @@ public class Bow : MonoBehaviour
     {
         var m = _mesh.sharedMaterial;
         var c = m.color;
-        if (PlayerMovement.DoubleJumpAvailable)
+        if (PlayerMovement.DashAvailable)
         {
             c.r = 1;
             c.g = 1;
