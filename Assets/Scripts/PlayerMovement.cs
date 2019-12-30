@@ -918,11 +918,6 @@ public class PlayerMovement : MonoBehaviour
             velocity += wishspeed * wishdir;
             velocity += forwardspeed * Flatten(velocity).normalized;
         }
-
-        if (velocity.magnitude < movementSpeed)
-        {
-            Accelerate(wishdir, movementSpeed, accel);
-        }
     }
 
     public void ApplyFriction(float f, float minimum = 0)
