@@ -14,14 +14,13 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 velocity;
 
     private const float wallFriction = 0.5f;
+    private const float wallKickFriction = 10f;
     private const float wallCatchFriction = 10f;
     private const float wallSpeed = 15f;
     private const float wallAcceleration = 24f;
-    private const float wallJumpSpeed = 6f;
+    private const float wallJumpSpeed = 10f;
     private const float wallAngleGive = 10f;
 
-    private const int wallKickGoldTicks = 2;
-    private const float wallKickGoldBonusMult = 1.05f;
     private const float wallLean = 20f;
     private const float wallLeanPreTime = 0.3f;
 
@@ -40,9 +39,10 @@ public class PlayerMovement : MonoBehaviour
 
     private const float dashSpeed = 10f;
     private const float dashDistance = 10f;
-    private const float dashCancelSpeedMult = 1.25f;
-    private const float dashCancelSpeedDecay = 2;
+    private const float dashCancelSpeed = 40f;
     private const float dashEndPotentialMult = 0.65f;
+
+    private const float excededFriction = 4;
 
     private const float gravity = 0.45f;
     private const float fallSpeed = 40f;
@@ -86,7 +86,7 @@ public class PlayerMovement : MonoBehaviour
     private int _wallJumpTimestamp;
     private Vector3 _wallNormal;
     private int _wallTimestamp = -100000;
-    private int _wallTickCount;
+    private float _beforeWallSpeed;
     private int _cancelLeanTickCount;
 
     private int _railTimestamp = -100000;
@@ -101,7 +101,7 @@ public class PlayerMovement : MonoBehaviour
 
     private float _beforeDashSpeed;
     private float _beforeDashPotential;
-    private float _dashExcededSpeed;
+    private float _excededSpeed;
 
     private int _groundTimestamp = -100000;
     private bool _landed;
@@ -311,23 +311,17 @@ public class PlayerMovement : MonoBehaviour
         else
             AirMove(factor);
 
-        if (_dashExcededSpeed > 0)
+        if (_excededSpeed > 0)
         {
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
 
-            var newspeed = Mathf.Lerp(speed, speed - _dashExcededSpeed, factor * dashCancelSpeedDecay);
+            var newspeed = Mathf.Lerp(speed, speed - _excededSpeed, factor * excededFriction);
 
-            _dashExcededSpeed -= speed - newspeed;
+            _excededSpeed -= (speed - newspeed);
             velocity = Flatten(velocity).normalized * newspeed;
             velocity.y = y;
         }
-
-        // Count how many ticks the player has been on a wall (include coyote time)
-        if (PlayerInput.tickCount - _wallTimestamp < coyoteTicks)
-            _wallTickCount++;
-        else
-            _wallTickCount = 0;
 
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         _motionInterpolationDelta = 0;
@@ -436,6 +430,8 @@ public class PlayerMovement : MonoBehaviour
                     {
                         _landed = true;
                         source.PlayOneShot(groundLand);
+                        StopDash();
+                        _beforeWallSpeed = Flatten(velocity).magnitude;
                     }
                     IsOnWall = true;
                 }
@@ -466,7 +462,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            if (Mathf.Sign(wishdir.y) == Mathf.Sign(velocity.y))
+            if (wishdir.y < 0 || velocity.y > 0)
             {
                 velocity = wishdir.normalized * velocity.magnitude;
             }
@@ -502,10 +498,8 @@ public class PlayerMovement : MonoBehaviour
         {
             Accelerate(Flatten(velocity).normalized, wallSpeed, wallJumpSpeed);
             var beforeSpeed = Flatten(velocity).magnitude;
-            velocity += Flatten(velocity).normalized * dashSpeed;
-            velocity.x *= dashCancelSpeedMult;
-            velocity.z *= dashCancelSpeedMult;
-            _dashExcededSpeed += Flatten(velocity).magnitude - beforeSpeed;
+            velocity += Flatten(velocity).normalized * dashCancelSpeed;
+            _excededSpeed += (Flatten(velocity).magnitude - beforeSpeed);
             source.PlayOneShot(wallKick);
             return true;
         }
@@ -791,7 +785,15 @@ public class PlayerMovement : MonoBehaviour
         else
             Accelerate(-direction, wallSpeed, wallAcceleration * f);
 
-        if (_wallTickCount > jumpForgiveness) ApplyFriction(f * wallFriction, wallSpeed);
+        if (Flatten(velocity).magnitude + wallJumpSpeed > _beforeWallSpeed)
+        {
+            ApplyFriction(f * wallKickFriction, wallSpeed);
+        }
+        else
+        {
+            ApplyFriction(f * wallFriction, wallSpeed);
+        }
+
         Accelerate(-_wallNormal, fallSpeed, gravity * f);
     }
 
@@ -800,39 +802,13 @@ public class PlayerMovement : MonoBehaviour
         IsOnWall = false;
         _wallTimestamp = -coyoteTicks;
 
-        /*var x = velocity.normalized.x + _wallNormal.x / 4;
-        var z = velocity.normalized.z + _wallNormal.z / 4;
-        var jumpDir = new Vector3(x, 0, z).normalized;
-
-        var newDir = Flatten(velocity).magnitude * jumpDir;
-        velocity.x = newDir.x;
-        velocity.z = newDir.z;*/
-
         velocity += _wallNormal * wallJumpSpeed;
 
         DashAvailable = true;
         _wallJumpTimestamp = Environment.TickCount;
 
-        //Accelerate(Flatten(velocity).normalized, wallJumpSpeed, wallJumpSpeed);
-
         Accelerate(Vector3.up, 0, jumpHeight);
         velocity.y += jumpHeight;
-
-        if (_wallTickCount < jumpForgiveness)
-        {
-            var c = crosshair.color;
-
-            if (_wallTickCount < wallKickGoldTicks && PlayerInput.SincePressed(PlayerInput.Jump) == 0)
-            {
-                velocity.x *= wallKickGoldBonusMult;
-                velocity.z *= wallKickGoldBonusMult;
-                c.g = 1;
-                c.r = 0;
-                c.b = 0;
-            }
-
-            crosshair.color = c;
-        }
 
         rollSound.volume = 0;
     }
@@ -942,6 +918,11 @@ public class PlayerMovement : MonoBehaviour
             velocity += wishspeed * wishdir;
             velocity += forwardspeed * Flatten(velocity).normalized;
         }
+
+        if (velocity.magnitude < movementSpeed)
+        {
+            Accelerate(wishdir, movementSpeed, accel);
+        }
     }
 
     public void ApplyFriction(float f, float minimum = 0)
@@ -958,7 +939,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void Accelerate(Vector3 wishdir, float wishspeed, float accel)
     {
-        var currentspeed = Vector3.Dot(velocity - (Flatten(velocity).normalized * _dashExcededSpeed), wishdir);
+        var currentspeed = Vector3.Dot(velocity - (Flatten(velocity).normalized * _excededSpeed), wishdir);
         var addspeed = Mathf.Abs(wishspeed) - currentspeed;
 
         if (addspeed <= 0)
@@ -986,8 +967,6 @@ public class PlayerMovement : MonoBehaviour
             if (!groundJump && !railJump && !wallJump && !DashAvailable) return false;
             _sinceJumpCounter = 0;
 
-            CancelDash();
-
             SetCameraRotation(0, cameraRotationCorrectSpeed);
 
             if (wallJump)
@@ -997,6 +976,8 @@ public class PlayerMovement : MonoBehaviour
                 return true;
             }
             PlayerInput.ClearSincePressed(PlayerInput.Jump);
+
+            CancelDash();
 
             var speed = jumpHeight;
             if (!groundJump && !railJump)
