@@ -13,7 +13,10 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
-    private const float wallFriction = 0.5f;
+    public bool grappleEnabled = false;
+    public Slider grappleStaminaIndicator;
+
+    private const float wallFriction = 0.4f;
     private const float wallKickFriction = 10f;
     private const float wallCatchFriction = 10f;
     private const float wallSpeed = 15f;
@@ -37,8 +40,8 @@ public class PlayerMovement : MonoBehaviour
     private const float airAcceleration = 50f;
     private const float airAccelSpeedMultiplier = 0.04f;
 
-    private const float dashSpeed = 10f;
-    private const float dashDistance = 10f;
+    private const float dashSpeed = 15f;
+    private const float dashDistance = 15f;
     private const float dashCancelSpeed = 40f;
     private const float dashEndPotentialMult = 0.65f;
 
@@ -52,8 +55,15 @@ public class PlayerMovement : MonoBehaviour
     private const int jumpForgiveness = 10;
     private const float jumpCameraThunk = 5f;
 
-    private const float grappleSwingSpeed = 30f;
-    private const float grappleDistance = 10f;
+    private const float grappleControlSpeed = 10f;
+    private const float grappleControlAcceleration = 10f;
+    private const float grappleDistance = 30f;
+    private const float grappleAcceleration = 40f;
+    private const float grappleTopSpeed = 15f;
+    private const float grappleStaminaDecay = 1;
+    private const float grappleStaminaMax = 200;
+    private const float grappleStaminaRecharge = 1;
+    private const float grappleStaminaRechargeDelay = 1000;
 
     private const float bouncePadSpeed = 36f;
 
@@ -96,11 +106,13 @@ public class PlayerMovement : MonoBehaviour
     private GameObject _lastRail;
     private CurvedLineRenderer _currentRail;
 
+    private int _grappleTimestamp = -100000;
     private Vector3 _grappleAttachPosition;
     private Transform _grappleAttachTransform;
+    private float _grappleStamina;
 
+    private float _beforeDashMagnitude;
     private float _beforeDashSpeed;
-    private float _beforeDashPotential;
     private float _excededSpeed;
 
     private int _groundTimestamp = -100000;
@@ -167,6 +179,7 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         LookScale = 1;
+        _grappleStamina = grappleStaminaMax;
 
         Game.Level.StopTimer();
         Game.Level.ResetTimer();
@@ -251,17 +264,17 @@ public class PlayerMovement : MonoBehaviour
         position.y -= 0.6f * _crouchAmount;
         camera.transform.position = InterpolatedPosition + position;
 
-        if (Input.GetKeyDown(PlayerInput.PrimaryInteract))
+        if (grappleEnabled && Input.GetKeyDown(PlayerInput.PrimaryInteract))
         {
             if (!GrappleHooked)
             {
-                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var grapple, 500, 1, QueryTriggerInteraction.Ignore))
+                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var grapple, 100, 1, QueryTriggerInteraction.Ignore))
                 {
                     AttachGrapple(grapple.transform, grapple.point);
                 }
             }
         }
-        if (!Input.GetKey(PlayerInput.PrimaryInteract))
+        if (grappleEnabled && !Input.GetKey(PlayerInput.PrimaryInteract))
         {
             if (GrappleHooked) DetachGrapple();
         }
@@ -311,6 +324,14 @@ public class PlayerMovement : MonoBehaviour
         else
             AirMove(factor);
 
+        if (grappleEnabled)
+        {
+            if (!GrappleHooked && _grappleStamina < grappleStaminaMax && Environment.TickCount - _grappleTimestamp > grappleStaminaRechargeDelay) _grappleStamina += grappleStaminaRecharge;
+            grappleStaminaIndicator.value = _grappleStamina;
+            grappleStaminaIndicator.maxValue = grappleStaminaMax;
+            grappleStaminaIndicator.minValue = 0;
+        }
+
         if (_excededSpeed > 0)
         {
             var speed = Flatten(velocity).magnitude;
@@ -318,7 +339,7 @@ public class PlayerMovement : MonoBehaviour
 
             var newspeed = Mathf.Lerp(speed, speed - _excededSpeed, factor * excededFriction);
 
-            _excededSpeed -= (speed - newspeed);
+            _excededSpeed -= speed - newspeed;
             velocity = Flatten(velocity).normalized * newspeed;
             velocity.y = y;
         }
@@ -483,8 +504,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (velocity.magnitude < wallSpeed) velocity = velocity.normalized * wallSpeed;
 
+        _beforeDashMagnitude = velocity.magnitude;
         _beforeDashSpeed = Flatten(velocity).magnitude;
-        _beforeDashPotential = Mathf.Abs(velocity.y);
         velocity += velocity.normalized * dashSpeed;
 
         var time = dashDistance / velocity.magnitude;
@@ -512,21 +533,14 @@ public class PlayerMovement : MonoBehaviour
         {
             IsDashing = false;
             var newvelocity = velocity - velocity.normalized * dashSpeed;
-            if (Flatten(newvelocity).magnitude > _beforeDashSpeed)
+            velocity = velocity.normalized * Mathf.Max(newvelocity.magnitude, _beforeDashMagnitude);
+            if (Flatten(velocity).magnitude > _beforeDashSpeed)
             {
                 var y = velocity.y;
                 velocity = Flatten(velocity).normalized * _beforeDashSpeed;
                 velocity.y = y;
             }
-            else if (Mathf.Abs(newvelocity.y) > _beforeDashPotential)
-            {
-                velocity.y = _beforeDashPotential * Mathf.Sign(velocity.y);
-            }
-            else
-            {
-                velocity = newvelocity;
-            }
-            if (velocity.y > 0) velocity.y *= dashEndPotentialMult;
+            if (velocity.y > 0 && !GrappleHooked) velocity.y *= dashEndPotentialMult;
             return true;
         }
         return false;
@@ -711,6 +725,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void GrappleMove(float f)
     {
+        _grappleTimestamp = Environment.TickCount;
         Jump();
         var camTrans = camera.transform;
         var position = _grappleAttachTransform.InverseTransformPoint(_grappleAttachPosition);
@@ -739,19 +754,21 @@ public class PlayerMovement : MonoBehaviour
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
 
+        Accelerate(towardPoint, grappleTopSpeed, f * grappleAcceleration);
+        Accelerate(Wishdir, grappleControlSpeed, f * grappleControlAcceleration);
+
         if (Vector3.Distance(position, camTrans.position) > grappleDistance)
         {
-            var magnitude = velocity.magnitude;
-            velocity += towardPoint * f * magnitude * 1.35f;
-            velocity = velocity.normalized * magnitude;
+            var mag = velocity.magnitude;
+            velocity = Vector3.Lerp(velocity, towardPoint * velocity.magnitude, f / 5);
+            velocity = velocity.normalized * mag;
         }
 
-        if (velocity.magnitude < grappleSwingSpeed)
+        _grappleStamina -= grappleStaminaDecay;
+        if (_grappleStamina <= 0)
         {
-            velocity += velocity.normalized * f * 10;
+            DetachGrapple();
         }
-
-        Accelerate(Wishdir, grappleSwingSpeed / 4, f);
     }
 
     public void WallMove(float f)
@@ -815,7 +832,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void Gravity(float f, bool inverse = false)
     {
-        if (!IsDashing) velocity.y = Mathf.Lerp(velocity.y, -fallSpeed, gravity * f);
+        if (!IsDashing && velocity.y > -fallSpeed) velocity.y = Mathf.Lerp(velocity.y, -fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
