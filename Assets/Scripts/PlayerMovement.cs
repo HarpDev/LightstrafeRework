@@ -727,6 +727,7 @@ public class PlayerMovement : MonoBehaviour
     {
         _grappleTimestamp = Environment.TickCount;
         Jump();
+        CancelDash();
         var camTrans = camera.transform;
         var position = _grappleAttachTransform.InverseTransformPoint(_grappleAttachPosition);
 
