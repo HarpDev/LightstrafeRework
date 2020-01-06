@@ -30,7 +30,7 @@ public class PlayerInput : MonoBehaviour
         return tickCount - GetData(key);
     }
 
-    public static void ClearSincePressed(KeyCode key)
+    public static void ConsumeBuffer(KeyCode key)
     {
         keys[key] = 0;
     }
