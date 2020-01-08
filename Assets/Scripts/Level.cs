@@ -11,7 +11,7 @@ public class Level : MonoBehaviour
     public Hitmarker hitmarker;
     public PlayerMovement player;
     public float CurrentTime { get; set; }
-    public bool Finished { get; set; }
+    private bool Finished { get; set; }
 
     private void Update()
     {
@@ -64,21 +64,25 @@ public class Level : MonoBehaviour
 
     public void StartTimer()
     {
-        TimerRunning = true;
+        if (!Finished) TimerRunning = true;
     }
 
     public void EndTimer()
     {
-        Finished = true;
-        TimerRunning = false;
-        var level = SceneManager.GetActiveScene().name;
-        if (CurrentTime < Game.GetBestLevelTime(level) || Game.GetBestLevelTime(level) < 0f)
+        if (TimerRunning || !Finished)
         {
-            Game.SetBestLevelTime(level, CurrentTime);
-            TimerDisplay.color = Color.yellow;
-        } else
-        {
-            TimerDisplay.color = Color.green;
+            Finished = true;
+            TimerRunning = false;
+            var level = SceneManager.GetActiveScene().name;
+            if (CurrentTime < Game.GetBestLevelTime(level) || Game.GetBestLevelTime(level) < 0f)
+            {
+                Game.SetBestLevelTime(level, CurrentTime);
+                TimerDisplay.color = Color.yellow;
+            }
+            else
+            {
+                TimerDisplay.color = Color.green;
+            }
         }
     }
 }
