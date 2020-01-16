@@ -21,7 +21,7 @@ public class Bow : MonoBehaviour
 
     public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
 
-    private float _lerpSpeed = 20;
+    private const float _lerpSpeed = 20;
 
     public float Drawback { get; set; }
 
@@ -53,12 +53,12 @@ public class Bow : MonoBehaviour
         m.color = c;
         _mesh.sharedMaterial = m;
 
-        var list = new List<Vector3> {top.transform.localPosition};
+        var list = new List<Vector3> { top.transform.localPosition };
 
         var trans = transform;
         var activeTrans = arrow.transform;
         var position = trans.position;
-        activeTrans.position = position + trans.up * (boltPosition.z - Drawback / 2f) +
+        activeTrans.position = position + trans.up * (boltPosition.z - Drawback / 2.3f) +
                                trans.forward * boltPosition.y + trans.right * boltPosition.x;
         activeTrans.rotation = trans.rotation;
 
@@ -78,11 +78,11 @@ public class Bow : MonoBehaviour
             bowAngle += 180;
             bowAngle = -bowAngle;
             bowPos.x -= 0.38f;
-            bowPos.y -= 0.25f;
             bowAngle = Mathf.Max(Mathf.Min(bowAngle, -150), -180);
         }
         else
         {
+            bowPos.y += Drawback / 12;
             bowAngle -= Drawback * 65;
             bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
         }
@@ -92,7 +92,8 @@ public class Bow : MonoBehaviour
 
         var yCalc = player.velocity.y / yVelocityReduction;
 
-        yCalc -= Drawback / 3f;
+        if (!Game.Level.player.IsSliding)
+            yCalc -= Drawback / 3f;
 
         yCalc = Mathf.Max(yCalc, -yVelocityLimit);
         yCalc = Mathf.Min(yCalc, yVelocityLimit / 6);
@@ -129,7 +130,7 @@ public class Bow : MonoBehaviour
                 Drawback -= Time.deltaTime * 2f;
             }
         }
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Drawback >= 0.8f)
+        if (Input.GetKeyDown(PlayerInput.PrimaryInteract) && Drawback >= 0.8f)
         {
             Fire(player.camera.transform.position, player.CrosshairDirection);
         }
@@ -138,12 +139,12 @@ public class Bow : MonoBehaviour
     public void Fire(Vector3 from, Vector3 vel)
     {
         var a = Instantiate(arrow.gameObject).GetComponent<Arrow>();
-        a.gameObject.layer = 0;
-        a.model.layer = 0;
-        
+        a.gameObject.layer = player.gameObject.layer;
+        a.model.layer = player.gameObject.layer;
+
         a.transform.localScale = new Vector3(1, 1, 1);
         a.Fire(Quaternion.LookRotation(vel), Drawback * 100 * vel);
-        a.transform.position = from;
+        a.transform.position = from + vel;
         a.FiredVelocity = Flatten(player.velocity).magnitude;
         Drawback = 0;
     }

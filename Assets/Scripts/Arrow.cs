@@ -16,8 +16,8 @@ public class Arrow : MonoBehaviour
     public ParticleSystem explodeParticle;
     public AudioSource explodeSound;
 
-    public float radius = 2.5f;
-    public float power = 20f;
+    private const float radius = 15f;
+    private const float power = 15f;
 
     public Transform nockPosition;
     public new Rigidbody rigidbody;
@@ -26,13 +26,7 @@ public class Arrow : MonoBehaviour
     public float FiredVelocity { get; set; }
     public bool HasExploded { get; set; }
 
-    private Vector3 _prevPosition;
     private Transform _hitTransform;
-
-    private void Start()
-    {
-        _prevPosition = transform.position;
-    }
 
     private void Update()
     {
@@ -47,14 +41,11 @@ public class Arrow : MonoBehaviour
                 Time.deltaTime * 10);
         else if (!Fired && !Hit)
             model.transform.localRotation = Quaternion.Euler(beforeFiredRotation);
+    }
 
-        var trans = transform;
-        var lookDir = trans.position - _prevPosition;
-        RaycastHit hit;
-        Physics.Raycast(_prevPosition - lookDir, lookDir.normalized, out hit, lookDir.magnitude * 2);
-        if (hit.collider != null) Collide(hit);
-
-        _prevPosition = transform.position;
+    private void OnCollisionEnter(Collision collision)
+    {
+        Collide(collision);
     }
 
     public void Fire(Quaternion direction, Vector3 velocity)
@@ -67,46 +58,31 @@ public class Arrow : MonoBehaviour
         rigidbody.isKinematic = false;
     }
 
-    public void Explode()
+    public void Collide(Collision collision)
     {
-        if (!Hit || HasExploded) return;
-        HasExploded = true;
+        if (collision.collider.CompareTag("Player")) return;
+        if (!Fired || Hit) return;
+        if (collision.collider.isTrigger) return;
 
-        //Game.Level.player.Accelerate(Vector3.up, power, power);
-        Time.timeScale = 0.1f;
+        var goo = collision.collider.gameObject.GetComponent<Goo>();
+        if (goo != null)
+        {
+            goo.Hit(rigidbody.velocity, collision.GetContact(0).point);
+        }
+
+        transform.position = collision.GetContact(0).point;
+        Hit = true;
+        _hitTransform = collision.transform;
+        _hitTransform.hasChanged = false;
+        GetComponent<Rigidbody>().isKinematic = true;
 
         model.SetActive(false);
+        var vector = Game.Level.player.transform.position - transform.position;
+        var amount = Mathf.Pow(Mathf.Max(radius - vector.magnitude, 0) / radius, 2);
+        Game.Level.player.Accelerate(vector.normalized, 0, amount * power);
+        Game.Level.player.velocity += vector.normalized * amount * power;
 
         if (explodeSound != null) explodeSound.Play();
         if (explodeParticle != null) explodeParticle.Play();
-    }
-
-    public void Collide(RaycastHit hit)
-    {
-        if (hit.collider.CompareTag("Player")) return;
-        if (!Fired) return;
-        if (hit.collider.isTrigger) return;
-        //radiusIndicator.gameObject.SetActive(true);
-        transform.position = hit.point;
-        Hit = true;
-        _hitTransform = hit.transform;
-        _hitTransform.hasChanged = false;
-        GetComponent<Rigidbody>().isKinematic = true;
-        var kill = hit.collider.gameObject.GetComponent<KillBlock>();
-        if (kill != null) kill.Hit();
-
-        /*model.SetActive(false);
-        var vector = (Game.I.Player.transform.position - hit.point).normalized;
-        vector.x = Mathf.Round(vector.x);
-        vector.y = Mathf.Round(vector.y);
-        vector.z = Mathf.Round(vector.z);
-        Game.I.Player.Accelerate(vector.normalized, power, power);
-        if (explodeSound != null) explodeSound.Play();
-        if (explodeParticle != null) explodeParticle.Play();*/
-    }
-
-    private static Vector3 Flatten(Vector3 vec)
-    {
-        return new Vector3(vec.x, 0, vec.z);
     }
 }

@@ -28,7 +28,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 250489913459577331}
   m_LocalRotation: {x: 0.70441604, y: 0.06162843, z: 0.06162843, w: 0.70441604}
-  m_LocalPosition: {x: 0.4, y: -0.45, z: 0.7}
+  m_LocalPosition: {x: 0.4, y: -0.45, z: 0.6}
   m_LocalScale: {x: 0.8000001, y: 0.1, z: 0.10000001}
   m_Children:
   - {fileID: 6419397163947603207}
@@ -106,7 +106,7 @@ MonoBehaviour:
   yVelocityLimit: 0.5
   hVelocityReduction: 260
   hVelocityLimit: 0.1
-  bowPosition: {x: 0.3, y: -0.45, z: 0.7}
+  bowPosition: {x: 0.3, y: -0.45, z: 0.6}
 --- !u!120 &3372853216044459028
 LineRenderer:
   m_ObjectHideFlags: 0
@@ -148,7 +148,7 @@ LineRenderer:
   m_SortingOrder: 0
   m_Positions:
   - {x: 1, y: 0, z: 0}
-  - {x: 0.0000023061873, y: -1.1499685, z: -0.50000787}
+  - {x: 0.000002265442, y: 2.9098268, z: -0.5000093}
   - {x: -1, y: 0, z: 0}
   m_Parameters:
     serializedVersion: 3
@@ -248,9 +248,8 @@ GameObject:
   - component: {fileID: 90017589548866025}
   - component: {fileID: 8622813653683652346}
   - component: {fileID: 7424017546908967431}
-  - component: {fileID: 6184224736182067191}
   m_Layer: 8
-  m_Name: Snipe Arrow
+  m_Name: Arrow
   m_TagString: Arrow
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -265,7 +264,7 @@ Transform:
   m_GameObject: {fileID: 916931022980029988}
   m_LocalRotation: {x: -0.000000089406946, y: -0.000000022351736, z: -0.000000007450579,
     w: 1}
-  m_LocalPosition: {x: 0.0000019371507, y: 8.99991, z: -0.50000125}
+  m_LocalPosition: {x: 0.0000020198056, y: 8.999815, z: -0.49999827}
   m_LocalScale: {x: 1.2, y: 10, z: 10}
   m_Children:
   - {fileID: 608376155485748093}
@@ -287,7 +286,7 @@ Rigidbody:
   m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 3
 --- !u!114 &90017589548866025
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -305,8 +304,6 @@ MonoBehaviour:
   afterFiredRotation: {x: 0, y: 0, z: 0}
   explodeParticle: {fileID: 8622813653683652346}
   explodeSound: {fileID: 7424017546908967431}
-  radius: 2.5
-  power: 20
   nockPosition: {fileID: 4020924819019111976}
   rigidbody: {fileID: 7798393466355611031}
   trail: {fileID: 5251548421044963806}
@@ -5064,19 +5061,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!135 &6184224736182067191
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 916931022980029988}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 1
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1103125251314502630
 GameObject:
   m_ObjectHideFlags: 0
@@ -5088,6 +5072,7 @@ GameObject:
   - component: {fileID: 608376155485748093}
   - component: {fileID: 3064661993566019861}
   - component: {fileID: 594946738365775566}
+  - component: {fileID: 1274417516706724902}
   m_Layer: 8
   m_Name: arrow
   m_TagString: Untagged
@@ -5104,7 +5089,7 @@ Transform:
   m_GameObject: {fileID: 1103125251314502630}
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.02, y: 0.02, z: 1}
+  m_LocalScale: {x: 0.02, y: 0.02, z: 0.6}
   m_Children:
   - {fileID: 4020924819019111976}
   m_Father: {fileID: 7006348045830824250}
@@ -5157,6 +5142,20 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!64 &1274417516706724902
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103125251314502630}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 2534964839176971238, guid: f2f521990fac6fc49b24f4ccb4a05c34, type: 3}
 --- !u!1 &2084264038793932184
 GameObject:
   m_ObjectHideFlags: 0
@@ -5343,7 +5342,7 @@ GameObject:
   m_Component:
   - component: {fileID: 536529251877597692}
   - component: {fileID: 7806271763685200708}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: Camera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5390,14 +5389,14 @@ Camera:
     height: 1
   near clip plane: 0.1
   far clip plane: 1000
-  field of view: 105
+  field of view: 100
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 256
-  m_RenderingPath: -1
+  m_RenderingPath: 1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
@@ -5420,12 +5419,13 @@ GameObject:
   - component: {fileID: 8023130150563290708}
   - component: {fileID: 3390459175339689158}
   - component: {fileID: 5644266550209549845}
+  - component: {fileID: 7702006894716423097}
   - component: {fileID: 8023130150563290714}
   - component: {fileID: 5542439263401049636}
   - component: {fileID: 2380960297985531293}
   - component: {fileID: 2805646102872565045}
   - component: {fileID: 5124070473534990130}
-  m_Layer: 2
+  m_Layer: 10
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -5466,8 +5466,9 @@ MonoBehaviour:
   cameraPosition: {x: 0, y: 0.5, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   grappleStaminaIndicator: {fileID: 0}
-  bow: {fileID: 250489913459577331}
+  bow: {fileID: 780581960177499945}
   gimmick: 0
+  jumpKitEnabled: 1
   source: {fileID: 8023130150563290714}
   rollSound: {fileID: 5542439263401049636}
   grappleDuring: {fileID: 2380960297985531293}
@@ -5512,6 +5513,20 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: -0.5, z: 0}
+--- !u!64 &7702006894716423097
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8023130150563290715}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 2534964839176971238, guid: 5f583d0717a25d64aa6ea7ac8721d35d, type: 3}
 --- !u!82 &8023130150563290714
 AudioSource:
   m_ObjectHideFlags: 0
@@ -5972,7 +5987,7 @@ GameObject:
   - component: {fileID: 8023130152235894419}
   - component: {fileID: 8023130150993164594}
   - component: {fileID: 6236329095573178393}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: Main Camera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
