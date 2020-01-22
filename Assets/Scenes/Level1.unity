@@ -1595,6 +1595,36 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 95
       objectReference: {fileID: 0}
+    - target: {fileID: 114868416268597086, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.000000029802319
+      objectReference: {fileID: 0}
+    - target: {fileID: 114868416268597086, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.0000000074505797
+      objectReference: {fileID: 0}
+    - target: {fileID: 114868416268597086, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.0000000037252899
+      objectReference: {fileID: 0}
+    - target: {fileID: 114868416268597086, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.0000146054645
+      objectReference: {fileID: 0}
+    - target: {fileID: 114868416268597086, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 8.999768
+      objectReference: {fileID: 0}
+    - target: {fileID: 114868416268597086, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.49994105
+      objectReference: {fileID: 0}
     - target: {fileID: 225238620089823588, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -1620,6 +1650,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_ShowToolkit
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1149673579284744240, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: gimmick
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1149673579284744245, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
@@ -1680,6 +1715,21 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5651274792284418672, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_Positions.Array.data[1].x
+      value: -0.00003311899
+      objectReference: {fileID: 0}
+    - target: {fileID: 5651274792284418672, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_Positions.Array.data[1].y
+      value: 2.9101114
+      objectReference: {fileID: 0}
+    - target: {fileID: 5651274792284418672, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
+        type: 3}
+      propertyPath: m_Positions.Array.data[1].z
+      value: -0.49994522
       objectReference: {fileID: 0}
     - target: {fileID: 5815077799234603132, guid: d5ad091b3b95f6f4d8790c5241f1ebd0,
         type: 3}
@@ -33434,7 +33484,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   showGizmo: 1
-  gizmoSize: 0.1
+  gizmoSize: 0.28
   gizmoColor: {r: 1, g: 0, b: 0, a: 0.5}
 --- !u!43 &1300671631
 Mesh:

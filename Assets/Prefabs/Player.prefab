@@ -5463,7 +5463,7 @@ MonoBehaviour:
   camera: {fileID: 8023130152235894417}
   standingHitbox: {fileID: 3390459175339689158}
   crosshair: {fileID: 0}
-  cameraPosition: {x: 0, y: 0.5, z: 0}
+  cameraPosition: {x: 0, y: 0.4, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   grappleStaminaIndicator: {fileID: 0}
   bow: {fileID: 780581960177499945}
@@ -5496,9 +5496,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   m_Radius: 0.5
-  m_Height: 2
+  m_Height: 1.8
   m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: -0.1, z: 0}
 --- !u!136 &5644266550209549845
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -5926,7 +5926,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112
-  m_CollisionDetection: 1
+  m_CollisionDetection: 2
 --- !u!1 &8023130151277321244
 GameObject:
   m_ObjectHideFlags: 0

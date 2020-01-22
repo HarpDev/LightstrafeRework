@@ -46,6 +46,8 @@ public class PlayerMovement : MonoBehaviour
     private const float groundAcceleration = 30f;
     private const float groundFriction = 2f;
     private const float slideAccelMultiplier = 2f;
+    private const float slideFriction = 0.1f;
+    private const float groundUnstickSpeed = 6f;
 
     private const float airMinSpeed = 8;
     private const float doubleJumpForce = 12;
@@ -53,6 +55,8 @@ public class PlayerMovement : MonoBehaviour
     private const float airAccelSpeed = 1f;
 
     private const float groundAngle = 45;
+    private const float groundDistance = 0.5f;
+    private const float groundMagnetDistance = 0.1f;
 
     private const float railSpeed = 20f;
     private const float railAcceleration = 24f;
@@ -430,11 +434,47 @@ public class PlayerMovement : MonoBehaviour
         _previousPosition -= _displacePosition;
         _displacePosition = new Vector3();
 
-        if (!IsGrounded && !IsOnWall) _landed = false;
-        IsGrounded = false;
+        if (!IsOnWall) _landed = false;
 
         _wallHighestY = Mathf.Lerp(_wallHighestY, 0, factor / 10);
         _wallLowestY = Mathf.Lerp(_wallLowestY, 0, factor / 10);
+
+        if (_sinceJumpCounter > jumpForgiveness && velocity.y < groundUnstickSpeed && rigidbody.SweepTest(Vector3.down, out var hit, groundDistance, QueryTriggerInteraction.Ignore))
+        {
+            if (Vector3.Angle(hit.normal, Vector3.up) < groundAngle)
+            {
+                if (!IsGrounded)
+                {
+                    DashAvailable = true;
+                    DoubleJumpAvailable = true;
+                    source.PlayOneShot(groundLand);
+                }
+                IsGrounded = true;
+                var heightAdjust = groundDistance - groundMagnetDistance - hit.distance;
+                transform.position += Vector3.up * heightAdjust;
+                velocity += Vector3.up * Vector3.Dot(velocity, Vector3.down);
+
+                if (hit.collider.CompareTag("Bounce Block"))
+                {
+                    Accelerate(Vector3.up, bouncePadSpeed, bouncePadSpeed);
+                    return;
+                }
+                if (hit.collider.CompareTag("Kill Block"))
+                {
+                    Game.RestartLevel();
+                    return;
+                }
+            }
+            else
+            {
+                transform.position += Vector3.up * Mathf.Max(groundDistance / 2 - hit.distance, 0);
+                Collide(hit.point, hit.normal, hit.collider);
+            }
+        }
+        else
+        {
+            IsGrounded = false;
+        }
     }
 
     private void OnCollisionExit(Collision other)
@@ -445,7 +485,6 @@ public class PlayerMovement : MonoBehaviour
         {
             rollSound.volume = 0;
             IsOnWall = false;
-            IsGrounded = false;
         }
     }
 
@@ -465,64 +504,44 @@ public class PlayerMovement : MonoBehaviour
         _previousCollision = other;
         _previousCollision.transform.hasChanged = false;
 
-        if (other.collider.CompareTag("Instant Kill Block"))
+        foreach (var point in other.contacts)
+        {
+            Collide(point.point, point.normal, other.collider);
+        }
+    }
+
+    public void Collide(Vector3 point, Vector3 normal, Collider collider)
+    {
+        var projection = Vector3.Dot(velocity, -normal);
+        var angle = Vector3.Angle(Vector3.up, normal);
+
+        if (collider.CompareTag("Instant Kill Block"))
         {
             Game.RestartLevel();
         }
 
-        velocity += other.impulse;
+        velocity += normal * projection;
 
-        foreach (var point in other.contacts)
+        if (collider.CompareTag("Wall") && Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled &&
+            Vector3.Distance(Flatten(point), Flatten(transform.position)) >= 0.5)
         {
-            var projection = Vector3.Dot(velocity, -point.normal);
-            var angle = Vector3.Angle(Vector3.up, point.normal);
-
-            if (angle < groundAngle)
+            var y = transform.position.y - point.y;
+            if (_landed)
             {
-                if (_sinceJumpCounter > jumpForgiveness)
-                {
-                    if (!_landed)
-                    {
-                        _landed = true;
-                        DashAvailable = true;
-                        DoubleJumpAvailable = true;
-                        source.PlayOneShot(groundLand);
-                    }
-                    IsGrounded = true;
-                }
-
-                if (other.collider.CompareTag("Bounce Block"))
-                {
-                    Accelerate(Vector3.up, bouncePadSpeed, bouncePadSpeed);
-                    return;
-                }
-                if (other.collider.CompareTag("Kill Block"))
-                {
-                    Game.RestartLevel();
-                    return;
-                }
+                if (y < _wallLowestY) _wallLowestY = y;
+                if (y > _wallHighestY) _wallHighestY = y;
             }
-            if (other.collider.CompareTag("Wall") && Mathf.Abs(Vector3.Angle(Vector3.up, point.normal) - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled &&
-                Vector3.Distance(Flatten(point.point), Flatten(transform.position)) >= 0.5)
+            // Wall Grab
+            _wallNormal = normal;
+            if (_sinceJumpCounter > jumpForgiveness)
             {
-                var y = transform.position.y - point.point.y;
-                if (_landed)
+                if (!_landed)
                 {
-                    if (y < _wallLowestY) _wallLowestY = y;
-                    if (y > _wallHighestY) _wallHighestY = y;
+                    _landed = true;
+                    DoubleJumpAvailable = true;
+                    source.PlayOneShot(groundLand);
                 }
-                // Wall Grab
-                _wallNormal = point.normal;
-                if (_sinceJumpCounter > jumpForgiveness)
-                {
-                    if (!_landed)
-                    {
-                        _landed = true;
-                        DoubleJumpAvailable = true;
-                        source.PlayOneShot(groundLand);
-                    }
-                    IsOnWall = true;
-                }
+                IsOnWall = true;
             }
         }
     }
@@ -912,6 +931,7 @@ public class PlayerMovement : MonoBehaviour
         if (IsSliding)
         {
             AirAccelerate(f * slideAccelMultiplier);
+            ApplyFriction(f * slideFriction);
         }
         else
         {
