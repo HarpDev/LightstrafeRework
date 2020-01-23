@@ -118,8 +118,6 @@ public class PlayerMovement : MonoBehaviour
 
     private bool _approachingWall;
     private float _approachingWallDistance;
-    private float _wallHighestY;
-    private float _wallLowestY;
     private Vector3 _wallNormal;
     private int _wallTimestamp = -100000;
     private int _cancelLeanTickCount;
@@ -436,9 +434,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (!IsOnWall) _landed = false;
 
-        _wallHighestY = Mathf.Lerp(_wallHighestY, 0, factor / 10);
-        _wallLowestY = Mathf.Lerp(_wallLowestY, 0, factor / 10);
-
         if (_sinceJumpCounter > jumpForgiveness && velocity.y < groundUnstickSpeed && rigidbody.SweepTest(Vector3.down, out var hit, groundDistance, QueryTriggerInteraction.Ignore))
         {
             if (Vector3.Angle(hit.normal, Vector3.up) < groundAngle)
@@ -453,6 +448,7 @@ public class PlayerMovement : MonoBehaviour
                 var heightAdjust = groundDistance - groundMagnetDistance - hit.distance;
                 transform.position += Vector3.up * heightAdjust;
                 velocity += Vector3.up * Vector3.Dot(velocity, Vector3.down);
+                //velocity += hit.normal * Vector3.Dot(velocity, -hit.normal);
 
                 if (hit.collider.CompareTag("Bounce Block"))
                 {
@@ -467,35 +463,18 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                transform.position += Vector3.up * Mathf.Max(groundDistance / 2 - hit.distance, 0);
-                Collide(hit.point, hit.normal, hit.collider);
+                var heightAdjust = groundDistance - groundMagnetDistance - hit.distance;
+                if (heightAdjust > 0)
+                {
+                    transform.position += Vector3.up * heightAdjust;
+                    velocity += Vector3.up * Vector3.Dot(velocity, Vector3.down);
+                    Collide(hit.point, hit.normal, hit.collider);
+                }
             }
         }
         else
         {
             IsGrounded = false;
-        }
-    }
-
-    private void OnCollisionExit(Collision other)
-    {
-        _previousCollision = null;
-
-        if (IsOnWall)
-        {
-            rollSound.volume = 0;
-            IsOnWall = false;
-        }
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        // Rail Grab
-        if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > railCooldownTicks ||
-                                         other.transform.parent.gameObject != _lastRail))
-        {
-            _lastRail = other.transform.parent.gameObject;
-            SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
         }
     }
 
@@ -525,12 +504,6 @@ public class PlayerMovement : MonoBehaviour
         if (collider.CompareTag("Wall") && Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled &&
             Vector3.Distance(Flatten(point), Flatten(transform.position)) >= 0.5)
         {
-            var y = transform.position.y - point.y;
-            if (_landed)
-            {
-                if (y < _wallLowestY) _wallLowestY = y;
-                if (y > _wallHighestY) _wallHighestY = y;
-            }
             // Wall Grab
             _wallNormal = normal;
             if (_sinceJumpCounter > jumpForgiveness)
@@ -543,6 +516,40 @@ public class PlayerMovement : MonoBehaviour
                 }
                 IsOnWall = true;
             }
+        }
+    }
+
+    private void OnCollisionExit(Collision other)
+    {
+        _previousCollision = null;
+
+        if (IsOnWall)
+        {
+            rollSound.volume = 0;
+            IsOnWall = false;
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // Rail Grab
+        if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > railCooldownTicks ||
+                                         other.transform.parent.gameObject != _lastRail))
+        {
+            _lastRail = other.transform.parent.gameObject;
+            SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
+        }
+        var gimmickPickup = other.gameObject.GetComponent<GimmickPickup>();
+        if (gimmickPickup != null)
+        {
+            if (gimmickPickup.gimmick == Gimmick.NONE)
+            {
+                jumpKitEnabled = true;
+            } else
+            {
+                gimmick = gimmickPickup.gimmick;
+            }
+            Destroy(other.gameObject);
         }
     }
 
@@ -888,15 +895,6 @@ public class PlayerMovement : MonoBehaviour
                 Accelerate(direction, wallSpeed, wallAcceleration * f);
             else
                 Accelerate(-direction, wallSpeed, wallAcceleration * f);
-        }
-
-        if (_wallLowestY > -0.4f)
-        {
-            Accelerate(Vector3.down, wallCorrectionSpeed, wallCorrectionAcceleration * f);
-        }
-        if (_wallHighestY < 0.4f)
-        {
-            Accelerate(Vector3.up, wallCorrectionSpeed, wallCorrectionAcceleration * f * wallCorrectionUpMultiplier);
         }
 
         ApplyFriction(f * wallFriction, 0, wallSpeed);

@@ -12,54 +12,50 @@ public class Bow : MonoBehaviour
 
     public LineRenderer bowString;
 
-    public Vector3 boltPosition = new Vector3(0, -0.05f, 0.5f);
+    private const float hVelocityReduction = 260;
+    private const float hVelocityLimit = 0.1f;
+    private const float lerpSpeed = 20;
 
-    public float yVelocityReduction = 100;
-    public float yVelocityLimit = 0.4f;
-    public float hVelocityReduction = 260;
-    public float hVelocityLimit = 0.1f;
-
-    public Vector3 bowPosition = new Vector3(0.3f, -0.35f, 0.8f);
-
-    private const float _lerpSpeed = 20;
+    private Vector3 bowPosition = new Vector3(0.3f, -0.45f, 0.5f);
+    private Vector3 boltPosition = new Vector3(-0.15f, -0.05f, 0.9f);
 
     public float Drawback { get; set; }
 
-
-    private MeshRenderer _mesh;
-
-    private void Start()
-    {
-        _mesh = GetComponent<MeshRenderer>();
-    }
-
     private void Update()
     {
-        var m = _mesh.sharedMaterial;
-        var c = m.color;
-        if (PlayerMovement.DashAvailable)
-        {
-            c.r = 1;
-            c.g = 1;
-            c.b = 1;
-        }
-        else
-        {
-            c.r = 0;
-            c.g = 0;
-            c.b = 0;
-        }
-
-        m.color = c;
-        _mesh.sharedMaterial = m;
 
         var list = new List<Vector3> { top.transform.localPosition };
 
         var trans = transform;
         var activeTrans = arrow.transform;
         var position = trans.position;
-        activeTrans.position = position + trans.up * (boltPosition.z - Drawback / 2.3f) +
-                               trans.forward * boltPosition.y + trans.right * boltPosition.x;
+
+        var bowAngle = player.velocity.y * 1.8f - 10;
+        var bowPos = bowPosition;
+        var boltPos = boltPosition;
+
+        if (Application.isPlaying && Game.Level.player.IsSliding)
+        {
+            bowAngle -= Drawback * 10;
+            bowAngle += 180;
+            bowAngle = -bowAngle;
+            bowPos.x -= 0.58f;
+            bowAngle = Mathf.Max(Mathf.Min(bowAngle, -150), -180);
+
+            transform.localScale = new Vector3(1, 1, -1);
+            boltPos.y = -boltPos.y;
+        }
+        else
+        {
+            bowPos.y += Drawback / 12;
+            bowAngle -= Drawback * 65;
+            bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
+
+            transform.localScale = new Vector3(1, 1, 1);
+        }
+
+        activeTrans.position = position + trans.up * (boltPos.z - Drawback / 2.3f) +
+                               trans.forward * boltPos.y + trans.right * boltPos.x;
         activeTrans.rotation = trans.rotation;
 
         var relative = transform.InverseTransformPoint(arrow.nockPosition.position);
@@ -69,53 +65,33 @@ public class Bow : MonoBehaviour
         bowString.positionCount = list.Count;
         bowString.SetPositions(list.ToArray());
 
-        var bowAngle = player.velocity.y * 1.8f - 10;
-        var bowPos = bowPosition;
-
-        if (Application.isPlaying && Game.Level.player.IsSliding)
-        {
-            bowAngle -= Drawback * 10;
-            bowAngle += 180;
-            bowAngle = -bowAngle;
-            bowPos.x -= 0.38f;
-            bowAngle = Mathf.Max(Mathf.Min(bowAngle, -150), -180);
-        }
-        else
-        {
-            bowPos.y += Drawback / 12;
-            bowAngle -= Drawback * 65;
-            bowAngle = Mathf.Max(Mathf.Min(bowAngle, 0), -100);
-        }
-
         transform.localRotation = Quaternion.Lerp(transform.localRotation,
-            Quaternion.Euler(new Vector3(90 - bowAngle, -90, -90)), Time.deltaTime * _lerpSpeed);
+            Quaternion.Euler(new Vector3(90 - bowAngle, -90, -90)), Time.deltaTime * lerpSpeed);
 
-        var yCalc = player.velocity.y / yVelocityReduction;
-
-        if (!Game.Level.player.IsSliding)
-            yCalc -= Drawback / 3f;
-
-        yCalc = Mathf.Max(yCalc, -yVelocityLimit);
-        yCalc = Mathf.Min(yCalc, yVelocityLimit / 6);
-
-        var xCalc = player.velocity.x / hVelocityReduction;
+        var rightVelocity = Vector3.Dot(player.velocity, Flatten(player.transform.right));
+        var xCalc = rightVelocity / hVelocityReduction;
 
         xCalc = Mathf.Max(xCalc, bowPosition.x);
         xCalc = Mathf.Min(xCalc, hVelocityLimit);
 
-        var zCalc = player.velocity.z / hVelocityReduction;
+        var forwardVelocity = Vector3.Dot(player.velocity, Flatten(player.transform.forward));
+        var zCalc = forwardVelocity / hVelocityReduction;
 
         zCalc += Drawback / 5;
 
         zCalc = Mathf.Max(zCalc, -hVelocityLimit);
         zCalc = Mathf.Min(zCalc, hVelocityLimit);
 
-        var finalPosition = bowPos + new Vector3(xCalc, -yCalc, zCalc);
+        var finalPosition = bowPos + new Vector3(xCalc, 0, zCalc);
 
-        if (player.IsGrounded || player.IsOnRail || player.IsOnWall) finalPosition -= Vector3.up * 0.1f;
+        if (!player.IsGrounded && !player.IsOnRail && !player.IsOnWall)
+            finalPosition.y += 0.2f;
+        else if (!Game.Level.player.IsSliding)
+            finalPosition.y += Drawback / 3f;
+
         if (player.IsGrounded) finalPosition += CameraBobbing.BobbingVector;
 
-        transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * _lerpSpeed);
+        transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * lerpSpeed);
         if (Input.GetKey(PlayerInput.SecondaryInteract))
         {
             if (Drawback < 1)
