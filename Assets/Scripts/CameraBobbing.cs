@@ -17,7 +17,7 @@ public class CameraBobbing : MonoBehaviour
 
     private void Update()
     {
-        if (Math.Abs(player.velocity.magnitude) > Tolerance && player.IsGrounded && !Game.Level.player.IsSliding)
+        if (Math.Abs(player.velocity.magnitude) > Tolerance && player.IsGrounded && !player.IsSliding)
         {
             _bobbingPos += Flatten(player.velocity).magnitude * BobbingSpeed * Time.deltaTime * 2;
             while (_bobbingPos > Mathf.PI * 2) _bobbingPos -= Mathf.PI * 2;

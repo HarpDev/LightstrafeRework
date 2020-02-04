@@ -767,13 +767,11 @@ GameObject:
   - component: {fileID: 8023130150563290705}
   - component: {fileID: 8023130150563290708}
   - component: {fileID: 3390459175339689158}
-  - component: {fileID: 5644266550209549845}
-  - component: {fileID: 7702006894716423097}
   - component: {fileID: 8023130150563290714}
   - component: {fileID: 5542439263401049636}
   - component: {fileID: 2380960297985531293}
   - component: {fileID: 2805646102872565045}
-  - component: {fileID: 5124070473534990130}
+  - component: {fileID: 380057102162143496}
   m_Layer: 10
   m_Name: Player
   m_TagString: Player
@@ -808,9 +806,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14c440ebe8962bb47a547bfbed810808, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rigidbody: {fileID: 5124070473534990130}
   camera: {fileID: 8023130152235894417}
-  standingHitbox: {fileID: 3390459175339689158}
   crosshair: {fileID: 0}
   cameraPosition: {x: 0, y: 0.4, z: 0}
   velocity: {x: 0, y: 0, z: 0}
@@ -845,37 +841,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   m_Radius: 0.5
-  m_Height: 1.8
+  m_Height: 2
   m_Direction: 1
-  m_Center: {x: 0, y: -0.1, z: 0}
---- !u!136 &5644266550209549845
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8023130150563290715}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 1
-  m_Direction: 1
-  m_Center: {x: 0, y: -0.5, z: 0}
---- !u!64 &7702006894716423097
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8023130150563290715}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Convex: 1
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 2534964839176971238, guid: 5f583d0717a25d64aa6ea7ac8721d35d, type: 3}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!82 &8023130150563290714
 AudioSource:
   m_ObjectHideFlags: 0
@@ -1260,7 +1228,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!54 &5124070473534990130
+--- !u!54 &380057102162143496
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1272,10 +1240,10 @@ Rigidbody:
   m_Drag: 0
   m_AngularDrag: 0
   m_UseGravity: 0
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 112
-  m_CollisionDetection: 2
+  m_CollisionDetection: 0
 --- !u!1 &8023130151277321244
 GameObject:
   m_ObjectHideFlags: 0

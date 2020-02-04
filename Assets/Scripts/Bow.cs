@@ -34,7 +34,7 @@ public class Bow : MonoBehaviour
         var bowPos = bowPosition;
         var boltPos = boltPosition;
 
-        if (Application.isPlaying && Game.Level.player.IsSliding)
+        if (Application.isPlaying && player.IsSliding)
         {
             bowAngle -= Drawback * 10;
             bowAngle += 180;
