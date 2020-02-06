@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using static PlayerMovement;
 
-public class GimmickPickup : MonoBehaviour
+public class AbilityPickup : MonoBehaviour
 {
-    public Gimmick gimmick;
+    public Ability ability;
 
     private void Update()
     {

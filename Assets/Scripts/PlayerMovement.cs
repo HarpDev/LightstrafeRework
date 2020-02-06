@@ -13,21 +13,23 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
-    public Slider grappleStaminaIndicator;
     public Bow bow;
 
-    public enum Gimmick
+    public bool jumpKitEnabled = true;
+    public bool bowEnabled = true;
+    public bool grappleEnabled = true;
+    public bool dashEnabled = true;
+    public int grappleCharges = 0;
+
+    public enum Ability
     {
-        NONE,
+        JUMPKIT,
         GRAPPLE,
         DASH,
         BOW
     }
 
-    public Gimmick gimmick;
-    public bool jumpKitEnabled = true;
-
-    private const float wallFriction = 2f;
+    private const float wallFriction = 0.3f;
     private const float wallCatchFriction = 10f;
     private const float wallSpeed = 10f;
     private const float wallAcceleration = 60f;
@@ -40,14 +42,15 @@ public class PlayerMovement : MonoBehaviour
     private const float cameraRotationCorrectSpeed = 4f;
 
     private const float movementSpeed = 7f;
-    private const float groundAcceleration = 60f;
-    private const float groundFriction = 2f;
-    private const float slideBoostSpeed = 14f;
+    private const float groundAcceleration = 80f;
+    private const float groundFriction = 5f;
+    private const float landBoostSpeed = 14f;
     private const float slideFriction = 0.3f;
 
     private const float doubleJumpForce = 10;
     private const float airAcceleration = 40f;
     private const float airSpeed = 1f;
+    private const float airCorrectionForce = 10f;
 
     private const float groundAngle = 45;
 
@@ -72,16 +75,14 @@ public class PlayerMovement : MonoBehaviour
     private const int coyoteTicks = 20;
     private const int jumpForgiveness = 10;
     private const float jumpCameraThunk = 5f;
+    private const float jumpGracePeriod = 0.5f;
+    private const float jumpGraceBonusAccel = 500;
 
     private const float grappleControlSpeed = 10f;
     private const float grappleControlAcceleration = 10f;
     private const float grappleDistance = 30f;
     private const float grappleAcceleration = 30f;
     private const float grappleTopSpeed = 25f;
-    private const float grappleStaminaDecay = 1;
-    private const float grappleStaminaMax = 200;
-    private const float grappleStaminaRecharge = 1;
-    private const float grappleStaminaRechargeDelay = 1000;
 
     private const float bouncePadSpeed = 36f;
 
@@ -123,10 +124,8 @@ public class PlayerMovement : MonoBehaviour
     private GameObject _lastRail;
     private Rail _currentRail;
 
-    private int _grappleTimestamp = -100000;
     private Vector3 _grappleAttachPosition;
     private Transform _grappleAttachTransform;
-    private float _grappleStamina;
 
     private float _dashAddPotential;
     private float _dashAddSpeed;
@@ -136,7 +135,6 @@ public class PlayerMovement : MonoBehaviour
     private int _groundTimestamp = -100000;
     private bool _landed;
     private Vector3 _previousPosition;
-    private Vector3 _previousCollisionLocalPosition;
     private float _crouchAmount;
     private int _sinceJumpCounter;
     private Vector3 _slideLeanVector;
@@ -145,9 +143,7 @@ public class PlayerMovement : MonoBehaviour
     private float _motionInterpolationDelta;
     private float _crosshairRotation;
 
-    private int _groundHold;
-    private int _wallHold;
-
+    public float YawIncrease { get; set; }
 
     public float CameraRoll { get; set; }
 
@@ -159,7 +155,7 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsSliding
     {
-        get { return (Flatten(velocity).magnitude > movementSpeed + 1 && jumpKitEnabled) || !IsGrounded; }
+        get { return (Flatten(velocity).magnitude > movementSpeed + 1 || (!IsGrounded && Flatten(velocity).magnitude >= movementSpeed - 1) || IsOnWall || IsOnRail || GrappleHooked) && jumpKitEnabled; }
     }
 
     public bool IsOnWall { get; set; }
@@ -203,7 +199,6 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         LookScale = 1;
-        _grappleStamina = grappleStaminaMax;
 
         Game.Level.StopTimer();
         Game.Level.ResetTimer();
@@ -231,7 +226,8 @@ public class PlayerMovement : MonoBehaviour
         crosshair.color = c;
 
         // Mouse motion
-        Yaw = (Yaw + Input.GetAxis("Mouse X") * (Game.Sensitivity / 10) * LookScale) % 360f;
+        YawIncrease = Input.GetAxis("Mouse X") * (Game.Sensitivity / 10) * LookScale;
+        Yaw = (Yaw + YawIncrease) % 360f;
         Pitch -= Input.GetAxis("Mouse Y") * (Game.Sensitivity / 10) * LookScale;
         Pitch = Mathf.Max(Pitch, -90);
         Pitch = Mathf.Min(Pitch, 90);
@@ -297,7 +293,7 @@ public class PlayerMovement : MonoBehaviour
         }
         crosshair.transform.rotation = Quaternion.Euler(new Vector3(0, 0, _crosshairRotation));
 
-        if (gimmick == Gimmick.GRAPPLE && Input.GetKeyDown(PlayerInput.PrimaryInteract))
+        if (Input.GetKeyDown(PlayerInput.SecondaryInteract) && grappleEnabled)
         {
             if (!GrappleHooked)
             {
@@ -307,29 +303,16 @@ public class PlayerMovement : MonoBehaviour
                 }
             }
         }
-        if (gimmick == Gimmick.GRAPPLE && !Input.GetKey(PlayerInput.PrimaryInteract))
+        if (!Input.GetKey(PlayerInput.SecondaryInteract))
         {
             if (GrappleHooked) DetachGrapple();
         }
-        if (gimmick == Gimmick.DASH && Input.GetKeyDown(PlayerInput.PrimaryInteract))
-        {
-            Dash(CrosshairDirection);
-        }
 
-        if (gimmick == Gimmick.GRAPPLE && !grappleStaminaIndicator.gameObject.activeSelf)
-        {
-            grappleStaminaIndicator.gameObject.SetActive(true);
-        }
-        if (gimmick != Gimmick.GRAPPLE && grappleStaminaIndicator.gameObject.activeSelf)
-        {
-            grappleStaminaIndicator.gameObject.SetActive(false);
-        }
-
-        if (gimmick == Gimmick.BOW && !bow.gameObject.activeSelf)
+        if (bowEnabled && !bow.gameObject.activeSelf)
         {
             bow.gameObject.SetActive(true);
         }
-        if (gimmick != Gimmick.BOW && bow.gameObject.activeSelf)
+        if (!bowEnabled && bow.gameObject.activeSelf)
         {
             bow.gameObject.SetActive(false);
         }
@@ -371,14 +354,6 @@ public class PlayerMovement : MonoBehaviour
             GroundMove(factor);
         else
             AirMove(factor);
-
-        if (gimmick == Gimmick.GRAPPLE)
-        {
-            if (!GrappleHooked && _grappleStamina < grappleStaminaMax && Environment.TickCount - _grappleTimestamp > grappleStaminaRechargeDelay) _grappleStamina += grappleStaminaRecharge;
-            grappleStaminaIndicator.value = _grappleStamina;
-            grappleStaminaIndicator.maxValue = grappleStaminaMax;
-            grappleStaminaIndicator.minValue = 0;
-        }
 
         if (_excededSpeed > 0 && !IsDashing)
         {
@@ -430,8 +405,14 @@ public class PlayerMovement : MonoBehaviour
         foreach (var collider in overlap)
         {
             if (collider.gameObject == gameObject) continue;
+            if (collider.CompareTag("Arrow")) continue;
             if (Physics.ComputePenetration(CurrentCollider, CurrentCollider.transform.position, CurrentCollider.transform.rotation, collider, collider.transform.position, collider.transform.rotation, out var direction, out var distance))
             {
+                if (collider.isTrigger)
+                {
+                    OnTrigger(collider);
+                    continue;
+                }
                 var normal = direction.normalized;
 
                 var projection = Vector3.Dot(velocity, -normal);
@@ -449,14 +430,11 @@ public class PlayerMovement : MonoBehaviour
 
                 if (collider.CompareTag("Wall") && Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled)
                 {
-                    if (wasOnWall || Vector3.Dot(velocity, normal) < 0)
+                    if (wasOnWall || Vector3.Dot(Flatten(velocity).normalized, Flatten(normal).normalized) < 0)
                     {
                         // Wall Grab
-                        _wallNormal = normal;
-                        if (_sinceJumpCounter > jumpForgiveness)
-                        {
-                            IsOnWall = true;
-                        }
+                        _wallNormal = Flatten(normal).normalized;
+                        IsOnWall = true;
                     }
                 }
 
@@ -465,9 +443,9 @@ public class PlayerMovement : MonoBehaviour
                     _landed = true;
                     DoubleJumpAvailable = true;
                     source.PlayOneShot(groundLand);
-                    if (IsGrounded && Flatten(velocity).magnitude >= movementSpeed - 1)
+                    if (jumpKitEnabled && Flatten(velocity).magnitude >= movementSpeed - 1)
                     {
-                        Accelerate(Flatten(velocity).normalized, slideBoostSpeed, slideBoostSpeed);
+                        Accelerate(Flatten(velocity).normalized, landBoostSpeed, landBoostSpeed);
                     }
                 }
 
@@ -478,8 +456,10 @@ public class PlayerMovement : MonoBehaviour
                     var flat = Vector3.Dot(velocity, -Flatten(normal));
                     if (flat > 0) velocity += normal * flat;
                 }
-                else
-                velocity += normal * projection;
+                else if (projection > 0)
+                {
+                    velocity += normal * projection;
+                }
 
                 if (IsGrounded)
                 {
@@ -496,7 +476,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnTrigger(Collider other)
     {
         // Rail Grab
         if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > railCooldownTicks ||
@@ -505,16 +485,28 @@ public class PlayerMovement : MonoBehaviour
             _lastRail = other.transform.parent.gameObject;
             SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
         }
-        var gimmickPickup = other.gameObject.GetComponent<GimmickPickup>();
-        if (gimmickPickup != null)
+
+        var abilityPickup = other.gameObject.GetComponent<AbilityPickup>();
+        if (abilityPickup != null)
         {
-            if (gimmickPickup.gimmick == Gimmick.NONE)
+            if (abilityPickup.ability == Ability.JUMPKIT)
             {
                 jumpKitEnabled = true;
             }
-            else
+            switch (abilityPickup.ability)
             {
-                gimmick = gimmickPickup.gimmick;
+                case Ability.JUMPKIT:
+                    jumpKitEnabled = true;
+                    break;
+                case Ability.BOW:
+                    bowEnabled = true;
+                    break;
+                case Ability.GRAPPLE:
+                    grappleEnabled = true;
+                    break;
+                case Ability.DASH:
+                    dashEnabled = true;
+                    break;
             }
             Destroy(other.gameObject);
         }
@@ -760,6 +752,11 @@ public class PlayerMovement : MonoBehaviour
         grappleDuring.volume = 0.4f;
         grappleDuring.Play();
 
+        var list = new List<Vector3> { new Vector3(0, grappleYOffset, 0), position };
+
+        grappleTether.positionCount = list.Count;
+        grappleTether.SetPositions(list.ToArray());
+
         var towardPoint = (position - transform.position).normalized;
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
@@ -777,21 +774,16 @@ public class PlayerMovement : MonoBehaviour
 
     public void GrappleMove(float f)
     {
-        _grappleTimestamp = Environment.TickCount;
         Jump();
-        var camTrans = camera.transform;
         var position = _grappleAttachTransform.InverseTransformPoint(_grappleAttachPosition);
 
-        var list = new List<Vector3>
-            {new Vector3(0, grappleYOffset, 0), camTrans.InverseTransformPoint(position)};
+        var list = new List<Vector3> {new Vector3(0, grappleYOffset, 0), camera.transform.InverseTransformPoint(position)};
 
         grappleTether.positionCount = list.Count;
         grappleTether.SetPositions(list.ToArray());
 
-        camTrans.localPosition = new Vector3();
-
-        var towardPoint = (position - camTrans.position).normalized;
-        var velocityProjection = Mathf.Abs(Vector3.Dot(velocity, camTrans.right));
+        var towardPoint = (position - transform.position).normalized;
+        var velocityProjection = Mathf.Abs(Vector3.Dot(velocity, transform.right));
         var relativePoint = transform.InverseTransformPoint(position);
 
         var value = Mathf.Atan2(relativePoint.z, relativePoint.x) * Mathf.Rad2Deg;
@@ -807,19 +799,13 @@ public class PlayerMovement : MonoBehaviour
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
 
         Accelerate(towardPoint, grappleTopSpeed, f * grappleAcceleration);
-        Accelerate(Wishdir, grappleControlSpeed, f * grappleControlAcceleration);
+        Accelerate(CrosshairDirection, grappleControlSpeed, f * grappleControlAcceleration);
 
-        if (Vector3.Distance(position, camTrans.position) > grappleDistance)
+        if (Vector3.Distance(position, transform.position) > grappleDistance)
         {
             var mag = velocity.magnitude;
             velocity = Vector3.Lerp(velocity, towardPoint * velocity.magnitude, f / 5);
             velocity = velocity.normalized * mag;
-        }
-
-        _grappleStamina -= grappleStaminaDecay;
-        if (_grappleStamina <= 0)
-        {
-            DetachGrapple();
         }
     }
 
@@ -857,6 +843,9 @@ public class PlayerMovement : MonoBehaviour
                 Accelerate(direction, wallSpeed, wallAcceleration * f);
             else
                 Accelerate(-direction, wallSpeed, wallAcceleration * f);
+        } else
+        {
+            Accelerate(Flatten(velocity).normalized, wallSpeed, wallAcceleration * f);
         }
 
         ApplyFriction(f * wallFriction, 0, wallSpeed);
@@ -924,6 +913,11 @@ public class PlayerMovement : MonoBehaviour
 
         Jump();
 
+        var magnitude = velocity.magnitude;
+        var direction = new Vector3(Flatten(velocity).normalized.x, CrosshairDirection.y, Flatten(velocity).normalized.z).normalized;
+        velocity += direction * airCorrectionForce * f;
+        velocity = velocity.normalized * magnitude;
+
         if (!jumpKitEnabled) return;
 
         // Lean in
@@ -973,11 +967,37 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirAccelerate(float f)
     {
-        var frictionMod = 1 - Mathf.Min(Flatten(velocity).magnitude / movementSpeed, 1);
+        var frictionMod = 1 - Mathf.Min(Flatten(velocity).magnitude / (movementSpeed - 1), 1);
         GroundAccelerate(f * frictionMod * 0.65f);
         f *= 1 - frictionMod;
 
-        Accelerate(Wishdir, airSpeed, airAcceleration * f);
+        var ticksPerSecond = 1 / Time.fixedDeltaTime;
+        var sinceJump = 1 - Mathf.Min(_sinceJumpCounter / (ticksPerSecond * jumpGracePeriod), 1);
+
+        var accel = (airAcceleration + (sinceJump * jumpGraceBonusAccel));
+
+        var currentspeed = Vector3.Dot(velocity - (Flatten(velocity).normalized * _excededSpeed), Wishdir);
+        var addspeed = Mathf.Abs(airSpeed) - currentspeed;
+
+        if (addspeed > 0)
+        {
+            if (accel * f > addspeed)
+                accel = addspeed / f;
+
+            var addvector = accel * Wishdir;
+            var backspeed = Vector3.Dot(addvector, -Flatten(velocity).normalized);
+            if (backspeed > airAcceleration)
+            {
+                var x1 = backspeed;
+                var x2 = airAcceleration;
+                var y1 = addvector.magnitude;
+                var y2 = (x2 * y1) / x1;
+
+                addvector = addvector.normalized * y2;
+                //addvector += Flatten(velocity).normalized * (backspeed - airAcceleration);
+            }
+            velocity += addvector * f;
+        }
 
         if (!_approachingWall && !IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
         {

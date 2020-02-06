@@ -424,7 +424,7 @@ GameObject:
   - component: {fileID: 1274417516706724902}
   m_Layer: 8
   m_Name: arrow
-  m_TagString: Untagged
+  m_TagString: Arrow
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -807,12 +807,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   camera: {fileID: 8023130152235894417}
+  standingCollider: {fileID: 0}
+  crouchingCollider: {fileID: 0}
   crosshair: {fileID: 0}
   cameraPosition: {x: 0, y: 0.4, z: 0}
   velocity: {x: 0, y: 0, z: 0}
-  grappleStaminaIndicator: {fileID: 0}
   bow: {fileID: 780581960177499945}
-  gimmick: 0
   jumpKitEnabled: 1
   source: {fileID: 8023130150563290714}
   rollSound: {fileID: 5542439263401049636}
