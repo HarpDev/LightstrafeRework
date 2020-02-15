@@ -8,7 +8,7 @@ public class HudMovement : MonoBehaviour
     
     private float _hudYawOffset;
     private float _hudPitchOffset;
-    public float hudMovementReduction = 6;
+    private const float hudMovementReduction = 6;
     
     public static Vector3 RotationSlamVector { get; set; }
     public static Vector3 PositionSlamVector { get; set; }
@@ -40,10 +40,10 @@ public class HudMovement : MonoBehaviour
         // Handle HUD momentum
         var yawMovement = player.YawIncrease;
         var pitchMovement = _prevPitch - player.Pitch;
-        _hudYawOffset += yawMovement / hudMovementReduction;
-        _hudPitchOffset += pitchMovement / hudMovementReduction;
-        _hudYawOffset = Mathf.Lerp(_hudYawOffset, 0, 0.05f);
-        _hudPitchOffset = Mathf.Lerp(_hudPitchOffset, 0, 0.05f);
+        _hudYawOffset += yawMovement / 4;
+        _hudPitchOffset += pitchMovement / 4;
+        _hudYawOffset = Mathf.Lerp(_hudYawOffset, 0, Time.deltaTime * hudMovementReduction);
+        _hudPitchOffset = Mathf.Lerp(_hudPitchOffset, 0, Time.deltaTime * hudMovementReduction);
         //var transform1 = transform;
         //var hudTransform = transform1.localPosition;
         //hudTransform = _positionSlamVectorLerp / 50;
@@ -51,7 +51,7 @@ public class HudMovement : MonoBehaviour
 
         _hudRotation = Mathf.Lerp(_hudRotation, player.CameraRoll, Time.deltaTime * 8);
         
-        transform.localRotation = Quaternion.Euler(-_hudPitchOffset, -_hudYawOffset, _hudRotation);
+        //transform.localRotation = Quaternion.Euler(-_hudPitchOffset, -_hudYawOffset, _hudRotation);
         
         _prevPitch = player.Pitch;
     }

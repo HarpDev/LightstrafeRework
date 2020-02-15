@@ -13,6 +13,13 @@ public class Level : MonoBehaviour
     public float CurrentTime { get; set; }
     private bool Finished { get; set; }
 
+    private GameObject[] _targets;
+
+    private void Awake()
+    {
+        _targets = GameObject.FindGameObjectsWithTag("Target");
+    }
+
     private void Update()
     {
         if (TimerRunning && !Finished) CurrentTime += Time.unscaledDeltaTime;

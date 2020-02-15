@@ -32,7 +32,6 @@ public class Arrow : MonoBehaviour
     {
         if (Hit)
         {
-            if (_hitTransform.hasChanged) model.GetComponent<MeshRenderer>().enabled = false;
             return;
         }
 
@@ -68,6 +67,12 @@ public class Arrow : MonoBehaviour
         if (goo != null)
         {
             goo.Hit(rigidbody.velocity, collision.GetContact(0).point);
+        }
+
+        var target = collision.collider.gameObject.GetComponent<Target>();
+        if (target != null)
+        {
+            target.Explode(rigidbody.velocity.normalized);
         }
 
         transform.position = collision.GetContact(0).point;

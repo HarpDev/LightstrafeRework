@@ -125,9 +125,8 @@ public class Bow : MonoBehaviour
 
         a.transform.localScale = new Vector3(1, 1, 1);
         var velocity = Drawback * 100 * vel;
-        velocity += player.velocity;
         a.Fire(Quaternion.LookRotation(vel), velocity);
-        a.transform.position = from + vel;
+        a.transform.position = from + vel * 4;
         a.FiredVelocity = Flatten(player.velocity).magnitude;
         Drawback = 0;
     }
