@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ public class Gun : MonoBehaviour
     private float _fireKick = 0;
 
     private const float crouchPositionSpeed = 10;
+    private const float fireCooldown = 400;
 
     private float _crouchPositionAmt;
 
@@ -26,6 +28,8 @@ public class Gun : MonoBehaviour
     private float _upChange;
 
     private float _prevPitch;
+
+    private int _cooldownTimestamp;
 
     private float _forwardSoften;
     private float _rightSoften;
@@ -40,7 +44,7 @@ public class Gun : MonoBehaviour
 
         var angle = 0f;
 
-        if (player.IsSliding && !player.approachingWall)
+        if (player.IsSliding && !player.approachingWall && !player.IsOnWall)
         {
             if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
         }
@@ -52,7 +56,7 @@ public class Gun : MonoBehaviour
         var yawMovement = player.YawIncrease;
         var pitchMovement = _prevPitch - player.Pitch;
 
-        _upChange -= player.CollisionImpulse.y / 80;
+        _upChange -= player.CollisionImpulse.y * Time.deltaTime;
 
         _rightChange -= yawMovement / 400;
         _upChange -= pitchMovement / 400;
@@ -83,7 +87,7 @@ public class Gun : MonoBehaviour
 
         _prevPitch = player.Pitch;
 
-        if (Input.GetKeyDown(PlayerInput.PrimaryInteract))
+        if (Input.GetKeyDown(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && Environment.TickCount - _cooldownTimestamp > fireCooldown)
         {
             var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
 
@@ -94,6 +98,8 @@ public class Gun : MonoBehaviour
             player.source.PlayOneShot(fireSound);
 
             _fireKick = 10;
+
+            _cooldownTimestamp = Environment.TickCount;
 
             HudMovement.RotationSlamVector -= Vector3.up * 10;
         }

@@ -9,25 +9,20 @@ public class PlayerMovement : MonoBehaviour
     public MeshCollider standingCollider;
     public MeshCollider crouchingCollider;
     public Image crosshair;
+    public GameObject abilityDot;
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
     public bool jumpKitEnabled = true;
-    public bool bowEnabled = true;
-    public bool grappleEnabled = true;
-    public bool dashEnabled = true;
-    public int grappleCharges = 0;
 
     public enum Ability
     {
-        JUMPKIT,
         GRAPPLE,
-        DASH,
-        BOW
+        DASH
     }
 
-    private const float wallFriction = 5f;
+    private const float landFriction = 10f;
     private const float wallCatchFriction = 10f;
     private const float wallSpeed = 16f;
     private const float wallAcceleration = 80f;
@@ -43,11 +38,10 @@ public class PlayerMovement : MonoBehaviour
     private const float groundAcceleration = 80f;
     private const float groundFriction = 5f;
     private const float landBoostSpeed = 16f;
-    private const float slideFriction = 0.3f;
 
     private const float doubleJumpForce = 10;
-    private const float airAcceleration = 20f;
-    private const float airSpeed = 1f;
+    private const float airAcceleration = 40f;
+    private const float airSpeed = 2f;
     private const float airCorrectionForce = 10f;
 
     private const float groundAngle = 45;
@@ -60,8 +54,7 @@ public class PlayerMovement : MonoBehaviour
     private const float dashDistance = 15f;
 
     private const float dashCancelTempSpeed = 30f;
-    private const float dashCancelSpeed = 25f;
-    private const float dashCancelAcceleration = 3f;
+    private const float dashCancelSpeed = 5f;
     private const float dashCancelPotentialMultiplier = 1.65f;
 
     private const float excededFriction = 4;
@@ -74,13 +67,12 @@ public class PlayerMovement : MonoBehaviour
     private const int jumpForgiveness = 10;
     private const float jumpCameraThunk = 5f;
     private const float jumpGracePeriod = 0.5f;
-    private const float jumpGraceBonusAccel = 500;
+    private const float jumpGraceBonusAccel = 800;
 
-    private const float grappleControlSpeed = 10f;
     private const float grappleControlAcceleration = 10f;
     private const float grappleDistance = 30f;
-    private const float grappleAcceleration = 30f;
-    private const float grappleTopSpeed = 25f;
+    private const float grappleAcceleration = 35f;
+    private const float grappleTopSpeed = 30f;
 
     private const float bouncePadSpeed = 36f;
 
@@ -112,11 +104,18 @@ public class PlayerMovement : MonoBehaviour
 
     public bool approachingWall;
 
+    private List<AbilityContainer> currentAbilities = new List<AbilityContainer>();
+
+    struct AbilityContainer
+    {
+        public Ability ability;
+        public GameObject dot;
+    }
+
     private float _approachingWallDistance;
     private Vector3 _wallNormal;
     private int _wallTimestamp = -100000;
     private int _wallTickCount;
-    private int _groundTickCount;
     private int _cancelLeanTickCount;
     private float _currentLean;
 
@@ -130,7 +129,6 @@ public class PlayerMovement : MonoBehaviour
     private Rail _currentRail;
 
     private Vector3 _grappleAttachPosition;
-    private Transform _grappleAttachTransform;
 
     private float _dashAddPotential;
     private float _dashAddSpeed;
@@ -153,8 +151,6 @@ public class PlayerMovement : MonoBehaviour
     public float YawIncrease { get; set; }
 
     public float CameraRoll { get; set; }
-
-    public static bool DashAvailable { get; set; }
 
     public static bool DoubleJumpAvailable { get; set; }
 
@@ -207,8 +203,6 @@ public class PlayerMovement : MonoBehaviour
     {
         LookScale = 1;
 
-        Game.Level.StopTimer();
-        Game.Level.ResetTimer();
         Yaw += transform.rotation.eulerAngles.y;
 
         Cursor.lockState = CursorLockMode.Locked;
@@ -229,8 +223,13 @@ public class PlayerMovement : MonoBehaviour
         if (Time.timeScale > 0)
         {
             YawIncrease = Input.GetAxis("Mouse X") * (Game.Sensitivity / 10) * LookScale;
+            YawIncrease += Input.GetAxis("Joy 1 X 2");
+
             Yaw = (Yaw + YawIncrease) % 360f;
+
             Pitch -= Input.GetAxis("Mouse Y") * (Game.Sensitivity / 10) * LookScale;
+            Pitch += Input.GetAxis("Joy 1 Y 2");
+
             Pitch = Mathf.Max(Pitch, -90);
             Pitch = Mathf.Min(Pitch, 90);
         }
@@ -251,14 +250,12 @@ public class PlayerMovement : MonoBehaviour
         // Check for level restart
         if (Input.GetKeyDown(PlayerInput.RestartLevel)) Game.RestartLevel();
 
-
         var position = cameraPosition;
         var crouchChange = _crouchAmount;
         if (IsSliding)
         {
             CurrentCollider = crouchingCollider;
             if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
-
         }
         else
         {
@@ -285,7 +282,7 @@ public class PlayerMovement : MonoBehaviour
 
         camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, targetFOV, Time.deltaTime * 5);
 
-        if (DashAvailable)
+        if (DoubleJumpAvailable)
         {
             _crosshairRotation = Mathf.Lerp(_crosshairRotation, 0, Time.deltaTime * 20);
         }
@@ -295,32 +292,53 @@ public class PlayerMovement : MonoBehaviour
         }
         crosshair.transform.rotation = Quaternion.Euler(new Vector3(0, 0, _crosshairRotation));
 
-        if (Input.GetKeyDown(PlayerInput.SecondaryInteract) && grappleEnabled)
+        /* if (Input.GetKeyDown(PlayerInput.SecondaryInteract) && grappleEnabled && Time.timeScale > 0)
+         {
+             if (!GrappleHooked)
+             {
+                 if (Physics.SphereCast(camera.transform.position, 2, CrosshairDirection, out var grapple, 100, 1, QueryTriggerInteraction.Ignore))
+                 {
+                     AttachGrapple(grapple.point);
+                 }
+             }
+         }
+         if (!Input.GetKey(PlayerInput.SecondaryInteract) && Time.timeScale > 0)
+         {
+             if (GrappleHooked) DetachGrapple();
+         }*/
+
+        if (Input.GetKeyDown(PlayerInput.SecondaryInteract) && Time.timeScale > 0 && currentAbilities.Count > 0)
         {
-            if (!GrappleHooked)
+            var container = currentAbilities[currentAbilities.Count - 1];
+            if (container.ability == Ability.GRAPPLE)
             {
-                if (Physics.SphereCast(camera.transform.position, 2, CrosshairDirection, out var grapple, 100, 1, QueryTriggerInteraction.Ignore))
+                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var ray, 100, 1, QueryTriggerInteraction.Ignore) && !ray.collider.CompareTag("Uninteractable"))
                 {
-                    AttachGrapple(grapple.transform, grapple.point);
+                    AttachGrapple(ray.point);
+                    SpendAbility();
+                }
+                else if (Physics.SphereCast(camera.transform.position, 4, CrosshairDirection, out var sphere, 100, 1, QueryTriggerInteraction.Ignore) && !sphere.collider.CompareTag("Uninteractable"))
+                {
+                    AttachGrapple(sphere.point);
+                    SpendAbility();
                 }
             }
+            if (container.ability == Ability.DASH)
+            {
+                Dash(CrosshairDirection);
+                SpendAbility();
+            }
         }
-        if (!Input.GetKey(PlayerInput.SecondaryInteract))
-        {
-            if (GrappleHooked) DetachGrapple();
-        }
+
     }
 
     private void FixedUpdate()
     {
         // Set Wishdir
-        Wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() +
-                   transform.forward * PlayerInput.GetAxisStrafeForward()).normalized;
-
-        // Start the timer when the player moves
-        if ((Wishdir.magnitude > 0 || PlayerInput.SincePressed(PlayerInput.PrimaryInteract) <= 1) && !Game.Level.TimerRunning)
+        Wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() + transform.forward * PlayerInput.GetAxisStrafeForward()).normalized;
+        if (Wishdir.magnitude <= 0)
         {
-            Game.Level.StartTimer();
+            Wishdir = (transform.right * Input.GetAxis("Joy 1 X") + transform.forward * -Input.GetAxis("Joy 1 Y")).normalized;
         }
 
         // Timestamps used for coyote time
@@ -349,7 +367,6 @@ public class PlayerMovement : MonoBehaviour
             AirMove(factor);
 
         if (!IsOnWall) _wallTickCount = 0;
-        if (!IsGrounded) _groundTickCount = 0;
 
         if (_excededSpeed > 0 && !IsDashing)
         {
@@ -401,7 +418,7 @@ public class PlayerMovement : MonoBehaviour
         foreach (var collider in overlap)
         {
             if (collider.gameObject == gameObject) continue;
-            if (collider.CompareTag("Arrow")) continue;
+            if (collider.CompareTag("Player")) continue;
             if (Physics.ComputePenetration(CurrentCollider, CurrentCollider.transform.position, CurrentCollider.transform.rotation, collider, collider.transform.position, collider.transform.rotation, out var direction, out var distance))
             {
                 if (collider.isTrigger)
@@ -414,7 +431,7 @@ public class PlayerMovement : MonoBehaviour
                 var projection = Vector3.Dot(velocity, -normal);
                 var angle = Vector3.Angle(Vector3.up, normal);
 
-                if (collider.CompareTag("Instant Kill Block"))
+                if (collider.CompareTag("Instant Kill Block") && !Game.Level.LevelCompleted)
                 {
                     Game.RestartLevel();
                 }
@@ -438,6 +455,7 @@ public class PlayerMovement : MonoBehaviour
                 if (!_landed && (IsOnWall || IsGrounded))
                 {
                     _landed = true;
+                    if (IsGrounded) source.PlayOneShot(groundLand);
                     DoubleJumpAvailable = true;
                     if (jumpKitEnabled && Flatten(velocity).magnitude >= movementSpeed - 1)
                     {
@@ -484,41 +502,55 @@ public class PlayerMovement : MonoBehaviour
             SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
         }
 
-        var abilityPickup = other.gameObject.GetComponent<AbilityPickup>();
-        if (abilityPickup != null)
+        if (other.CompareTag("Finish"))
         {
-            if (abilityPickup.ability == Ability.JUMPKIT)
-            {
-                jumpKitEnabled = true;
-            }
-            switch (abilityPickup.ability)
-            {
-                case Ability.JUMPKIT:
-                    jumpKitEnabled = true;
-                    break;
-                case Ability.BOW:
-                    bowEnabled = true;
-                    break;
-                case Ability.GRAPPLE:
-                    grappleEnabled = true;
-                    break;
-                case Ability.DASH:
-                    dashEnabled = true;
-                    break;
-            }
-            Destroy(other.gameObject);
+            Game.Level.EndTimer();
         }
+    }
+
+    public void AddAbility(Ability ability)
+    {
+        AbilityContainer container;
+        container.ability = ability;
+
+        var dot = Instantiate(abilityDot, Game.Canvas.transform);
+        if (ability == Ability.GRAPPLE)
+        {
+            dot.GetComponent<Image>().color = Color.blue;
+        }
+        if (ability == Ability.DASH)
+        {
+            dot.GetComponent<Image>().color = Color.red;
+        }
+        if (currentAbilities.Count > 0)
+        {
+            currentAbilities[currentAbilities.Count - 1].dot.transform.SetParent(dot.transform);
+            currentAbilities[currentAbilities.Count - 1].dot.transform.localPosition = new Vector3(0, -5, 0);
+        }
+
+        container.dot = dot;
+        currentAbilities.Add(container);
+    }
+
+    private void SpendAbility()
+    {
+        if (currentAbilities.Count == 0) return;
+        var container = currentAbilities[currentAbilities.Count - 1];
+        if (currentAbilities.Count > 1)
+        {
+            var child = container.dot.transform.GetChild(0);
+            child.SetParent(Game.Canvas.transform);
+            child.transform.position += new Vector3(0, 5, 0);
+        }
+        Destroy(container.dot);
+        currentAbilities.RemoveAt(currentAbilities.Count - 1);
     }
 
     public void Dash(Vector3 wishdir)
     {
-        if (!DashAvailable) return;
         StopDash();
         IsDashing = true;
-        DashAvailable = false;
         source.Play();
-
-        HudMovement.RotationSlamVector += Vector3.up * jumpCameraThunk;
 
         var angle = Vector3.Angle(wishdir, Flatten(wishdir));
 
@@ -569,7 +601,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (StopDash())
         {
-            Accelerate(Flatten(velocity).normalized, dashCancelSpeed, dashCancelAcceleration);
+            velocity += Flatten(velocity).normalized * dashCancelSpeed;
             var beforeSpeed = Flatten(velocity).magnitude;
             velocity += Flatten(velocity).normalized * dashCancelTempSpeed;
             _excededSpeed += Flatten(velocity).magnitude - beforeSpeed;
@@ -653,7 +685,6 @@ public class PlayerMovement : MonoBehaviour
             closeIndex = i;
         }
 
-        DashAvailable = true;
         DoubleJumpAvailable = true;
 
         if (_railDirection == 0)
@@ -736,17 +767,14 @@ public class PlayerMovement : MonoBehaviour
         railSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
     }
 
-    public void AttachGrapple(Transform t, Vector3 position)
+    public void AttachGrapple(Vector3 position)
     {
         if (!enabled) return;
         source.PlayOneShot(grappleAttach);
-        Game.Level.hitmarker.Display();
         if (GrappleHooked) return;
         if (IsOnRail) EndRail();
-        _grappleAttachPosition = t.TransformPoint(position);
-        _grappleAttachTransform = t;
+        _grappleAttachPosition = position;
         GrappleHooked = true;
-        grappleTether.enabled = true;
         grappleDuring.volume = 0.4f;
         grappleDuring.Play();
 
@@ -773,7 +801,9 @@ public class PlayerMovement : MonoBehaviour
     public void GrappleMove(float f)
     {
         Jump();
-        var position = _grappleAttachTransform.InverseTransformPoint(_grappleAttachPosition);
+        var position = _grappleAttachPosition;
+
+        if (!grappleTether.enabled) grappleTether.enabled = true;
 
         var list = new List<Vector3> { new Vector3(0, grappleYOffset, 0), camera.transform.InverseTransformPoint(position) };
 
@@ -798,8 +828,14 @@ public class PlayerMovement : MonoBehaviour
 
         Accelerate(towardPoint, grappleTopSpeed, f * grappleAcceleration);
         var magnitude = velocity.magnitude;
+        velocity += Wishdir * grappleControlAcceleration * f;
         velocity += CrosshairDirection * grappleControlAcceleration * f;
         velocity = velocity.normalized * magnitude;
+
+        if (Vector3.Dot(towardPoint, CrosshairDirection) < 0)
+        {
+            DetachGrapple();
+        }
 
         if (Vector3.Distance(position, transform.position) > grappleDistance)
         {
@@ -816,7 +852,11 @@ public class PlayerMovement : MonoBehaviour
         if (_wallTickCount == 0)
         {
             source.PlayOneShot(groundLand);
-            ApplyFriction(wallFriction * f);
+            ApplyFriction(landFriction * f);
+            if (jumpKitEnabled && Flatten(velocity).magnitude >= movementSpeed - 1)
+            {
+                Accelerate(Flatten(velocity).normalized, landBoostSpeed, landBoostSpeed);
+            }
         }
 
         _wallTickCount++;
@@ -844,21 +884,18 @@ public class PlayerMovement : MonoBehaviour
             Gravity(f);
         }
 
-        if (Wishdir.magnitude > 0)
+        var direction = new Vector3(_wallNormal.z, 0, -_wallNormal.x);
+        if (Mathf.Abs(Vector3.Dot(direction, Wishdir)) > 0.5)
         {
-            var direction = new Vector3(_wallNormal.z, 0, -_wallNormal.x);
-            if (Mathf.Abs(Vector3.Dot(direction, Wishdir)) > 0.5)
-            {
-                if (Vector3.Angle(Wishdir, direction) < 90)
-                    Accelerate(direction, wallSpeed, wallAcceleration * f);
-                else
-                    Accelerate(-direction, wallSpeed, wallAcceleration * f);
-            }
+            if (Vector3.Angle(Wishdir, direction) < 90)
+                Accelerate(direction, wallSpeed, wallAcceleration * f);
+            else
+                Accelerate(-direction, wallSpeed, wallAcceleration * f);
         }
 
         if (Flatten(velocity).magnitude < wallSpeed)
         {
-            ApplyFriction(f * wallFriction);
+            ApplyFriction(f * groundFriction);
         }
 
         Accelerate(-_wallNormal, fallSpeed, gravity * f);
@@ -873,15 +910,10 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Jump()) return;
 
-        if (_groundTickCount == 0) source.PlayOneShot(groundLand);
-
-        _groundTickCount++;
-
         rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
         rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
 
         Gravity(f);
-        DashAvailable = true;
         DoubleJumpAvailable = true;
         if (IsSliding)
         {
@@ -890,7 +922,6 @@ public class PlayerMovement : MonoBehaviour
             SetCameraRotation(leanProjection * 15, 6);
 
             Accelerate(Wishdir, 0, airAcceleration * f);
-            ApplyFriction(f * slideFriction);
         }
         else
         {
@@ -935,9 +966,9 @@ public class PlayerMovement : MonoBehaviour
 
         var magnitude = velocity.magnitude;
 
-        var maxChange = 0.2f;
-
-        velocity.y += CrosshairDirection.y * airCorrectionForce * f;
+        var push = Flatten(velocity.normalized).normalized * Flatten(CrosshairDirection).magnitude;
+        push.y = CrosshairDirection.y;
+        velocity += push * airCorrectionForce * f;
         velocity = velocity.normalized * magnitude;
 
         if (!jumpKitEnabled) return;
@@ -1020,14 +1051,14 @@ public class PlayerMovement : MonoBehaviour
             velocity += addvector * f;
         }
 
-        if (!approachingWall && !IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
+        /*if (!approachingWall && !IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
         {
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
             velocity += Wishdir * f * airAcceleration;
             velocity = Flatten(velocity).normalized * speed;
             velocity.y = y;
-        }
+        }*/
     }
 
     public void ApplyFriction(float f, float minimumSpeed = 0, float deceleration = 0)
@@ -1116,7 +1147,7 @@ public class PlayerMovement : MonoBehaviour
                 if (!jumpKitEnabled) return false;
                 DoubleJumpAvailable = false;
 
-                if (Wishdir.magnitude > 0)
+                if (Wishdir.magnitude > 0 && !IsStrafing)
                 {
                     var speedvector = Flatten(velocity);
 
@@ -1137,7 +1168,6 @@ public class PlayerMovement : MonoBehaviour
             if (groundJump || railJump)
             {
                 DoubleJumpAvailable = true;
-                DashAvailable = true;
             }
 
             if (groundJump)

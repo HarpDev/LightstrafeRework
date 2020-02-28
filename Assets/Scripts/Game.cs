@@ -23,12 +23,12 @@ public class Game : MonoBehaviour
     }
     public static void SetBestLevelTime(string level, float time)
     {
-        PlayerPrefs.SetFloat("va0.22BestTime" + level, time);
+        PlayerPrefs.SetFloat("va0.5BestTime" + level, time);
     }
 
     public static float GetBestLevelTime(string level)
     {
-        return PlayerPrefs.HasKey("va0.22BestTime" + level) ? PlayerPrefs.GetFloat("va0.22BestTime" + level) : -1f;
+        return PlayerPrefs.HasKey("va0.5BestTime" + level) ? PlayerPrefs.GetFloat("va0.5BestTime" + level) : -1f;
     }
 
     private static Level level;
@@ -98,6 +98,7 @@ public class Game : MonoBehaviour
     {
         if (UiTree.Count > 0)
         {
+            if (UiTree.Count == 1 && level != null && level.IsPaused() && level.LevelCompleted) return;
             var obj = UiTree[UiTree.Count - 1];
             UiTree.RemoveAt(UiTree.Count - 1);
             Destroy(obj.gameObject);
@@ -149,7 +150,13 @@ public class Game : MonoBehaviour
 
     public static void NextLevel()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        if (SceneManager.GetActiveScene().buildIndex + 1 >= SceneManager.sceneCountInBuildSettings)
+        {
+            SceneManager.LoadScene(0);
+        } else
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        }
     }
 
     public static void StartMenu()

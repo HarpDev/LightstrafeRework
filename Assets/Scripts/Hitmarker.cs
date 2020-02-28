@@ -4,6 +4,7 @@ using UnityEngine.UI;
 public class Hitmarker : MonoBehaviour
 {
 
+    public AudioClip sound;
     private Image image;
     private Image Image
     {
@@ -19,6 +20,7 @@ public class Hitmarker : MonoBehaviour
         var c = Image.color;
         c.a = 1f;
         Image.color = c;
+        if (sound != null) Game.Level.player.source.PlayOneShot(sound);
     }
 
     private void Awake()

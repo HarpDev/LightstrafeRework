@@ -1,11 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static PlayerMovement;
 
 public class Target : MonoBehaviour
 {
 
     public GameObject debris;
+    public Ability ability;
 
     private void Update()
     {
@@ -16,6 +18,7 @@ public class Target : MonoBehaviour
 
     public void Explode(Vector3 direction)
     {
+        debris.transform.parent = null;
         exploded = true;
         debris.SetActive(true);
         foreach (var body in debris.GetComponentsInChildren<Rigidbody>())
@@ -24,13 +27,7 @@ public class Target : MonoBehaviour
             var force = direction.normalized * 150 + new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
             body.AddForce(force * 10);
         }
-        gameObject.GetComponent<MeshRenderer>().enabled = false;
-        gameObject.GetComponent<BoxCollider>().enabled = false;
-        Invoke("End", 4f);
-    }
-
-    public void End()
-    {
+        Game.Level.player.AddAbility(ability);
         Destroy(gameObject);
     }
 }

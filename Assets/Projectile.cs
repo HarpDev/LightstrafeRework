@@ -7,7 +7,7 @@ public class Projectile : MonoBehaviour
 
     public Vector3 velocity;
 
-    private const float basespeed = 40;
+    private const float basespeed = 80;
 
     public ParticleSystem explodeParticle;
     public ParticleSystem trailParticle;
@@ -63,6 +63,7 @@ public class Projectile : MonoBehaviour
         _rigidbody.velocity = new Vector3();
 
         _hitTarget = collision.collider.gameObject.GetComponent<Target>();
+        if (_hitTarget != null) Game.Level.hitmarker.Display();
 
         Invoke("Explode", delay);
     }

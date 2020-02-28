@@ -8,26 +8,39 @@ public class Level : MonoBehaviour
 {
     public bool TimerRunning { get; private set; }
 
+    public bool LevelCompleted { get; private set; }
+
     public Hitmarker hitmarker;
     public PlayerMovement player;
     public float CurrentTime { get; set; }
-    private bool Finished { get; set; }
-
-    private GameObject[] _targets;
-
-    private void Awake()
-    {
-        _targets = GameObject.FindGameObjectsWithTag("Target");
-    }
 
     private void Update()
     {
-        if (TimerRunning && !Finished) CurrentTime += Time.unscaledDeltaTime;
+        if (TimerRunning)
+        {
+            CurrentTime += Time.unscaledDeltaTime;
+        }
         if (Input.GetKeyDown(PlayerInput.Pause))
         {
             if (!IsPaused()) Pause();
         }
         if (!IsPaused() && Cursor.visible) Unpause();
+
+        if (Input.GetKeyDown(PlayerInput.PrimaryInteract))
+        {
+            _wishTimerStart = true;
+        }
+    }
+
+    private bool _wishTimerStart;
+
+    private void FixedUpdate()
+    {
+        if ((Flatten(player.velocity).magnitude > 0.01f || _wishTimerStart) && !TimerRunning && CurrentTime == 0 && !LevelCompleted)
+        {
+            TimerRunning = true;
+        }
+        _wishTimerStart = false;
     }
 
     public bool IsPaused()
@@ -37,6 +50,7 @@ public class Level : MonoBehaviour
 
     public void Pause()
     {
+        Time.timeScale = 0;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         Game.OpenPauseMenu();
@@ -48,6 +62,7 @@ public class Level : MonoBehaviour
 
     public void Unpause()
     {
+        Time.timeScale = 1;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -59,26 +74,11 @@ public class Level : MonoBehaviour
         }
     }
 
-    public void ResetTimer()
-    {
-        CurrentTime = 0;
-    }
-
-    public void StopTimer()
-    {
-        TimerRunning = false;
-    }
-
-    public void StartTimer()
-    {
-        if (!Finished) TimerRunning = true;
-    }
-
     public void EndTimer()
     {
-        if (TimerRunning || !Finished)
+        if (TimerRunning)
         {
-            Finished = true;
+            LevelCompleted = true;
             TimerRunning = false;
             var level = SceneManager.GetActiveScene().name;
             if (CurrentTime < Game.GetBestLevelTime(level) || Game.GetBestLevelTime(level) < 0f)
@@ -91,5 +91,10 @@ public class Level : MonoBehaviour
                 TimerDisplay.color = Color.green;
             }
         }
+    }
+
+    private static Vector3 Flatten(Vector3 vec)
+    {
+        return new Vector3(vec.x, 0, vec.z);
     }
 }
