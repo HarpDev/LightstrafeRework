@@ -12,6 +12,7 @@ public class Level : MonoBehaviour
 
     public Hitmarker hitmarker;
     public PlayerMovement player;
+
     public float CurrentTime { get; set; }
 
     private void Update()

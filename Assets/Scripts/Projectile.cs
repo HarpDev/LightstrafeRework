@@ -15,6 +15,8 @@ public class Projectile : MonoBehaviour
 
     public GameObject visual;
 
+    public Radial radial;
+
     private const float radius = 15f;
     private const float power = 15f;
 
@@ -89,6 +91,14 @@ public class Projectile : MonoBehaviour
 
         Game.Level.player.Accelerate(direction, 0, amount * power);
         Game.Level.player.velocity += direction * amount * power;
+        if (amount > 0)
+        {
+            var r = Instantiate(radial, Game.Canvas.transform).GetComponent<Radial>();
+            r.size = amount * 2;
+            var flat = Flatten(direction).normalized;
+            var angle = Mathf.Atan2(flat.z, flat.x);
+            r.position = angle * Mathf.Rad2Deg + (Game.Level.player.Yaw + 90);
+        }
 
         if (explodeSound != null) explodeSound.Play();
         if (explodeParticle != null) explodeParticle.Play();
@@ -97,5 +107,10 @@ public class Projectile : MonoBehaviour
 
         visual.GetComponent<MeshRenderer>().enabled = false;
         GetComponent<SphereCollider>().enabled = false;
+    }
+
+    private static Vector3 Flatten(Vector3 vec)
+    {
+        return new Vector3(vec.x, 0, vec.z);
     }
 }

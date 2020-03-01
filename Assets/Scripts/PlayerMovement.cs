@@ -39,10 +39,10 @@ public class PlayerMovement : MonoBehaviour
     private const float groundFriction = 5f;
     private const float landBoostSpeed = 16f;
 
-    private const float doubleJumpForce = 10;
     private const float airAcceleration = 40f;
     private const float airSpeed = 2f;
     private const float airCorrectionForce = 10f;
+    private const float airLowSpeedGroundMultiplier = 0.65f;
 
     private const float groundAngle = 45;
 
@@ -59,8 +59,8 @@ public class PlayerMovement : MonoBehaviour
 
     private const float excededFriction = 4;
 
-    private const float gravity = 0.45f;
-    private const float fallSpeed = 40f;
+    private const float gravity = 0.2f;
+    private const float fallSpeed = 100f;
 
     private const float jumpHeight = 12f;
     private const int coyoteTicks = 20;
@@ -73,8 +73,6 @@ public class PlayerMovement : MonoBehaviour
     private const float grappleDistance = 30f;
     private const float grappleAcceleration = 35f;
     private const float grappleTopSpeed = 30f;
-
-    private const float bouncePadSpeed = 36f;
 
     /* Audio */
     public AudioSource source;
@@ -112,7 +110,6 @@ public class PlayerMovement : MonoBehaviour
         public GameObject dot;
     }
 
-    private float _approachingWallDistance;
     private Vector3 _wallNormal;
     private int _wallTimestamp = -100000;
     private int _wallTickCount;
@@ -223,12 +220,12 @@ public class PlayerMovement : MonoBehaviour
         if (Time.timeScale > 0)
         {
             YawIncrease = Input.GetAxis("Mouse X") * (Game.Sensitivity / 10) * LookScale;
-            YawIncrease += Input.GetAxis("Joy 1 X 2");
+            YawIncrease += Input.GetAxis("Joy 1 X 2") * Game.Sensitivity * LookScale;
 
             Yaw = (Yaw + YawIncrease) % 360f;
 
             Pitch -= Input.GetAxis("Mouse Y") * (Game.Sensitivity / 10) * LookScale;
-            Pitch += Input.GetAxis("Joy 1 Y 2");
+            Pitch += Input.GetAxis("Joy 1 Y 2") * Game.Sensitivity * LookScale;
 
             Pitch = Mathf.Max(Pitch, -90);
             Pitch = Mathf.Min(Pitch, 90);
@@ -312,12 +309,12 @@ public class PlayerMovement : MonoBehaviour
             var container = currentAbilities[currentAbilities.Count - 1];
             if (container.ability == Ability.GRAPPLE)
             {
-                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var ray, 100, 1, QueryTriggerInteraction.Ignore) && !ray.collider.CompareTag("Uninteractable"))
+                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var ray, 100, 1, QueryTriggerInteraction.Ignore) && !ray.collider.CompareTag("Uninteractable") && !ray.collider.CompareTag("Kill Block"))
                 {
                     AttachGrapple(ray.point);
                     SpendAbility();
                 }
-                else if (Physics.SphereCast(camera.transform.position, 4, CrosshairDirection, out var sphere, 100, 1, QueryTriggerInteraction.Ignore) && !sphere.collider.CompareTag("Uninteractable"))
+                else if (Physics.SphereCast(camera.transform.position, 4, CrosshairDirection, out var sphere, 100, 1, QueryTriggerInteraction.Ignore) && !sphere.collider.CompareTag("Uninteractable") && !sphere.collider.CompareTag("Kill Block"))
                 {
                     AttachGrapple(sphere.point);
                     SpendAbility();
@@ -431,15 +428,20 @@ public class PlayerMovement : MonoBehaviour
                 var projection = Vector3.Dot(velocity, -normal);
                 var angle = Vector3.Angle(Vector3.up, normal);
 
+                if (angle < groundAngle)
+                {
+                    IsGrounded = true;
+                    GroundNormal = normal;
+                }
+
                 if (collider.CompareTag("Instant Kill Block") && !Game.Level.LevelCompleted)
                 {
                     Game.RestartLevel();
                 }
 
-                if (angle < groundAngle)
+                if (collider.CompareTag("Kill Block") && IsGrounded && !Game.Level.LevelCompleted)
                 {
-                    IsGrounded = true;
-                    GroundNormal = normal;
+                    Game.RestartLevel();
                 }
 
                 if (collider.CompareTag("Wall") && Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled)
@@ -901,9 +903,9 @@ public class PlayerMovement : MonoBehaviour
         Accelerate(-_wallNormal, fallSpeed, gravity * f);
     }
 
-    public void Gravity(float f, bool inverse = false)
+    public void Gravity(float f)
     {
-        if (!IsDashing && velocity.y > -fallSpeed) velocity.y = Mathf.Lerp(velocity.y, -fallSpeed, gravity * f);
+        if (!IsDashing) velocity.y = Mathf.Lerp(velocity.y, -fallSpeed, gravity * f);
     }
 
     public void GroundMove(float f)
@@ -964,13 +966,6 @@ public class PlayerMovement : MonoBehaviour
 
         Jump();
 
-        var magnitude = velocity.magnitude;
-
-        var push = Flatten(velocity.normalized).normalized * Flatten(CrosshairDirection).magnitude;
-        push.y = CrosshairDirection.y;
-        velocity += push * airCorrectionForce * f;
-        velocity = velocity.normalized * magnitude;
-
         if (!jumpKitEnabled) return;
 
         // Lean in
@@ -984,16 +979,9 @@ public class PlayerMovement : MonoBehaviour
 
         if (didHit && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive && hit.collider.CompareTag("Wall"))
         {
-            var close = hit.point;
+            if (!approachingWall) approachingWall = true;
 
-            var distance = Vector3.Dot(close - pos, hit.normal) - 0.5f;
-            if (!approachingWall)
-            {
-                approachingWall = true;
-                _approachingWallDistance = distance;
-            }
-
-            var rotation = (_approachingWallDistance - distance) / _approachingWallDistance;
+            var rotation = 1 - (hit.distance / velocity.magnitude) / wallLeanPreTime;
             _currentLean = rotation;
 
             rotation *= 2 - rotation;
@@ -1020,14 +1008,31 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirAccelerate(float f)
     {
-        var frictionMod = 1 - Mathf.Min(Flatten(velocity).magnitude / (movementSpeed - 1), 1);
-        GroundAccelerate(f * frictionMod * 0.65f);
-        f *= 1 - frictionMod;
+        var groundMod = 1 - Mathf.Min(Flatten(velocity).magnitude / (movementSpeed - 1), 1);
+        GroundAccelerate(f * groundMod * airLowSpeedGroundMultiplier);
+        f *= 1 - groundMod;
+
+        var speed = Flatten(velocity).magnitude;
+
+        if (groundMod == 0)
+        {
+            var magnitude = velocity.magnitude;
+            var push = Flatten(velocity.normalized).normalized * Flatten(CrosshairDirection).magnitude;
+            push.y = CrosshairDirection.y;
+            velocity += push * airCorrectionForce * f;
+            velocity = velocity.normalized * magnitude;
+            if (Flatten(velocity).magnitude > speed && velocity.y < 0)
+            {
+                velocity = velocity.normalized * (magnitude * speed / Flatten(velocity).magnitude);
+            }
+        }
 
         var ticksPerSecond = 1 / Time.fixedDeltaTime;
         var sinceJump = 1 - Mathf.Min(_sinceJumpCounter / (ticksPerSecond * jumpGracePeriod), 1);
 
         var accel = airAcceleration + (sinceJump * jumpGraceBonusAccel);
+
+        accel *= 1 - _currentLean;
 
         var currentspeed = Vector3.Dot(velocity - (Flatten(velocity).normalized * _excededSpeed), Wishdir);
         var addspeed = Mathf.Abs(airSpeed) - currentspeed;
@@ -1051,14 +1056,14 @@ public class PlayerMovement : MonoBehaviour
             velocity += addvector * f;
         }
 
-        /*if (!approachingWall && !IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
+        if (!IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
         {
-            var speed = Flatten(velocity).magnitude;
+            speed = Flatten(velocity).magnitude;
             var y = velocity.y;
-            velocity += Wishdir * f * airAcceleration;
+            velocity += Wishdir * f * airAcceleration * (1 - _currentLean);
             velocity = Flatten(velocity).normalized * speed;
             velocity.y = y;
-        }*/
+        }
     }
 
     public void ApplyFriction(float f, float minimumSpeed = 0, float deceleration = 0)
@@ -1140,34 +1145,18 @@ public class PlayerMovement : MonoBehaviour
             }
             PlayerInput.ConsumeBuffer(PlayerInput.Jump);
 
-            CancelDash();
-
             if (!groundJump && !railJump)
             {
-                if (!jumpKitEnabled) return false;
+                if (!jumpKitEnabled || IsDashing) return false;
                 DoubleJumpAvailable = false;
 
-                if (Wishdir.magnitude > 0 && !IsStrafing)
-                {
-                    var speedvector = Flatten(velocity);
-
-                    var direction = Wishdir.magnitude > 0 ? Wishdir : speedvector.normalized;
-
-                    velocity += direction * doubleJumpForce;
-                    if (Flatten(velocity).magnitude > speedvector.magnitude)
-                    {
-                        var y = velocity.y;
-                        velocity = Flatten(velocity).normalized * speedvector.magnitude;
-                        velocity.y = y;
-                    }
-
-                    Accelerate(Flatten(velocity).normalized, movementSpeed, movementSpeed);
-                }
+                Accelerate(Flatten(velocity).normalized, movementSpeed, movementSpeed);
             }
 
             if (groundJump || railJump)
             {
                 DoubleJumpAvailable = true;
+                CancelDash();
             }
 
             if (groundJump)
