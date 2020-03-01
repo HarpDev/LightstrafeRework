@@ -69,7 +69,7 @@ public class PlayerMovement : MonoBehaviour
     private const float jumpGracePeriod = 0.5f;
     private const float jumpGraceBonusAccel = 800;
 
-    private const float grappleControlAcceleration = 10f;
+    private const float grappleControlAcceleration = 6f;
     private const float grappleDistance = 30f;
     private const float grappleAcceleration = 35f;
     private const float grappleTopSpeed = 30f;
@@ -309,12 +309,12 @@ public class PlayerMovement : MonoBehaviour
             var container = currentAbilities[currentAbilities.Count - 1];
             if (container.ability == Ability.GRAPPLE)
             {
-                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var ray, 100, 1, QueryTriggerInteraction.Ignore) && !ray.collider.CompareTag("Uninteractable") && !ray.collider.CompareTag("Kill Block"))
+                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var ray, 150, 1, QueryTriggerInteraction.Ignore) && !ray.collider.CompareTag("Uninteractable") && !ray.collider.CompareTag("Kill Block"))
                 {
                     AttachGrapple(ray.point);
                     SpendAbility();
                 }
-                else if (Physics.SphereCast(camera.transform.position, 4, CrosshairDirection, out var sphere, 100, 1, QueryTriggerInteraction.Ignore) && !sphere.collider.CompareTag("Uninteractable") && !sphere.collider.CompareTag("Kill Block"))
+                else if (Physics.SphereCast(camera.transform.position, 4, CrosshairDirection, out var sphere, 150, 1, QueryTriggerInteraction.Ignore) && !sphere.collider.CompareTag("Uninteractable") && !sphere.collider.CompareTag("Kill Block"))
                 {
                     AttachGrapple(sphere.point);
                     SpendAbility();
