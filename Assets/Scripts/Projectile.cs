@@ -90,11 +90,11 @@ public class Projectile : MonoBehaviour
         }
 
         Game.Level.player.Accelerate(direction, 0, amount * power);
-        Game.Level.player.velocity += direction * amount * power;
+        Game.Level.player.velocity += direction * amount * (power / 2);
         if (amount > 0)
         {
             var r = Instantiate(radial, Game.Canvas.transform).GetComponent<Radial>();
-            r.size = amount * 2;
+            r.size = amount * 2 * Flatten(direction).magnitude;
             var flat = Flatten(direction).normalized;
             var angle = Mathf.Atan2(flat.z, flat.x);
             r.position = angle * Mathf.Rad2Deg + (Game.Level.player.Yaw + 90);

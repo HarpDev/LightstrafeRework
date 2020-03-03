@@ -22,11 +22,11 @@ public class PlayerMovement : MonoBehaviour
         DASH
     }
 
-    private const float landFriction = 10f;
+    private const float wallLandFriction = 10f;
     private const float wallCatchFriction = 10f;
     private const float wallSpeed = 16f;
     private const float wallAcceleration = 80f;
-    private const float wallJumpSpeed = 8f;
+    private const float wallJumpSpeed = 10f;
     private const float wallAngleGive = 10f;
 
     private const float wallLeanDegrees = 20f;
@@ -37,6 +37,7 @@ public class PlayerMovement : MonoBehaviour
     private const float movementSpeed = 7f;
     private const float groundAcceleration = 80f;
     private const float groundFriction = 5f;
+    private const float slideFriction = 0.1f;
     private const float landBoostSpeed = 16f;
 
     private const float airAcceleration = 40f;
@@ -394,6 +395,23 @@ public class PlayerMovement : MonoBehaviour
         var movement = velocity * Time.fixedDeltaTime;
         _previousPosition = transform.position;
 
+        float movementSqrMagnitude = movement.sqrMagnitude;
+
+        if (movementSqrMagnitude > Mathf.Pow(Mathf.Min(Mathf.Min(CurrentCollider.bounds.extents.x, CurrentCollider.bounds.extents.y), CurrentCollider.bounds.extents.z), 2))
+        {
+            float movementMagnitude = Mathf.Sqrt(movementSqrMagnitude);
+
+            var center = CurrentCollider.bounds.center;
+            var radius = Mathf.Max(CurrentCollider.bounds.extents.x, CurrentCollider.bounds.extents.z);
+            var start = center + Vector3.up * (CurrentCollider.bounds.extents.y - radius);
+            var end = center + Vector3.down * (CurrentCollider.bounds.extents.y - radius);
+
+            if (Physics.CapsuleCast(start, end, radius, movement, out RaycastHit hit, movementMagnitude, 1, QueryTriggerInteraction.Ignore))
+            {
+                movement -= movement.normalized * (movementMagnitude - hit.distance - radius);
+            }
+        }
+
         transform.position += movement;
 
         var hold = 0.05f;
@@ -444,7 +462,7 @@ public class PlayerMovement : MonoBehaviour
                     Game.RestartLevel();
                 }
 
-                if (collider.CompareTag("Wall") && Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled)
+                if (!collider.CompareTag("Uninteractable") && Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled)
                 {
                     if (wasOnWall || Vector3.Dot(Flatten(velocity).normalized, Flatten(normal).normalized) < 0)
                     {
@@ -459,7 +477,7 @@ public class PlayerMovement : MonoBehaviour
                     _landed = true;
                     if (IsGrounded) source.PlayOneShot(groundLand);
                     DoubleJumpAvailable = true;
-                    if (jumpKitEnabled && Flatten(velocity).magnitude >= movementSpeed - 1)
+                    if (jumpKitEnabled && Flatten(velocity).magnitude >= movementSpeed - 1 && Vector3.Dot(Wishdir, Flatten(velocity).normalized) > -0.5)
                     {
                         Accelerate(Flatten(velocity).normalized, landBoostSpeed, landBoostSpeed);
                     }
@@ -854,8 +872,8 @@ public class PlayerMovement : MonoBehaviour
         if (_wallTickCount == 0)
         {
             source.PlayOneShot(groundLand);
-            ApplyFriction(landFriction * f);
-            if (jumpKitEnabled && Flatten(velocity).magnitude >= movementSpeed - 1)
+            ApplyFriction(wallLandFriction * f);
+            if (jumpKitEnabled && Flatten(velocity).magnitude >= movementSpeed - 1 && Vector3.Dot(Wishdir, Flatten(velocity).normalized) > -0.5)
             {
                 Accelerate(Flatten(velocity).normalized, landBoostSpeed, landBoostSpeed);
             }
@@ -924,6 +942,7 @@ public class PlayerMovement : MonoBehaviour
             SetCameraRotation(leanProjection * 15, 6);
 
             Accelerate(Wishdir, 0, airAcceleration * f);
+            ApplyFriction(f * slideFriction, 0, movementSpeed);
         }
         else
         {
@@ -969,7 +988,6 @@ public class PlayerMovement : MonoBehaviour
         if (!jumpKitEnabled) return;
 
         // Lean in
-        var pos = InterpolatedPosition;
         var center = CurrentCollider.bounds.center;
         var radius = Mathf.Max(CurrentCollider.bounds.extents.x, CurrentCollider.bounds.extents.z);
         var start = center + Vector3.up * (CurrentCollider.bounds.extents.y - radius);
@@ -977,7 +995,7 @@ public class PlayerMovement : MonoBehaviour
 
         var didHit = Physics.CapsuleCast(start, end, radius, velocity.normalized, out RaycastHit hit, velocity.magnitude * wallLeanPreTime, 1, QueryTriggerInteraction.Ignore);
 
-        if (didHit && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive && hit.collider.CompareTag("Wall"))
+        if (didHit && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive && !hit.collider.CompareTag("Uninteractable"))
         {
             if (!approachingWall) approachingWall = true;
 

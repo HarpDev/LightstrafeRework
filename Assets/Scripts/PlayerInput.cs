@@ -22,17 +22,19 @@ public class PlayerInput : MonoBehaviour
     {
         var exists = keys.TryGetValue(key, out int time);
         if (exists) return time;
-        else return 0;
+        else return -1;
     }
 
     public static int SincePressed(KeyCode key)
     {
-        return tickCount - GetData(key);
+        var data = GetData(key);
+        if (data == -1) return int.MaxValue;
+        return tickCount - data;
     }
 
     public static void ConsumeBuffer(KeyCode key)
     {
-        keys[key] = 0;
+        keys[key] = -1;
     }
 
     public static float GetAxisStrafeRight()
