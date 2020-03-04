@@ -17,7 +17,7 @@ public class Projectile : MonoBehaviour
 
     public Radial radial;
 
-    private const float radius = 15f;
+    private const float radius = 10f;
     private const float power = 15f;
 
     private const float delay = 0.3f;
@@ -78,26 +78,32 @@ public class Projectile : MonoBehaviour
         }
 
         var vector = Game.Level.player.transform.position - transform.position;
-        var amount = Mathf.Pow(Mathf.Max(radius - vector.magnitude, 0) / radius, 2);
-
-        var direction = vector.normalized;
-
-        if (Game.Level.player.IsGrounded)
+        if (vector.magnitude < radius)
         {
-            var ground = Game.Level.player.GroundNormal;
-            var projection = Vector3.Dot(direction, ground);
-            if (projection > 0) direction -= ground * projection;
-        }
+            vector = Flatten(vector);
+            var amount = Mathf.Pow(Mathf.Max(radius - vector.magnitude, 0) / radius, 2);
+            if (amount > 0) amount = Mathf.Min(1, amount + 0.5f);
 
-        Game.Level.player.Accelerate(direction, 0, amount * power);
-        Game.Level.player.velocity += direction * amount * (power / 2);
-        if (amount > 0)
-        {
-            var r = Instantiate(radial, Game.Canvas.transform).GetComponent<Radial>();
-            r.size = amount * 2 * Flatten(direction).magnitude;
-            var flat = Flatten(direction).normalized;
-            var angle = Mathf.Atan2(flat.z, flat.x);
-            r.position = angle * Mathf.Rad2Deg + (Game.Level.player.Yaw + 90);
+            var direction = vector.normalized;
+
+            Game.Level.player.Accelerate(direction, 0, amount * power);
+            Game.Level.player.velocity += direction * amount * (power / 2);
+            if (amount > 0)
+            {
+                var r = Instantiate(radial, Game.Canvas.transform).GetComponent<Radial>();
+                if (amount < 1)
+                {
+                    r.Image.color = Game.green;
+                }
+                else
+                {
+                    r.Image.color = Game.gold;
+                }
+                r.size = amount * 2;
+                var flat = Flatten(direction).normalized;
+                var angle = Mathf.Atan2(flat.z, flat.x);
+                r.position = angle * Mathf.Rad2Deg + (Game.Level.player.Yaw + 90);
+            }
         }
 
         if (explodeSound != null) explodeSound.Play();

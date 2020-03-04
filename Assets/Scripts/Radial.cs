@@ -12,14 +12,17 @@ public class Radial : MonoBehaviour
     private const float radius = 28;
     private const float minSize = 0.25f;
 
-    private Image image;
+    public Image Image { get; set; }
 
     private float _yScale;
 
+    private void Awake()
+    {
+        Image = GetComponent<Image>();
+    }
+
     private void Start()
     {
-        image = GetComponent<Image>();
-
         transform.localPosition = new Vector3(-Mathf.Sin(position * Mathf.Deg2Rad), Mathf.Cos(position * Mathf.Deg2Rad), 0) * radius;
         transform.localRotation = Quaternion.Euler(0, 0, position);
     }
@@ -33,7 +36,7 @@ public class Radial : MonoBehaviour
 
         if (_yScale >= size || size <= minSize + 0.05f)
         {
-            if (image.color.a > 0) image.color -= new Color(0, 0, 0, Time.deltaTime);
+            if (Image.color.a > 0) Image.color -= new Color(0, 0, 0, Time.deltaTime);
             else Destroy(gameObject);
         }
     }

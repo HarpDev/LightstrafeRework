@@ -27,6 +27,7 @@ public class PlayerMovement : MonoBehaviour
     private const float wallSpeed = 16f;
     private const float wallAcceleration = 80f;
     private const float wallJumpSpeed = 10f;
+    private const float wallJumpTrueSpeed = 3f;
     private const float wallAngleGive = 10f;
 
     private const float wallLeanDegrees = 20f;
@@ -37,7 +38,7 @@ public class PlayerMovement : MonoBehaviour
     private const float movementSpeed = 7f;
     private const float groundAcceleration = 80f;
     private const float groundFriction = 5f;
-    private const float slideFriction = 0;
+    private const float slideFriction = 0.5f;
     private const float landBoostSpeed = 16f;
 
     private const float airAcceleration = 40f;
@@ -54,8 +55,8 @@ public class PlayerMovement : MonoBehaviour
     private const float dashSpeed = 15f;
     private const float dashDistance = 15f;
 
-    private const float dashCancelTempSpeed = 30f;
-    private const float dashCancelSpeed = 5f;
+    private const float dashCancelTempSpeed = 27f;
+    private const float dashCancelSpeed = 8f;
     private const float dashCancelPotentialMultiplier = 1.65f;
 
     private const float excededFriction = 4;
@@ -66,11 +67,13 @@ public class PlayerMovement : MonoBehaviour
     private const float jumpHeight = 12f;
     private const int coyoteTicks = 20;
     private const int jumpForgiveness = 10;
+    private const float jumpGracePeriod = 0.5f;
+    private const float jumpGraceBonusAccel = 40;
 
     private const float grappleControlAcceleration = 6f;
     private const float grappleDistance = 30f;
-    private const float grappleAcceleration = 35f;
-    private const float grappleTopSpeed = 30f;
+    private const float grappleAcceleration = 25f;
+    private const float grappleTopSpeed = 80f;
 
     /* Audio */
     public AudioSource source;
@@ -792,6 +795,7 @@ public class PlayerMovement : MonoBehaviour
         grappleDuring.volume = 0;
 
         source.PlayOneShot(grappleRelease);
+        DoubleJumpAvailable = true;
     }
 
     public void GrappleMove(float f)
@@ -801,6 +805,8 @@ public class PlayerMovement : MonoBehaviour
         if (!grappleTether.enabled) grappleTether.enabled = true;
 
         rollSound.volume = 0;
+
+        if (DoubleJumpAvailable) DoubleJumpAvailable = false;
 
         var list = new List<Vector3> { new Vector3(0, grappleYOffset, 0), camera.transform.InverseTransformPoint(position) };
 
@@ -1021,7 +1027,12 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        var accel = airAcceleration * (1 - _currentLean);
+        var ticksPerSecond = 1 / Time.fixedDeltaTime;
+        var sinceJump = 1 - Mathf.Min(_sinceJumpCounter / (ticksPerSecond * jumpGracePeriod), 1);
+
+        var accel = airAcceleration + (sinceJump * jumpGraceBonusAccel);
+
+        accel *= 1 - _currentLean;
 
         var currentspeed = Vector3.Dot(velocity - (Flatten(velocity).normalized * _excededSpeed), Wishdir);
         var addspeed = Mathf.Abs(airSpeed) - currentspeed;
@@ -1126,6 +1137,7 @@ public class PlayerMovement : MonoBehaviour
                 _wallTimestamp = -coyoteTicks;
 
                 velocity += _wallNormal * wallJumpSpeed;
+                velocity += Flatten(velocity).normalized * wallJumpTrueSpeed;
 
                 CancelDash();
 
@@ -1160,7 +1172,7 @@ public class PlayerMovement : MonoBehaviour
                 source.PlayOneShot(jump);
             }
 
-            velocity.y = Mathf.Max(jumpHeight, velocity.y + (railJump ? jumpHeight : 0));
+            velocity.y = Mathf.Max(jumpHeight, velocity.y + (railJump || groundJump ? jumpHeight : 0));
 
             rollSound.volume = 0;
             IsGrounded = false;
