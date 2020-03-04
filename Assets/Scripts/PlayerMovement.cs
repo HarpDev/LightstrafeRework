@@ -37,7 +37,7 @@ public class PlayerMovement : MonoBehaviour
     private const float movementSpeed = 7f;
     private const float groundAcceleration = 80f;
     private const float groundFriction = 5f;
-    private const float slideFriction = 0.1f;
+    private const float slideFriction = 0;
     private const float landBoostSpeed = 16f;
 
     private const float airAcceleration = 40f;
@@ -66,9 +66,6 @@ public class PlayerMovement : MonoBehaviour
     private const float jumpHeight = 12f;
     private const int coyoteTicks = 20;
     private const int jumpForgiveness = 10;
-    private const float jumpCameraThunk = 5f;
-    private const float jumpGracePeriod = 0.5f;
-    private const float jumpGraceBonusAccel = 800;
 
     private const float grappleControlAcceleration = 6f;
     private const float grappleDistance = 30f;
@@ -237,8 +234,7 @@ public class PlayerMovement : MonoBehaviour
 
         CameraRoll = Mathf.Lerp(CameraRoll, _cameraRotation, Time.deltaTime * _cameraRotationSpeed);
 
-        camera.transform.localRotation =
-            Quaternion.Euler(new Vector3(Pitch + HudMovement.rotationSlamVectorLerp.y, 0, CameraRoll));
+        camera.transform.localRotation = Quaternion.Euler(new Vector3(Pitch + (HudMovement.rotationSlamVectorLerp.y / 2), 0, CameraRoll));
         CrosshairDirection = cam.forward;
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
 
@@ -290,32 +286,12 @@ public class PlayerMovement : MonoBehaviour
         }
         crosshair.transform.rotation = Quaternion.Euler(new Vector3(0, 0, _crosshairRotation));
 
-        /* if (Input.GetKeyDown(PlayerInput.SecondaryInteract) && grappleEnabled && Time.timeScale > 0)
-         {
-             if (!GrappleHooked)
-             {
-                 if (Physics.SphereCast(camera.transform.position, 2, CrosshairDirection, out var grapple, 100, 1, QueryTriggerInteraction.Ignore))
-                 {
-                     AttachGrapple(grapple.point);
-                 }
-             }
-         }
-         if (!Input.GetKey(PlayerInput.SecondaryInteract) && Time.timeScale > 0)
-         {
-             if (GrappleHooked) DetachGrapple();
-         }*/
-
         if (Input.GetKeyDown(PlayerInput.SecondaryInteract) && Time.timeScale > 0 && currentAbilities.Count > 0)
         {
             var container = currentAbilities[currentAbilities.Count - 1];
             if (container.ability == Ability.GRAPPLE)
             {
-                if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var ray, 150, 1, QueryTriggerInteraction.Ignore) && !ray.collider.CompareTag("Uninteractable") && !ray.collider.CompareTag("Kill Block"))
-                {
-                    AttachGrapple(ray.point);
-                    SpendAbility();
-                }
-                else if (Physics.SphereCast(camera.transform.position, 4, CrosshairDirection, out var sphere, 150, 1, QueryTriggerInteraction.Ignore) && !sphere.collider.CompareTag("Uninteractable") && !sphere.collider.CompareTag("Kill Block"))
+                if (Physics.SphereCast(camera.transform.position, 2, CrosshairDirection, out var sphere, 150, 1, QueryTriggerInteraction.Ignore) && !sphere.collider.CompareTag("Uninteractable") && !sphere.collider.CompareTag("Kill Block"))
                 {
                     AttachGrapple(sphere.point);
                     SpendAbility();
@@ -812,7 +788,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (GrappleHooked) GrappleHooked = false;
         if (grappleTether.enabled) grappleTether.enabled = false;
-        SetCameraRotation(0, 5);
+        SetCameraRotation(0, 2);
         grappleDuring.volume = 0;
 
         source.PlayOneShot(grappleRelease);
@@ -820,10 +796,11 @@ public class PlayerMovement : MonoBehaviour
 
     public void GrappleMove(float f)
     {
-        Jump();
         var position = _grappleAttachPosition;
 
         if (!grappleTether.enabled) grappleTether.enabled = true;
+
+        rollSound.volume = 0;
 
         var list = new List<Vector3> { new Vector3(0, grappleYOffset, 0), camera.transform.InverseTransformPoint(position) };
 
@@ -831,17 +808,15 @@ public class PlayerMovement : MonoBehaviour
         grappleTether.SetPositions(list.ToArray());
 
         var towardPoint = (position - transform.position).normalized;
-        var velocityProjection = Mathf.Abs(Vector3.Dot(velocity, transform.right));
-        var relativePoint = transform.InverseTransformPoint(position);
+        var velocityProjection = Vector3.Dot(velocity, towardPoint);
+        var tangentVector = (velocity + towardPoint * -velocityProjection).normalized;
 
-        var value = Mathf.Atan2(relativePoint.z, relativePoint.x) * Mathf.Rad2Deg;
-        value = Mathf.Abs(value);
-        value -= 90;
-        value /= 90;
+        var swingProjection = Mathf.Max(0, Vector3.Dot(velocity, Vector3.Lerp(towardPoint, tangentVector, 0.5f)));
+
+        var projection = Mathf.Sqrt(swingProjection) * Vector3.Dot(-transform.right, towardPoint) * 6;
+        SetCameraRotation(projection, 6);
 
         grappleDuring.pitch = velocity.magnitude / 30f;
-
-        SetCameraRotation(velocityProjection * value, 6);
 
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
@@ -863,6 +838,7 @@ public class PlayerMovement : MonoBehaviour
             velocity = Vector3.Lerp(velocity, towardPoint * velocity.magnitude, f / 5);
             velocity = velocity.normalized * mag;
         }
+        Jump();
     }
 
     public void WallMove(float f)
@@ -1045,12 +1021,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        var ticksPerSecond = 1 / Time.fixedDeltaTime;
-        var sinceJump = 1 - Mathf.Min(_sinceJumpCounter / (ticksPerSecond * jumpGracePeriod), 1);
-
-        var accel = airAcceleration + (sinceJump * jumpGraceBonusAccel);
-
-        accel *= 1 - _currentLean;
+        var accel = airAcceleration * (1 - _currentLean);
 
         var currentspeed = Vector3.Dot(velocity - (Flatten(velocity).normalized * _excededSpeed), Wishdir);
         var addspeed = Mathf.Abs(airSpeed) - currentspeed;
@@ -1078,7 +1049,7 @@ public class PlayerMovement : MonoBehaviour
         {
             speed = Flatten(velocity).magnitude;
             var y = velocity.y;
-            velocity += Wishdir * f * airAcceleration * (1 - _currentLean);
+            velocity += Wishdir * f * accel;
             velocity = Flatten(velocity).normalized * speed;
             velocity.y = y;
         }
@@ -1125,6 +1096,13 @@ public class PlayerMovement : MonoBehaviour
     {
         if (PlayerInput.SincePressed(PlayerInput.Jump) < jumpForgiveness)
         {
+            if (GrappleHooked)
+            {
+                DetachGrapple();
+                PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+                return true;
+            }
+
             var wallJump = PlayerInput.tickCount - _wallTimestamp < coyoteTicks;
 
             if (wallLeanPreTime * (1 - _currentLean) / Time.fixedDeltaTime < jumpForgiveness && !wallJump)
@@ -1188,10 +1166,6 @@ public class PlayerMovement : MonoBehaviour
             IsGrounded = false;
 
             if (IsOnRail) EndRail();
-
-            var slam = HudMovement.RotationSlamVector;
-            slam.y += jumpCameraThunk;
-            HudMovement.RotationSlamVector = slam;
             return true;
         }
         return false;
