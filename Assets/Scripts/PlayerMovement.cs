@@ -41,7 +41,7 @@ public class PlayerMovement : MonoBehaviour
     private const float slideFriction = 0.5f;
     private const float landBoostSpeed = 16f;
 
-    private const float airAcceleration = 40f;
+    private const float airAcceleration = 80f;
     private const float airSpeed = 2f;
     private const float airCorrectionForce = 10f;
     private const float airLowSpeedGroundMultiplier = 0.65f;
@@ -53,7 +53,7 @@ public class PlayerMovement : MonoBehaviour
     private const int railCooldownTicks = 40;
 
     private const float dashSpeed = 15f;
-    private const float dashDistance = 15f;
+    private const float dashDistance = 20f;
 
     private const float dashCancelTempSpeed = 27f;
     private const float dashCancelSpeed = 8f;
@@ -68,12 +68,13 @@ public class PlayerMovement : MonoBehaviour
     private const int coyoteTicks = 20;
     private const int jumpForgiveness = 10;
     private const float jumpGracePeriod = 0.5f;
-    private const float jumpGraceBonusAccel = 40;
+    private const float jumpGraceBonusAccel = 0;
 
     private const float grappleControlAcceleration = 6f;
     private const float grappleDistance = 30f;
-    private const float grappleAcceleration = 25f;
-    private const float grappleTopSpeed = 80f;
+    private const float grappleConstantAcceleration = 10f;
+    private const float grappleAcceleration = 20f;
+    private const float grappleTopSpeed = 30f;
 
     /* Audio */
     public AudioSource source;
@@ -431,12 +432,12 @@ public class PlayerMovement : MonoBehaviour
                     GroundNormal = normal;
                 }
 
-                if (collider.CompareTag("Instant Kill Block") && !Game.Level.LevelCompleted)
+                if (collider.CompareTag("Instant Kill Block"))
                 {
                     Game.RestartLevel();
                 }
 
-                if (collider.CompareTag("Kill Block") && IsGrounded && !Game.Level.LevelCompleted)
+                if (collider.CompareTag("Kill Block") && IsGrounded)
                 {
                     Game.RestartLevel();
                 }
@@ -828,6 +829,7 @@ public class PlayerMovement : MonoBehaviour
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
 
         Accelerate(towardPoint, grappleTopSpeed, f * grappleAcceleration);
+        velocity += velocity.normalized * grappleConstantAcceleration * f;
         var magnitude = velocity.magnitude;
         velocity += Wishdir * grappleControlAcceleration * f;
         velocity += CrosshairDirection * grappleControlAcceleration * f;

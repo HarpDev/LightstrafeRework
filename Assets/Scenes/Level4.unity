@@ -136,7 +136,7 @@ GameObject:
   - component: {fileID: 30880867}
   m_Layer: 0
   m_Name: Wall (28)
-  m_TagString: Kill Block
+  m_TagString: Instant Kill Block
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -993,7 +993,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh505608
+  m_Name: pb_Mesh164268
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -12233,7 +12233,7 @@ GameObject:
   - component: {fileID: 507479930}
   m_Layer: 0
   m_Name: Wall (29)
-  m_TagString: Kill Block
+  m_TagString: Instant Kill Block
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -21757,6 +21757,16 @@ PrefabInstance:
       propertyPath: m_LocalRotation.w
       value: 0.7071068
       objectReference: {fileID: 0}
+    - target: {fileID: 6636387535883966295, guid: ce1ac620db3b8b74a940e04d13b6c177,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 6636387535883966295, guid: ce1ac620db3b8b74a940e04d13b6c177,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
     - target: {fileID: 8023130150563290705, guid: ce1ac620db3b8b74a940e04d13b6c177,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -22857,7 +22867,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh21812
+  m_Name: pb_Mesh164098
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2

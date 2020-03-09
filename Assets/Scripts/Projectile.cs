@@ -7,10 +7,9 @@ public class Projectile : MonoBehaviour
 
     public Vector3 velocity;
 
-    private const float basespeed = 80;
+    private const float basespeed = 200;
 
     public ParticleSystem explodeParticle;
-    public ParticleSystem trailParticle;
     public AudioSource explodeSound;
 
     public GameObject visual;
@@ -31,8 +30,6 @@ public class Projectile : MonoBehaviour
     private void Awake()
     {
         _rigidbody = GetComponent<Rigidbody>();
-
-        trailParticle.Play();
     }
 
     public void Fire(Vector3 vel, Vector3 realPosition, Vector3 visualPosition)
@@ -41,6 +38,7 @@ public class Projectile : MonoBehaviour
         visual.transform.position = visualPosition;
         velocity = vel;
         velocity += velocity.normalized * basespeed;
+        visual.transform.rotation = Quaternion.LookRotation(-velocity);
     }
 
     private void Update()
@@ -49,6 +47,8 @@ public class Projectile : MonoBehaviour
 
         _rigidbody.velocity = velocity;
 
+
+        visual.transform.rotation = Quaternion.Lerp(visual.transform.rotation, Quaternion.LookRotation(-velocity), Time.deltaTime * 10);
         visual.transform.position = Vector3.Lerp(visual.transform.position, transform.position, Time.deltaTime * 8);
     }
 
@@ -108,8 +108,6 @@ public class Projectile : MonoBehaviour
 
         if (explodeSound != null) explodeSound.Play();
         if (explodeParticle != null) explodeParticle.Play();
-
-        trailParticle.Stop();
 
         visual.GetComponent<MeshRenderer>().enabled = false;
         GetComponent<SphereCollider>().enabled = false;
