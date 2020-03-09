@@ -187,8 +187,7 @@ public class PlayerMovement : MonoBehaviour
     {
         get
         {
-            return Vector3.Lerp(_previousPosition, transform.position,
-                _motionInterpolationDelta / Time.fixedDeltaTime);
+            return Vector3.Lerp(_previousPosition, transform.position, _motionInterpolationDelta / Time.fixedDeltaTime);
         }
     }
 
