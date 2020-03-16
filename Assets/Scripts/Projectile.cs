@@ -18,12 +18,14 @@ public class Projectile : MonoBehaviour
 
     private const float radius = 10f;
     private const float power = 15f;
+    private const float drop = 20f;
 
     private const float delay = 0.3f;
 
     private Rigidbody _rigidbody;
 
     private bool _hit;
+    private bool _exploded;
 
     private Target _hitTarget;
 
@@ -43,13 +45,24 @@ public class Projectile : MonoBehaviour
 
     private void Update()
     {
+        if (_exploded) return;
         if (_hit) return;
 
+        velocity += Vector3.down * Time.deltaTime * drop;
         _rigidbody.velocity = velocity;
-
 
         visual.transform.rotation = Quaternion.Lerp(visual.transform.rotation, Quaternion.LookRotation(-velocity), Time.deltaTime * 10);
         visual.transform.position = Vector3.Lerp(visual.transform.position, transform.position, Time.deltaTime * 8);
+    }
+
+    private void FixedUpdate()
+    {
+        if (_exploded || !_hit) return;
+        var toPlayer = transform.position - Game.Level.player.transform.position;
+        if (toPlayer.magnitude < radius && toPlayer.magnitude > 3 && Vector3.Dot(Flatten(toPlayer).normalized, Flatten(Game.Level.player.velocity).normalized) < -0.7f)
+        {
+            //Explode();
+        }
     }
 
     private void OnCollisionStay(Collision collision)
@@ -67,14 +80,23 @@ public class Projectile : MonoBehaviour
         _hitTarget = collision.collider.gameObject.GetComponent<Target>();
         if (_hitTarget != null) Game.Level.hitmarker.Display();
 
-        Invoke("Explode", delay);
+        if (collision.collider.CompareTag("Target"))
+        {
+            _hitTarget.Explode();
+            visual.GetComponent<MeshRenderer>().enabled = false;
+            GetComponent<SphereCollider>().enabled = false;
+        }
     }
 
     private void Explode()
     {
+        if (_exploded) return;
+        _exploded = true;
+
         if (_hitTarget != null)
         {
-            _hitTarget.Explode(_rigidbody.velocity.normalized);
+            _hitTarget.Explode();
+            return;
         }
 
         var vector = Game.Level.player.transform.position - transform.position;
@@ -108,9 +130,6 @@ public class Projectile : MonoBehaviour
 
         if (explodeSound != null) explodeSound.Play();
         if (explodeParticle != null) explodeParticle.Play();
-
-        visual.GetComponent<MeshRenderer>().enabled = false;
-        GetComponent<SphereCollider>().enabled = false;
     }
 
     private static Vector3 Flatten(Vector3 vec)

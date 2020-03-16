@@ -72,7 +72,7 @@ public class Arrow : MonoBehaviour
         var target = collision.collider.gameObject.GetComponent<Target>();
         if (target != null)
         {
-            target.Explode(rigidbody.velocity.normalized);
+            target.Explode();
         }
 
         transform.position = collision.GetContact(0).point;

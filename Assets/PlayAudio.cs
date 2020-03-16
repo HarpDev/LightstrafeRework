@@ -6,6 +6,6 @@ public class PlayAudio : StateMachineBehaviour
 {
     override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        animator.gameObject.GetComponent<AudioSource>().PlayDelayed(0.3f);
+        animator.gameObject.GetComponent<AudioSource>().PlayDelayed(0.37f);
     }
 }

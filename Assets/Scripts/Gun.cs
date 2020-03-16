@@ -16,7 +16,6 @@ public class Gun : MonoBehaviour
 
     public Transform barrel;
 
-    private float _shotsInClip;
     private const int clipSize = 0;
 
     private Vector3 _angleEulers;
@@ -31,7 +30,7 @@ public class Gun : MonoBehaviour
 
     private float _crouchPositionAmt;
 
-    private float _forwardChange;
+    public static float forwardChange;
     private float _rightChange;
     private float _upChange;
 
@@ -53,7 +52,6 @@ public class Gun : MonoBehaviour
     private void Start()
     {
         _animator = GetComponent<Animator>();
-        _shotsInClip = clipSize;
         _canFire = true;
 
         if (Application.IsPlaying(gameObject))
@@ -77,7 +75,7 @@ public class Gun : MonoBehaviour
     {
         _currentInfo = _animator.GetCurrentAnimatorStateInfo(0);
 
-        if (_currentInfo.IsName("Reload"))
+        if (_currentInfo.IsName("Fire"))
         {
             _animator.SetBool("Fire", false);
             _canFire = true;
@@ -109,11 +107,11 @@ public class Gun : MonoBehaviour
         _rightChange -= yawMovement / 400;
         _upChange -= pitchMovement / 400;
 
-        _forwardChange = Mathf.Lerp(_forwardChange, 0, Time.deltaTime * 8);
+        forwardChange = Mathf.Lerp(forwardChange, 0, Time.deltaTime * 8);
         _rightChange = Mathf.Lerp(_rightChange, 0, Time.deltaTime * 7);
         _upChange = Mathf.Lerp(_upChange, 0, Time.deltaTime * 7);
 
-        _forwardSoften = Mathf.Lerp(_forwardSoften, _forwardChange, Time.deltaTime * 20);
+        _forwardSoften = Mathf.Lerp(_forwardSoften, forwardChange, Time.deltaTime * 20);
         _rightSoften = Mathf.Lerp(_rightSoften, _rightChange, Time.deltaTime * 20);
 
         pos.z += _forwardSoften;
@@ -133,15 +131,6 @@ public class Gun : MonoBehaviour
 
         _prevPitch = player.Pitch;
 
-        if (_shotsInClip < clipSize)
-        {
-            _shotsInClip += Time.deltaTime * reloadFactor;
-        }
-        else
-        {
-            _shotsInClip = clipSize;
-        }
-
         if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Loaded") && _canFire)
         {
             var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
@@ -159,24 +148,6 @@ public class Gun : MonoBehaviour
 
             HudMovement.RotationSlamVector -= Vector3.up * 10;
         }
-
-
-        if (Application.IsPlaying(gameObject))
-        {
-            for (var i = 0; i < clipSize; i++)
-            {
-                var s = _sliders[i].GetComponent<Slider>();
-
-                var fill = Mathf.Max(Mathf.Min(_shotsInClip - i, 1), 0);
-
-                s.value = Mathf.Lerp(s.minValue, s.maxValue, fill);
-            }
-        }
-    }
-
-    public void ReplenishClip()
-    {
-        _shotsInClip = clipSize;
     }
 
     private static Vector3 Flatten(Vector3 vec)

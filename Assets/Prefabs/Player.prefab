@@ -140,43 +140,6 @@ MonoBehaviour:
   m_AfterStackBundles:
   - assemblyQualifiedName: UnityEngine.Rendering.PostProcessing.Blur, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
---- !u!95 &7013456639239446818
-Animator:
-  serializedVersion: 3
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7656812700611601732}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 6a73d1094a8ae974a81870935e32f2b2, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &631291807183717260
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7656812700611601732}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f74cd518c4b7ca349bdf767364bc8205, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 8023130150563290708}
-  slider: {fileID: 5756216031118293453, guid: cd0ababf6f0279d4382b8c961636e3e6, type: 3}
-  barrel: {fileID: 6636387535883966295}
-  projectile: {fileID: 5719765858863461461, guid: 1a5288ffcd8951a43938e42a22ac9d18,
-    type: 3}
-  fireSound: {fileID: 8300000, guid: 898b42c255d796c44889a102a386b764, type: 3}
 --- !u!82 &4937458249764498186
 AudioSource:
   m_ObjectHideFlags: 0
@@ -273,6 +236,43 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!95 &7013456639239446818
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7656812700611601732}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 6a73d1094a8ae974a81870935e32f2b2, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorControllerStateOnDisable: 0
+--- !u!114 &631291807183717260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7656812700611601732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f74cd518c4b7ca349bdf767364bc8205, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 8023130150563290708}
+  slider: {fileID: 5756216031118293453, guid: cd0ababf6f0279d4382b8c961636e3e6, type: 3}
+  barrel: {fileID: 6636387535883966295}
+  projectile: {fileID: 5719765858863461461, guid: 1a5288ffcd8951a43938e42a22ac9d18,
+    type: 3}
+  fireSound: {fileID: 8300000, guid: 898b42c255d796c44889a102a386b764, type: 3}
 --- !u!1 &8023130150563290715
 GameObject:
   m_ObjectHideFlags: 0
