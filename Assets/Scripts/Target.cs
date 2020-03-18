@@ -12,9 +12,6 @@ public class Target : MonoBehaviour
     private const float radius = 20f;
     private const float power = 55f;
 
-    private GameObject _shockwave;
-    private bool _shockwaveActive;
-
     private void Awake()
     {
         GetComponent<Rigidbody>().AddTorque(new Vector3(Random.Range(-500, 500), Random.Range(-500, 500), Random.Range(-500, 500)));
@@ -23,15 +20,6 @@ public class Target : MonoBehaviour
     private void Update()
     {
         //if (!exploded) transform.Rotate(new Vector3(1, 2, 3) * Time.deltaTime * 20);
-        if (_shockwaveActive)
-        {
-            _shockwave.transform.localScale += Vector3.one * Time.deltaTime * 60;
-            if (_shockwave.transform.localScale.x > 40)
-            {
-                _shockwaveActive = false;
-                Destroy(_shockwave);
-            }
-        }
     }
 
     public void Explode()
@@ -43,12 +31,12 @@ public class Target : MonoBehaviour
         }
         if (ability == Ability.DASH)
         {
-            _shockwave = Instantiate(core);
-            _shockwave.transform.position = transform.position;
-            var collider = (SphereCollider)_shockwave.AddComponent(typeof(SphereCollider));
+            var shockwave = Instantiate(core);
+            shockwave.transform.position = transform.position;
+            shockwave.transform.localScale = Vector3.one * 40;
+            var collider = (SphereCollider)shockwave.AddComponent(typeof(SphereCollider));
             collider.isTrigger = true;
-            _shockwave.tag = "Shockwave";
-            _shockwaveActive = true;
+            shockwave.tag = "Shockwave";
         }
         /*
         debris.transform.parent = null;

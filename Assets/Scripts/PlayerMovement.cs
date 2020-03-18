@@ -54,7 +54,7 @@ public class PlayerMovement : MonoBehaviour
 
     private const float dashSpeed = 50f;
     private const float dashDistance = 20f;
-    private const float dashVerticalLimit = 0.2f;
+    private const float dashVerticalLimit = 0.1f;
 
     private const float dashCancelTempSpeed = 27f;
     private const float dashCancelSpeed = 8f;
@@ -110,8 +110,6 @@ public class PlayerMovement : MonoBehaviour
     private int _wallTickCount;
     private int _cancelLeanTickCount;
     private float _currentLean;
-
-    public Vector3 GroundNormal { get; set; }
 
     private int _railTimestamp = -100000;
     private int _railCooldownTimestamp = -100000;
@@ -406,8 +404,10 @@ public class PlayerMovement : MonoBehaviour
         IsGrounded = false;
         IsOnWall = false;
         CollisionImpulse = new Vector3();
-        
+
         var overlap = Physics.OverlapBox(CurrentCollider.bounds.center, CurrentCollider.bounds.extents);
+
+        var stepHeight = 0.5f;
 
         var depenetration = new Vector3();
         foreach (var collider in overlap)
@@ -434,19 +434,33 @@ public class PlayerMovement : MonoBehaviour
                     Game.RestartLevel();
                 }
 
-                if (Vector3.Angle(Vector3.up, direction) < groundAngle)
+                var stepCheck = (transform.position + (-Flatten(direction).normalized * 0.5f)) + (Vector3.down * (1 - stepHeight));
+                if (Flatten(direction).normalized.magnitude > 0.05f && Physics.Raycast(stepCheck, Vector3.down, out var rayHit, stepHeight, 1, QueryTriggerInteraction.Ignore) && rayHit.collider == collider)
                 {
+                    direction = Vector3.up;
+                    distance = stepHeight - rayHit.distance;
                     IsGrounded = true;
-                    GroundNormal = direction;
                 }
-
-                distance -= 0.1f;
-                if (distance > 0)
+                else
                 {
-                    transform.position += direction * distance;
+                    var angle = Vector3.Angle(Vector3.up, direction);
 
-                    depenetration += direction * distance;
+                    if (angle < groundAngle)
+                    {
+                        IsGrounded = true;
+                    }
+
+                    if (!collider.CompareTag("Uninteractable") && Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled)
+                    {
+                        if (wasOnWall || Vector3.Dot(Flatten(velocity).normalized, Flatten(direction).normalized) < 0)
+                        {
+                            _wallNormal = Flatten(direction).normalized;
+                            IsOnWall = true;
+                        }
+                    }
                 }
+                transform.position += direction * distance;
+                depenetration += direction * distance;
             }
         }
 
@@ -455,17 +469,6 @@ public class PlayerMovement : MonoBehaviour
             var normal = depenetration.normalized;
 
             var projection = Vector3.Dot(velocity, -normal);
-            var angle = Vector3.Angle(Vector3.up, normal);
-
-            if (Mathf.Abs(angle - 90) < wallAngleGive && !IsGrounded && jumpKitEnabled)
-            {
-                if (wasOnWall || Vector3.Dot(Flatten(velocity).normalized, Flatten(normal).normalized) < 0)
-                {
-                    // Wall Grab
-                    _wallNormal = Flatten(normal).normalized;
-                    IsOnWall = true;
-                }
-            }
 
             if (!_landed && (IsOnWall || IsGrounded))
             {
@@ -496,8 +499,7 @@ public class PlayerMovement : MonoBehaviour
     private void OnTrigger(Collider other)
     {
         // Rail Grab
-        if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > railCooldownTicks ||
-                                         other.transform.parent.gameObject != _lastRail))
+        if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > railCooldownTicks || other.transform.parent.gameObject != _lastRail))
         {
             _lastRail = other.transform.parent.gameObject;
             SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
@@ -510,18 +512,14 @@ public class PlayerMovement : MonoBehaviour
 
         if (other.CompareTag("Shockwave"))
         {
-            other.enabled = false;
             var towardCenter = (other.transform.position - transform.position).normalized;
             var projection = Vector3.Dot(velocity, towardCenter);
             if (projection > 0) velocity -= towardCenter * projection;
 
-            float radius = 20f;
             float power = 55f;
 
-            if (Vector3.Distance(other.transform.position, transform.position) < radius)
-            {
-                Game.Level.player.Accelerate(-towardCenter, power, power);
-            }
+            Game.Level.player.Accelerate(-towardCenter, power, power);
+            Destroy(other.gameObject);
         }
     }
 
