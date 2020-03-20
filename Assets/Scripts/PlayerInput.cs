@@ -53,6 +53,11 @@ public class PlayerInput : MonoBehaviour
             return Input.GetKey(MoveBackward) ? -1 : 0;
     }
 
+    public static void SimulateKeyPress(KeyCode key)
+    {
+        keys[key] = tickCount;
+    }
+
     private void FixedUpdate()
     {
         tickCount++;
