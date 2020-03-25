@@ -60,8 +60,8 @@ public class Rail : MonoBehaviour
                 obj.transform.position = Vector3.Lerp(point, previousPoint, 0.5f);
                 capsule.height = (previousPoint - point).magnitude + hitboxSize;
                 capsule.radius = hitboxSize;
-                capsule.direction = 2;
                 capsule.isTrigger = true;
+                capsule.direction = 2;
                 obj.transform.rotation = Quaternion.LookRotation((previousPoint - point).normalized);
             }
 

@@ -65,7 +65,6 @@ public class PlayerMovement : MonoBehaviour
 
     private const float dashCancelTempSpeed = 30f;
     private const float dashCancelSpeed = 3f;
-    private const float dashCancelPotentialMultiplier = 1.65f;
     private const float dashCancelJumpReduction = 2f;
 
     private const float excededFriction = 4;
@@ -83,6 +82,9 @@ public class PlayerMovement : MonoBehaviour
     private const float grappleAcceleration = 20f;
     private const float grappleTopSpeed = 60f;
     private const float grappleCorrectionAcceleration = 0.02f;
+
+    private const int shoveTime = 100;
+    private const float shoveForce = 120f;
 
     /* Audio */
     public AudioSource source;
@@ -128,6 +130,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _railLeanVector;
     private GameObject _lastRail;
     private Rail _currentRail;
+    private int _currentShove;
 
     private int _dashTimestamp = -100000;
 
@@ -199,6 +202,12 @@ public class PlayerMovement : MonoBehaviour
         standingCollider.enabled = true;
         crouchingCollider.enabled = false;
         CurrentCollider = standingCollider;
+
+        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) && Vector3.Angle(hit.normal, Vector3.up) < groundAngle) {
+            transform.position = hit.point + Vector3.up * 0.3f;
+            IsGrounded = true;
+            _groundTickCount = 1;
+        }
     }
 
     private void Update()
@@ -262,7 +271,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         crouchChange -= _crouchAmount;
-        if (!_isDownColliding) transform.position -= Vector3.up * crouchChange;
+        if (!_isDownColliding && !IsGrounded) transform.position -= Vector3.up * crouchChange;
 
         position.y -= 0.6f * _crouchAmount;
         camera.transform.position = InterpolatedPosition + position;
@@ -323,6 +332,20 @@ public class PlayerMovement : MonoBehaviour
         else
             AirMove(factor);
 
+        if (_currentShove > 0)
+        {
+            _currentShove--;
+            float power = shoveForce * factor * Mathf.Pow(Mathf.Abs(_currentShove) / (float)shoveTime, 2);
+            if (velocity.y < 0) power *= 2;
+            velocity += Vector3.up * power;
+        }
+        if (_currentShove < 0)
+        {
+            _currentShove++;
+            float power = shoveForce * factor * Mathf.Pow(Mathf.Abs(_currentShove) / (float)shoveTime, 2);
+            velocity += Vector3.down * power;
+        }
+
         if (approachingWall)
         {
             _cancelLeanTickCount++;
@@ -361,16 +384,6 @@ public class PlayerMovement : MonoBehaviour
         CollisionImpulse = new Vector3();
         var iterations = 0;
 
-        var hold = 0.1f;
-        if (IsGrounded)
-        {
-            movement += Vector3.down * hold;
-        }
-        if (IsOnWall)
-        {
-            movement -= _wallNormal * hold;
-        }
-
         while (movement.magnitude > 0f && iterations < 5)
         {
             iterations++;
@@ -399,6 +412,16 @@ public class PlayerMovement : MonoBehaviour
                 transform.position += movement;
                 movement = new Vector3();
             }
+        }
+
+        var hold = 0.1f;
+        if (IsGrounded)
+        {
+            movement += Vector3.down * hold;
+        }
+        if (IsOnWall)
+        {
+            movement -= _wallNormal * hold;
         }
 
         var overlap = Physics.OverlapBox(CurrentCollider.bounds.center, CurrentCollider.bounds.extents);
@@ -442,7 +465,7 @@ public class PlayerMovement : MonoBehaviour
         var stepCheck = origin + (-Flatten(normal).normalized * 0.51f) + (Vector3.down * (1 - stepHeight));
         if (Flatten(normal).normalized.magnitude > 0.05f
             && Physics.Raycast(stepCheck, Vector3.down, out var rayHit, stepHeight, 1, QueryTriggerInteraction.Ignore)
-            && Vector3.Angle(rayHit.normal, Vector3.up) < groundAngle
+            && rayHit.normal.y == 1
             && Vector3.Dot(Flatten(velocity), Flatten(normal)) < 0)
         {
             if (collider != null && rayHit.collider != collider)
@@ -504,13 +527,11 @@ public class PlayerMovement : MonoBehaviour
 
         if (other.CompareTag("Shockwave"))
         {
-            var towardCenter = (other.transform.position - transform.position).normalized;
-            var projection = Vector3.Dot(velocity, towardCenter);
-            if (projection > 0) velocity -= towardCenter * projection;
-
-            float power = 55f;
-
-            Game.Level.player.Accelerate(-towardCenter, power, power);
+            if (transform.position.y > other.gameObject.transform.position.y)
+                _currentShove = shoveTime;
+            else
+                _currentShove = -shoveTime;
+            DoubleJumpAvailable = true;
             Destroy(other.gameObject);
         }
     }
@@ -547,7 +568,6 @@ public class PlayerMovement : MonoBehaviour
             var beforeSpeed = Flatten(velocity).magnitude;
             velocity += Flatten(velocity).normalized * dashCancelTempSpeed;
             _excededSpeed += Flatten(velocity).magnitude - beforeSpeed;
-            velocity.y *= dashCancelPotentialMultiplier;
             source.PlayOneShot(wallKick);
             _dashTimestamp = Environment.TickCount;
             return true;

@@ -17,11 +17,6 @@ public class Target : MonoBehaviour
         GetComponent<Rigidbody>().AddTorque(new Vector3(Random.Range(-500, 500), Random.Range(-500, 500), Random.Range(-500, 500)));
     }
 
-    private void Update()
-    {
-        //if (!exploded) transform.Rotate(new Vector3(1, 2, 3) * Time.deltaTime * 20);
-    }
-
     public void Explode()
     {
         if (ability == Ability.GRAPPLE)
