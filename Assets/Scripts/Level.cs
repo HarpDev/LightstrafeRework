@@ -81,6 +81,9 @@ public class Level : MonoBehaviour
         {
             LevelCompleted = true;
             TimerRunning = false;
+            CurrentTime *= 100;
+            CurrentTime = (int)CurrentTime;
+            CurrentTime /= 100f;
             var level = SceneManager.GetActiveScene().name;
             if (CurrentTime < Game.GetBestLevelTime(level) || Game.GetBestLevelTime(level) < 0f)
             {

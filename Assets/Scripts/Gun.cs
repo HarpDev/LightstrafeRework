@@ -24,7 +24,6 @@ public class Gun : MonoBehaviour
     private float _fireKick = 0;
 
     private const float crouchPositionSpeed = 10;
-    private const float reloadFactor = 0.4f;
 
     private const float ammoSpacing = 5;
 
@@ -95,6 +94,7 @@ public class Gun : MonoBehaviour
             if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
         }
         else if (_crouchPositionAmt > 0) _crouchPositionAmt -= Time.deltaTime * crouchPositionSpeed;
+        _crouchPositionAmt = Mathf.Max(0, Mathf.Min(1, _crouchPositionAmt));
 
         angle += 30 * _crouchPositionAmt;
         pos += new Vector3(-0.1f, 0.02f, 0) * _crouchPositionAmt;
