@@ -6,7 +6,7 @@ public class Projectile : MonoBehaviour
 
     public Vector3 velocity;
 
-    private const float basespeed = 200;
+    private const float basespeed = 100;
 
     public ParticleSystem explodeParticle;
     public AudioSource explodeSound;
@@ -15,7 +15,7 @@ public class Projectile : MonoBehaviour
 
     public Radial radial;
 
-    private const float drop = 20f;
+    private const float drop = 3f;
 
     private bool _hit;
 

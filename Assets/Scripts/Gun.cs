@@ -89,7 +89,7 @@ public class Gun : MonoBehaviour
 
         var angle = 0f;
 
-        if (player.IsSliding && !player.approachingWall && !player.IsOnWall)
+        if (player.IsSliding && !player.ApproachingWall && player.WallLevel == 0)
         {
             if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
         }

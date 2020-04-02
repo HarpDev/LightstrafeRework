@@ -9,41 +9,45 @@ public class Target : MonoBehaviour
     public GameObject core;
     public Ability ability;
 
-    private const float radius = 20f;
-    private const float power = 55f;
+    private const int abilityCooldown = 1000;
+
+    private bool _activated;
+
+    private int _activatedTicks;
 
     private void Awake()
     {
         GetComponent<Rigidbody>().AddTorque(new Vector3(Random.Range(-500, 500), Random.Range(-500, 500), Random.Range(-500, 500)));
     }
 
+    private void FixedUpdate()
+    {
+        if (_activated)
+        {
+            if (core.activeSelf && ability == Ability.GRAPPLE && !Game.Level.player.GrappleHooked) core.SetActive(false);
+            if (core.activeSelf && ability == Ability.DASH && !Game.Level.player.IsBeingYoinked) core.SetActive(false);
+            if (!core.activeSelf) _activatedTicks++;
+            if (_activatedTicks > abilityCooldown)
+            {
+                core.SetActive(true);
+                _activated = false;
+            }
+        }
+    }
+
     public void Explode()
     {
+        if (_activated) return;
+        _activatedTicks = 0;
+        _activated = true;
         if (ability == Ability.GRAPPLE)
         {
             Game.Level.player.AttachGrapple(transform.position);
-            return;
         }
         if (ability == Ability.DASH)
         {
-            var shockwave = Instantiate(core);
-            shockwave.transform.position = transform.position;
-            shockwave.transform.localScale = Vector3.one * 40;
-            var collider = (SphereCollider)shockwave.AddComponent(typeof(SphereCollider));
-            collider.isTrigger = true;
-            shockwave.tag = "Shockwave";
+            Game.Level.player.Yoink(transform.position);
         }
-        /*
-        debris.transform.parent = null;
-        exploded = true;
-        debris.SetActive(true);
-        foreach (var body in debris.GetComponentsInChildren<Rigidbody>())
-        {
-            body.AddTorque(new Vector3(Random.Range(-50, 50), Random.Range(-50, 50), Random.Range(-50, 50)));
-            var force = direction.normalized * 150 + new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
-            body.AddForce(force * 10);
-        }
-        Game.Level.player.AddAbility(ability);*/
     }
 
     private static Vector3 Flatten(Vector3 vec)
