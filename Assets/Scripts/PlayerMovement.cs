@@ -53,16 +53,17 @@ public class PlayerMovement : MonoBehaviour
     public static bool DoubleJumpAvailable { get; set; }
     public float Gravity { get { return gravity * (1 - (_dashSpeed / dashSpeed)); } }
     public int GroundLevel { get; set; }
-    private const float landFriction = 1.8f;
-    private const float landMaxSpeedLoss = 3f;
+    private const float landFriction = 5f;
+    private const int landFrictionTicks = 10;
     private const float cameraRotationCorrectSpeed = 4f;
     private const float movementSpeed = 16f;
     private const float groundAngle = 45;
     private const float groundAcceleration = 80f;
     private const float groundFriction = 3f;
+    private const float slideMovementScale = 2f;
     private const int surfaceMaxLevel = 5;
     private const float stepHeight = 0.8f;
-    private float _landSpeedLoss;
+    private int _landFrictionTicks;
     private int _groundTickCount;
     private int _groundTimestamp = -100000;
     private Vector3 _previousPosition;
@@ -100,9 +101,10 @@ public class PlayerMovement : MonoBehaviour
     private int _cancelLeanTickCount;
 
     private const float airAcceleration = 80f;
+    private const float backAirAcceleration = 20f;
     private const float airSpeed = 2f;
-    private const float airCorrectionForce = 20f;
-    private const float airCorrectionLimitDegrees = 20f;
+    //private const float airCorrectionForce = 20f;
+    //private const float airCorrectionLimitDegrees = 20f;
     private const float airLowSpeedGroundMultiplier = 0.65f;
 
     private const float surfAirAccelMultiplier = 50f;
@@ -133,21 +135,33 @@ public class PlayerMovement : MonoBehaviour
     private const float dashUpLimit = 0f;
     private const float dashSpeed = 20;
     private const int dashCooldown = 300;
-    private const float dashCancelSpeed = 15f;
+    private const float dashDirectionBump = 0.05f;
+    private const float dashCancelSpeed = 5f;
+    private const float dashGroundMagnet = 80f;
     private const float dashCancelJumpReduction = 2f;
     private const float dashFriction = 2;
     private int _dashTimestamp = -100000;
     private float _dashSpeed;
+    private bool _dashGroundMagnet;
 
-    private const float excededFriction = 1f;
     public float MaxSpeed { get { return 50f; } }
     private const float gravity = 22f;
 
-    private const float jumpHeight = 12f;
+    private const float jumpHeight = 10f;
+    private const float jumpGroundDistance = 15f;
     private const int coyoteTicks = 20;
     private const int jumpForgiveness = 10;
     private const float jumpGracePeriod = 0.5f;
     private const float jumpGraceBonusAccel = 0;
+    private const float jumpSpeed = 5f;
+    public float GetJumpHeight(float distance = jumpGroundDistance)
+    {
+        var vx = Flatten(velocity).magnitude;
+        var t = distance / vx;
+        var y = gravity * Mathf.Pow(t, 2) / t;
+        if (vx < 0.05f || y > jumpHeight) y = jumpHeight;
+        return y;
+    }
 
     public LineRenderer grappleTether;
     public float grappleYOffset;
@@ -290,7 +304,7 @@ public class PlayerMovement : MonoBehaviour
             if (Environment.TickCount - _dashTimestamp > dashCooldown)
             {
                 var wishdir = CrosshairDirection;
-                var wishY = wishdir.y;
+                var wishY = wishdir.y + dashDirectionBump;
                 wishdir = Flatten(wishdir).normalized;
                 source.Play();
                 DashAvailable = false;
@@ -355,6 +369,12 @@ public class PlayerMovement : MonoBehaviour
         if (_dashSpeed < 0) _dashSpeed = 0;
         if (_dashSpeed > 0)
         {
+            if (!_dashGroundMagnet && Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
+            {
+                if (Vector3.Angle(Vector3.up, hit.normal) < groundAngle) velocity += Vector3.down * dashGroundMagnet * factor;
+                if (GroundLevel > 0) _dashGroundMagnet = true;
+
+            }
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
 
@@ -574,14 +594,15 @@ public class PlayerMovement : MonoBehaviour
         velocity += velocity.normalized * add;
         _dashSpeed += add;
         Gun.forwardChange += 2;
+        _dashGroundMagnet = false;
     }
 
     public bool CancelDash()
     {
         if (IsDashing)
         {
-            velocity += Flatten(velocity).normalized * dashCancelSpeed;
-            _dashSpeed += dashCancelSpeed;
+            _dashGroundMagnet = true;
+            //velocity += Flatten(velocity).normalized * dashCancelSpeed;
             source.PlayOneShot(wallKick);
             return true;
         }
@@ -650,7 +671,6 @@ public class PlayerMovement : MonoBehaviour
         }
 
         DoubleJumpAvailable = true;
-        DashAvailable = true;
 
         if (_railDirection == 0)
         {
@@ -815,13 +835,11 @@ public class PlayerMovement : MonoBehaviour
 
         if (_wallTickCount == 0)
         {
-            _landSpeedLoss = 0;
+            _landFrictionTicks = 0;
             source.PlayOneShot(groundLand);
             _wallStamina = wallStamina;
         }
         _wallTickCount++;
-
-        AirFriction(f);
 
         rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
         rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
@@ -865,7 +883,7 @@ public class PlayerMovement : MonoBehaviour
             ApplyFriction(f * groundFriction);
         } else
         {
-            if (_landSpeedLoss < landMaxSpeedLoss) _landSpeedLoss += ApplyFriction(landFriction * f);
+            if (_landFrictionTicks++ < landFrictionTicks) ApplyFriction(landFriction * f, movementSpeed);
         }
 
         Accelerate(-_wallNormal, 10, Gravity * f);
@@ -884,7 +902,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (_groundTickCount == 0)
         {
-            _landSpeedLoss = 0;
+            _landFrictionTicks = 0;
             source.PlayOneShot(groundLand);
         }
         _groundTickCount++;
@@ -899,9 +917,9 @@ public class PlayerMovement : MonoBehaviour
             var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
             SetCameraRotation(leanProjection * 15, 6);
 
-            Accelerate(Wishdir, airSpeed, airAcceleration * f);
+            AirAccelerate(f, slideMovementScale, 0);
 
-            if (_landSpeedLoss < landMaxSpeedLoss) _landSpeedLoss += ApplyFriction(landFriction * f);
+            if (_landFrictionTicks++ < landFrictionTicks) ApplyFriction(landFriction * f, movementSpeed);
         }
         else
         {
@@ -934,8 +952,6 @@ public class PlayerMovement : MonoBehaviour
         _slideLeanVector = Flatten(velocity).normalized;
 
         rollSound.volume = 0;
-
-        AirFriction(f);
 
         if (!jumpKitEnabled)
         {
@@ -989,7 +1005,7 @@ public class PlayerMovement : MonoBehaviour
         Jump();
     }
 
-    public void AirAccelerate(float f, float accelMod = 1)
+    public void AirAccelerate(float f, float accelMod = 1, float airSpeed = airSpeed)
     {
         var groundMod = 1 - Mathf.Min(Flatten(velocity).magnitude / (movementSpeed - 1), 1);
         if (!_isDownColliding) GroundAccelerate(f * groundMod * airLowSpeedGroundMultiplier, 0);
@@ -997,7 +1013,7 @@ public class PlayerMovement : MonoBehaviour
 
         var speed = Flatten(velocity).magnitude;
 
-        if (groundMod == 0)
+        /*if (groundMod == 0)
         {
             var magnitude = velocity.magnitude;
 
@@ -1021,14 +1037,14 @@ public class PlayerMovement : MonoBehaviour
             {
                 velocity = velocity.normalized * (magnitude * speed / Flatten(velocity).magnitude);
             }
-        }
+        }*/
 
         var ticksPerSecond = 1 / Time.fixedDeltaTime;
         var sinceJump = 1 - Mathf.Min(_sinceJumpCounter / (ticksPerSecond * jumpGracePeriod), 1);
 
         var accel = airAcceleration + (sinceJump * jumpGraceBonusAccel);
 
-        if (_isDownColliding) accel *= surfAirAccelMultiplier;
+        if (_isDownColliding && GroundLevel == 0) accel *= surfAirAccelMultiplier;
         accel *= accelMod;
 
         var currentspeed = Vector3.Dot(velocity, Wishdir);
@@ -1041,19 +1057,16 @@ public class PlayerMovement : MonoBehaviour
 
             var addvector = accel * Wishdir;
             var backspeed = Vector3.Dot(addvector, -Flatten(velocity).normalized);
-            if (backspeed > airAcceleration)
+            if (backspeed > backAirAcceleration)
             {
                 var x1 = backspeed;
-                var x2 = airAcceleration;
+                var x2 = backAirAcceleration;
                 var y1 = addvector.magnitude;
                 var y2 = (x2 * y1) / x1;
 
                 addvector = addvector.normalized * y2;
             }
             velocity += addvector * f;
-
-            var forwardvector = (addvector.magnitude * 0.1f) * Flatten(velocity).normalized;
-            velocity += forwardvector * f;
         }
 
         if (!IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
@@ -1063,23 +1076,6 @@ public class PlayerMovement : MonoBehaviour
             velocity += Wishdir * f * accel;
             velocity = Flatten(velocity).normalized * speed;
             velocity.y = y;
-        }
-    }
-
-    public void AirFriction(float f)
-    {
-        if (Flatten(velocity).magnitude > MaxSpeed)
-        {
-            var speed = Flatten(velocity).magnitude;
-            var y = velocity.y;
-
-            var newspeed = Mathf.Lerp(speed, movementSpeed, f * excededFriction);
-
-            velocity = Flatten(velocity).normalized * newspeed;
-            velocity.y = y;
-
-            var deducted = speed - Flatten(velocity).magnitude;
-            if (deducted > 0) _dashSpeed -= deducted;
         }
     }
 
@@ -1155,7 +1151,7 @@ public class PlayerMovement : MonoBehaviour
                 source.PlayOneShot(jump);
                 rollSound.volume = 0;
                 PlayerInput.ConsumeBuffer(PlayerInput.Jump);
-                velocity += Flatten(velocity).normalized * 5f;
+                velocity += Flatten(velocity).normalized * jumpSpeed;
 
                 Accelerate(Vector3.up, 0, jumpHeight);
                 velocity.y = Mathf.Max(jumpHeight, velocity.y);
@@ -1171,14 +1167,13 @@ public class PlayerMovement : MonoBehaviour
 
             PlayerInput.ConsumeBuffer(PlayerInput.Jump);
 
-            var force = jumpHeight;
+            var force = GetJumpHeight();
             if (groundJump || railJump)
             {
-                if (Flatten(velocity).magnitude > 0.05f)
-                    velocity += Flatten(velocity).normalized * 5f;
+                if (Flatten(velocity).magnitude > 0.05f) velocity += Flatten(velocity).normalized * jumpSpeed;
                 if (CancelDash())
                 {
-                    force /= dashCancelJumpReduction;
+                    force = GetJumpHeight(jumpGroundDistance * 1.5f);
                     if (railJump) source.PlayOneShot(trick);
                 }
             }
