@@ -108,11 +108,11 @@ public class PlayerMovement : MonoBehaviour
     private float _wallStamina;
     private int _cancelLeanTickCount;
 
-    private const float airAcceleration = 180f;
+    private const float airAcceleration = 100f;
     private const float backAirAcceleration = 20f;
     private const float airSpeed = 1f;
-    //private const float airCorrectionForce = 20f;
-    //private const float airCorrectionLimitDegrees = 20f;
+    private const float slowFallForce = 20f;
+    private const float slowFallLimitDegrees = 20f;
     private const float airLowSpeedGroundMultiplier = 0.65f;
 
     private const float surfAirAccelMultiplier = 50f;
@@ -180,6 +180,7 @@ public class PlayerMovement : MonoBehaviour
     private const float grappleDistance = 25f;
     private const float grappleAcceleration = 40f;
     private const float grappleEndSpeed = 40f;
+    private const float grappleStartSpeed = 40f;
     private const float grappleCorrectionAcceleration = 0.02f;
     private const int grappleMaxTicks = 200;
     private int _grappleTicks;
@@ -765,6 +766,8 @@ public class PlayerMovement : MonoBehaviour
         grappleTether.positionCount = list.Count;
         grappleTether.SetPositions(list.ToArray());
 
+        velocity = velocity.normalized * grappleStartSpeed;
+
         var towardPoint = (position - transform.position).normalized;
         var yankProjection = Vector3.Dot(velocity, towardPoint);
         if (yankProjection < 0) velocity -= towardPoint * yankProjection;
@@ -1011,7 +1014,7 @@ public class PlayerMovement : MonoBehaviour
         if (!_isDownColliding) GroundAccelerate(f * groundMod * airLowSpeedGroundMultiplier, 0);
         f *= 1 - groundMod;
 
-        /*if (groundMod == 0)
+        if (groundMod == 0)
         {
             var speed = Flatten(velocity).magnitude;
             var magnitude = velocity.magnitude;
@@ -1019,24 +1022,26 @@ public class PlayerMovement : MonoBehaviour
             var lookT = Mathf.Atan2(CrosshairDirection.y, Flatten(CrosshairDirection).magnitude);
             var velT = Mathf.Atan2(velocity.normalized.y, Flatten(velocity.normalized).magnitude);
 
-            var truncate = airCorrectionLimitDegrees * Mathf.Deg2Rad;
-            if (lookT > velT + truncate) lookT = velT + truncate;
-            if (lookT < velT - truncate) lookT = velT - truncate;
-
-            var x = Mathf.Cos(lookT);
-            var y = Mathf.Sin(lookT);
-
-            var push = Flatten(velocity).normalized * x;
-            push.y = y;
-
-            velocity += push * airCorrectionForce * f;
-            velocity = velocity.normalized * magnitude;
-
-            if (Flatten(velocity).magnitude > speed && velocity.y < 0)
+            if (lookT > velT)
             {
-                velocity = velocity.normalized * (magnitude * speed / Flatten(velocity).magnitude);
+                var truncate = slowFallForce * Mathf.Deg2Rad;
+                if (lookT > velT + truncate) lookT = velT + truncate;
+
+                var x = Mathf.Cos(lookT);
+                var y = Mathf.Sin(lookT);
+
+                var push = Flatten(velocity).normalized * x;
+                push.y = y;
+
+                velocity += push * slowFallForce * f;
+                velocity = velocity.normalized * magnitude;
+
+                if (Flatten(velocity).magnitude > speed && velocity.y < 0)
+                {
+                    velocity = velocity.normalized * (magnitude * speed / Flatten(velocity).magnitude);
+                }
             }
-        }*/
+        }
 
         var ticksPerSecond = 1 / Time.fixedDeltaTime;
         var sinceJump = 1 - Mathf.Min(_sinceJumpCounter / (ticksPerSecond * jumpGracePeriod), 1);
