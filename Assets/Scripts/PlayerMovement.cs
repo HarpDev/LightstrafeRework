@@ -60,7 +60,7 @@ public class PlayerMovement : MonoBehaviour
     }
     public int GroundLevel { get; set; }
     private const float landFriction = 5f;
-    private const int landFrictionTicks = 10;
+    private const int landFrictionTicks = 6;
     private const float cameraRotationCorrectSpeed = 4f;
     private const float movementSpeed = 16f;
     private const float groundAngle = 45;
@@ -95,12 +95,13 @@ public class PlayerMovement : MonoBehaviour
     private const float wallSpeed = 16f;
     private const float wallAcceleration = 80f;
     private const float wallJumpSpeed = 8f;
+    private const float wallJumpAngle = 0.3f;
     private const float wallAngleGive = 10f;
     private const float wallStamina = 60f;
     private const float wallEndBoostSpeed = 1f;
     private const float wallLeanDegrees = 20f;
     private const float wallLeanPreTime = 0.3f;
-    private const float wallAirAccelRecovery = 0.5f;
+    private const float wallAirAccelRecovery = 0.3f;
     private Vector3 _wallNormal;
     private float _wallRecovery;
     private int _wallTimestamp = -100000;
@@ -119,7 +120,6 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsOnRail { get { return _currentRail != null; } }
     private const float railSpeed = 40f;
-    private const float railAcceleration = 20f;
     private const int railCooldownTicks = 40;
     private int _railTimestamp = -100000;
     private int _railCooldownTimestamp = -100000;
@@ -142,15 +142,13 @@ public class PlayerMovement : MonoBehaviour
     private const float dashDownLimit = 0.5f;
     private const float dashUpLimit = 0f;
     private const float dashSpeed = 20;
-    private const int dashCooldown = 300;
+    private const int dashRefreshCooldown = 300;
     private const float dashDirectionBump = 0.05f;
     private const float dashCancelSpeed = 5f;
-    private const float dashGroundMagnet = 80f;
     private const float dashCancelJumpReduction = 2f;
     private const float dashFriction = 2;
     private int _dashTimestamp = -100000;
     private float _dashSpeed;
-    private bool _dashGroundMagnet;
     private float _dashCancelTime;
 
     public float MaxSpeed { get { return 50f; } }
@@ -312,19 +310,16 @@ public class PlayerMovement : MonoBehaviour
 
         if (PlayerInput.SincePressed(PlayerInput.SecondaryInteract) < jumpForgiveness && Time.timeScale > 0 && DashAvailable)
         {
-            if (Environment.TickCount - _dashTimestamp > dashCooldown)
-            {
-                var wishdir = CrosshairDirection;
-                var wishY = wishdir.y + dashDirectionBump;
-                wishdir = Flatten(wishdir).normalized;
-                source.Play();
-                DashAvailable = false;
+            var wishdir = CrosshairDirection;
+            var wishY = wishdir.y + dashDirectionBump;
+            wishdir = Flatten(wishdir).normalized;
+            source.Play();
+            DashAvailable = false;
 
-                wishdir.y = Mathf.Max(-Mathf.Abs(dashDownLimit), Mathf.Min(Mathf.Abs(dashUpLimit), wishY));
-                PlayerInput.ConsumeBuffer(PlayerInput.SecondaryInteract);
+            wishdir.y = Mathf.Max(-Mathf.Abs(dashDownLimit), Mathf.Min(Mathf.Abs(dashUpLimit), wishY));
+            PlayerInput.ConsumeBuffer(PlayerInput.SecondaryInteract);
 
-                Dash(wishdir);
-            }
+            Dash(wishdir);
         }
     }
 
@@ -380,12 +375,6 @@ public class PlayerMovement : MonoBehaviour
         if (_dashSpeed < 0) _dashSpeed = 0;
         if (_dashSpeed > 0)
         {
-            if (!_dashGroundMagnet && Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
-            {
-                if (Vector3.Angle(Vector3.up, hit.normal) < groundAngle) velocity += Vector3.down * dashGroundMagnet * factor;
-                if (GroundLevel > 0) _dashGroundMagnet = true;
-
-            }
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
 
@@ -556,7 +545,6 @@ public class PlayerMovement : MonoBehaviour
 
     public void Yoink(Vector3 target)
     {
-        _dashTimestamp = Environment.TickCount;
         Gun.forwardChange += 2;
 
         var towardTarget = target - transform.position;
@@ -600,12 +588,12 @@ public class PlayerMovement : MonoBehaviour
         var projection = Vector3.Dot(velocity, wishdir);
         velocity = wishdir.normalized * Mathf.Max(projection, 0);
         if (velocity.magnitude < movementSpeed) velocity = wishdir.normalized * movementSpeed;
+        _dashTimestamp = Environment.TickCount;
 
         var add = Mathf.Max(dashSpeed - _dashSpeed, 0);
         velocity += velocity.normalized * add;
         _dashSpeed += add;
         Gun.forwardChange += 2;
-        _dashGroundMagnet = false;
     }
 
     public void SetRail(Rail rail)
@@ -737,9 +725,8 @@ public class PlayerMovement : MonoBehaviour
         _railLeanVector = Vector3.Lerp(_railLeanVector, GetBalanceVector(closeIndex + _railDirection), f * 20);
 
         var correctionVector = -(transform.position - next).normalized;
-        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
+        velocity = railSpeed * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
 
-        Accelerate(velocity.normalized, railSpeed, f * railAcceleration);
         if (velocity.y < 0) GravityTick(f);
 
         var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 2f;
@@ -900,7 +887,10 @@ public class PlayerMovement : MonoBehaviour
     public void GroundMove(float f)
     {
         DoubleJumpAvailable = true;
-        DashAvailable = true;
+        if (Environment.TickCount - _dashTimestamp > dashRefreshCooldown)
+        {
+            DashAvailable = true;
+        }
         if (Jump()) return;
 
         if (_groundTickCount == 0)
@@ -1154,7 +1144,9 @@ public class PlayerMovement : MonoBehaviour
                 WallLevel = 0;
                 _wallTimestamp = -coyoteTicks;
 
-                velocity += _wallNormal * wallJumpSpeed;
+                var magnitude = (velocity + _wallNormal * wallJumpSpeed).magnitude;
+                var direction = (velocity.normalized + _wallNormal * wallJumpAngle).normalized;
+                velocity = magnitude * direction;
 
                 source.PlayOneShot(jump);
                 rollSound.volume = 0;
@@ -1185,6 +1177,8 @@ public class PlayerMovement : MonoBehaviour
                     velocity = Flatten(velocity).normalized * (Flatten(velocity).magnitude - _dashSpeed);
                     velocity.y = y;
                     _dashSpeed = 0;
+                    velocity += Flatten(velocity).normalized * dashCancelSpeed;
+                    source.PlayOneShot(wallKick);
 
                     if (railJump) source.PlayOneShot(trick);
                 }
@@ -1204,6 +1198,26 @@ public class PlayerMovement : MonoBehaviour
             if (IsOnRail) EndRail();
             return true;
         }
+        return false;
+    }
+
+    private bool FeetCast(float time, out RaycastHit hit)
+    {
+        var origin = transform.position - Vector3.up;
+        var ticks = Mathf.RoundToInt(time * 100);
+        var simulatedVelocity = velocity;
+        for (int i = 0; i < ticks; i++)
+        {
+            var to = origin + simulatedVelocity * Time.fixedDeltaTime;
+            simulatedVelocity += Vector3.down * gravity * Time.fixedDeltaTime;
+            if (Physics.Linecast(origin, to, out var lineHit, 1, QueryTriggerInteraction.Ignore) && CanCollide(lineHit.collider))
+            {
+                hit = lineHit;
+                return true;
+            }
+            origin = to;
+        }
+        hit = new RaycastHit();
         return false;
     }
 
