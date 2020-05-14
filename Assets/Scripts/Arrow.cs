@@ -82,10 +82,10 @@ public class Arrow : MonoBehaviour
         GetComponent<Rigidbody>().isKinematic = true;
 
         model.SetActive(false);
-        var vector = Game.Level.player.transform.position - transform.position;
+        var vector = Game.Player.transform.position - transform.position;
         var amount = Mathf.Pow(Mathf.Max(radius - vector.magnitude, 0) / radius, 2);
-        Game.Level.player.Accelerate(vector.normalized, 0, amount * power);
-        Game.Level.player.velocity += vector.normalized * amount * power;
+        Game.Player.Accelerate(vector.normalized, 0, amount * power);
+        Game.Player.velocity += vector.normalized * amount * power;
 
         if (explodeSound != null) explodeSound.Play();
         if (explodeParticle != null) explodeParticle.Play();

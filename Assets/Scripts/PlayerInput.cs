@@ -15,6 +15,7 @@ public class PlayerInput : MonoBehaviour
     public static KeyCode SecondaryInteract { get { return (KeyCode)PlayerPrefs.GetInt("SecondaryInteract", (int)KeyCode.Mouse1); } set { PlayerPrefs.SetInt("SecondaryInteract", (int)value); } }
     public static KeyCode Jump { get { return (KeyCode)PlayerPrefs.GetInt("Jump", (int)KeyCode.Space); } set { PlayerPrefs.SetInt("Jump", (int)value); } }
     public static KeyCode Pause { get { return (KeyCode)PlayerPrefs.GetInt("Pause", (int)KeyCode.Escape); } set { PlayerPrefs.SetInt("Pause", (int)value); } }
+    public static KeyCode Slide { get { return (KeyCode)PlayerPrefs.GetInt("Slide", (int)KeyCode.LeftControl); } set { PlayerPrefs.SetInt("Slide", (int)value); } }
 
     private static Dictionary<KeyCode, int> keys = new Dictionary<KeyCode, int>();
 

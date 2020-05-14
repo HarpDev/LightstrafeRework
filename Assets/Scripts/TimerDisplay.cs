@@ -22,11 +22,11 @@ public class TimerDisplay : MonoBehaviour
     private void Update()
     {
         var format = "0.0";
-        if (Game.Level.LevelCompleted || bestTime) format = "0.00";
+        if (Game.Player.LevelCompleted || bestTime) format = "0.00";
         if (!bestTime) timerText.color = color;
         var seconds = bestTime
             ? Game.GetBestLevelTime(currentLevel ? SceneManager.GetActiveScene().name : level)
-            : Game.Level.CurrentTime;
+            : Game.Player.CurrentTime;
         if (seconds < 0) timerText.text = "";
         else timerText.text = prefix + seconds.ToString(format);
     }

@@ -28,9 +28,9 @@ public class Bit : MonoBehaviour
 
         var forward = (path.smoothedPoints[closeIndex + 1] - transform.position).normalized;
 
-        var speed = Mathf.Max(35 - Vector3.Distance(transform.position, Game.Level.player.transform.position), 0);
+        var speed = Mathf.Max(35 - Vector3.Distance(transform.position, Game.Player.transform.position), 0);
 
-        var fromPlayer = (transform.position - Game.Level.player.transform.position).normalized;
+        var fromPlayer = (transform.position - Game.Player.transform.position).normalized;
         var projection = Vector3.Dot(fromPlayer, forward);
         if (projection < 0) speed = 50;
 

@@ -20,7 +20,7 @@ public class Hitmarker : MonoBehaviour
         var c = Image.color;
         c.a = 1f;
         Image.color = c;
-        if (sound != null) Game.Level.player.source.PlayOneShot(sound);
+        if (sound != null) Game.Player.source.PlayOneShot(sound);
     }
 
     private void Awake()

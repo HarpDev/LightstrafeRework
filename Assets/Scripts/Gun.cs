@@ -9,74 +9,53 @@ public class Gun : MonoBehaviour
 {
 
     public PlayerMovement player;
-
-    private Vector3 position = new Vector3(0.2f, -0.35f, 1.7f);
-
-    public Slider slider;
-
     public Transform barrel;
-
-    private const int clipSize = 0;
-
-    private Vector3 _angleEulers;
-    private const float lerpSpeed = 50;
-
-    private float _fireKick = 0;
+    public Transform rifle;
+    public Transform stock;
+    public Camera viewModel;
 
     private const float crouchPositionSpeed = 10;
-
-    private const float ammoSpacing = 5;
 
     private float _crouchPositionAmt;
 
     public static float forwardChange;
     private float _rightChange;
-    private float _upChange;
 
-    private float _prevPitch;
-
-    private float _forwardSoften;
     private float _rightSoften;
 
     public Projectile projectile;
 
     public AudioClip fireSound;
 
-    private List<GameObject> _sliders;
+    private List<ModelInView> _models;
 
-    private Animator _animator;
+    public Animator animator;
 
     private bool _canFire;
 
+    private LineRenderer _lineRenderer;
+
     private void Start()
     {
-        _animator = GetComponent<Animator>();
         _canFire = true;
 
-        if (Application.IsPlaying(gameObject))
-        {
-            _sliders = new List<GameObject>();
-            for (var i = 0; i < clipSize; i++)
-            {
-                var s = Instantiate(slider.gameObject, Game.Canvas.transform).GetComponent<Slider>();
-                _sliders.Add(s.gameObject);
-
-                var rect = (RectTransform)s.transform;
-                var spacing = rect.rect.width + ammoSpacing;
-                var index = (i + 1) - (clipSize / 2f + 0.5f);
-
-                s.transform.position += Vector3.right * index * spacing;
-            }
-        }
+        _models = new List<ModelInView>(GetComponentsInChildren<ModelInView>());
     }
 
     private void FixedUpdate()
     {
-        _currentInfo = _animator.GetCurrentAnimatorStateInfo(0);
+        if (_lineRenderer != null)
+        {
+            var color = _lineRenderer.material.color;
+            if (color.a > 0) color.a -= Time.fixedDeltaTime;
+            _lineRenderer.material.color = color;
+        }
+        if (animator == null) return;
+        _currentInfo = animator.GetCurrentAnimatorStateInfo(0);
 
         if (_currentInfo.IsName("Fire"))
         {
-            _animator.SetBool("Fire", false);
+            animator.SetBool("Fire", false);
             _canFire = true;
         }
     }
@@ -85,9 +64,59 @@ public class Gun : MonoBehaviour
 
     private void Update()
     {
-        var pos = position;
+        if (!Input.GetKey(PlayerInput.PrimaryInteract) && !_canFire)
+        {
+            _canFire = true;
+        }
 
-        var angle = 0f;
+        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Idle") && _canFire)
+        {
+            _lineRenderer = barrel.gameObject.GetComponent<LineRenderer>();
+            if (_lineRenderer == null) _lineRenderer = barrel.gameObject.AddComponent<LineRenderer>();
+            var screen = viewModel.WorldToScreenPoint(barrel.transform.position);
+
+            Vector3[] positions = { player.camera.ScreenToWorldPoint(screen), player.camera.transform.position + player.CrosshairDirection * 300 };
+            _lineRenderer.endWidth = 0.1f;
+            _lineRenderer.startWidth = 0.1f;
+            _lineRenderer.SetPositions(positions);
+            _lineRenderer.material.color = Color.white;
+            if (Physics.Raycast(player.camera.transform.position, player.CrosshairDirection, out var hit, 300, 1, QueryTriggerInteraction.Ignore))
+            {
+                if (!hit.collider.CompareTag("Player"))
+                {
+
+                    var target = hit.collider.gameObject.GetComponent<Target>();
+                    if (target != null)
+                    {
+                        target.Explode();
+                        Game.Player.hitmarker.Display();
+                    }
+                }
+            }
+
+            player.source.PlayOneShot(fireSound);
+
+            if (animator != null)
+            {
+                animator.SetBool("Fire", true);
+            }
+            _canFire = false;
+        }
+    }
+
+    private float _upChange;
+    private float _upSoften;
+
+    private Vector3 _prevVelocity;
+
+    private float _crouchReloadMod;
+
+    private void LateUpdate()
+    {
+
+        var yawMovement = player.YawIncrease;
+
+        var velocityChange = player.velocity - _prevVelocity;
 
         if (player.IsSliding && !player.ApproachingWall && player.WallLevel == 0)
         {
@@ -96,57 +125,70 @@ public class Gun : MonoBehaviour
         else if (_crouchPositionAmt > 0) _crouchPositionAmt -= Time.deltaTime * crouchPositionSpeed;
         _crouchPositionAmt = Mathf.Max(0, Mathf.Min(1, _crouchPositionAmt));
 
-        angle += 30 * _crouchPositionAmt;
-        pos += new Vector3(-0.1f, 0.02f, 0) * _crouchPositionAmt;
-
-        var yawMovement = player.YawIncrease;
-        var pitchMovement = _prevPitch - player.Pitch;
-
-        _upChange -= player.CollisionImpulse.y * Time.deltaTime;
-
-        _rightChange -= yawMovement / 400;
-        _upChange -= pitchMovement / 400;
-
-        forwardChange = Mathf.Lerp(forwardChange, 0, Time.deltaTime * 8);
-        _rightChange = Mathf.Lerp(_rightChange, 0, Time.deltaTime * 7);
-        _upChange = Mathf.Lerp(_upChange, 0, Time.deltaTime * 7);
-
-        _forwardSoften = Mathf.Lerp(_forwardSoften, forwardChange, Time.deltaTime * 20);
-        _rightSoften = Mathf.Lerp(_rightSoften, _rightChange, Time.deltaTime * 20);
-
-        pos.z += _forwardSoften;
-        pos.x += _rightSoften;
-        pos.y += _upChange;
-
-        pos.y += _fireKick / 60;
-        pos.z -= _fireKick / 30;
-
-        if (_fireKick > 0) _fireKick -= Time.deltaTime * 30; else _fireKick = 0;
-
-        _angleEulers = Vector3.Lerp(_angleEulers, new Vector3(angle, -90, 0), Time.deltaTime * lerpSpeed);
-        transform.localRotation = Quaternion.Euler(_angleEulers);
-        transform.Rotate(new Vector3(-_fireKick, 0, 0), Space.Self);
-
-        transform.localPosition = Vector3.Lerp(transform.localPosition, pos, Time.deltaTime * lerpSpeed);
-
-        _prevPitch = player.Pitch;
-
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Loaded") && _canFire)
+        _upChange -= velocityChange.y * Time.deltaTime * 70;
+        if (player.GroundLevel == 0) _upChange += Time.deltaTime * Mathf.Lerp(20, 10, _crouchPositionAmt);
+        else
         {
-            var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
+            _upChange -= velocityChange.y * Time.deltaTime * Mathf.Lerp(120, 60, _crouchPositionAmt);
+        }
 
-            var projection = Vector3.Dot(player.velocity, player.CrosshairDirection);
-            if (projection < 1) projection = 1;
-            proj.Fire(player.CrosshairDirection * projection, player.camera.transform.position, barrel.position);
+        _rightChange -= yawMovement / 3;
 
-            player.source.PlayOneShot(fireSound);
+        _rightChange = Mathf.Lerp(_rightChange, 0, Time.deltaTime * 20);
+        _upChange = Mathf.Lerp(_upChange, 0, Time.deltaTime * 8);
 
-            _fireKick = 3;
+        _rightSoften = Mathf.Lerp(_rightSoften, _rightChange, Time.deltaTime * 20);
+        
+        if (_upSoften > _upChange)
+        {
+            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 20);
+        }
+        else
+        {
+            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 10);
+        }
+        if (_upSoften > 5) _upSoften = 5;
+        if (_upSoften < -5) _upSoften = -5;
 
-            _animator.SetBool("Fire", true);
-            _canFire = false;
+        _prevVelocity = player.velocity;
 
-            HudMovement.RotationSlamVector -= Vector3.up * 10;
+        var forward = 0;
+        var right = -0.02f * _crouchPositionAmt;
+        var up = Mathf.Lerp(0, 0.02f, _crouchPositionAmt);
+
+        var roll = Mathf.Lerp(_rightSoften, 60, _crouchPositionAmt);
+        var swing = _rightSoften / Mathf.Lerp(10, 5, _crouchPositionAmt);
+        var tilt = _upSoften;
+
+        var barrelPosition = barrel.position;
+        var riflePosition = rifle.position;
+        var stockPosition = stock.position;
+
+        var rollAxis = rifle.up;
+        var swingAxis = rifle.right;
+        var tiltAxis = rifle.forward;
+
+        if (_currentInfo.IsName("Reload"))
+            _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, _crouchPositionAmt, Time.deltaTime * 4);
+        else
+            _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, 0, Time.deltaTime * 2);
+        tilt += 5 * _crouchReloadMod;
+        up -= 0.02f * _crouchReloadMod;
+        right -= 0.005f * _crouchReloadMod;
+        roll -= 5 * _crouchReloadMod;
+
+        roll += player.CameraRoll / 2;
+
+        if (Application.isPlaying)
+        {
+            foreach (var model in _models)
+            {
+                model.transform.localPosition += new Vector3(forward, right, up);
+
+                model.gameObject.transform.RotateAround(barrelPosition, rollAxis, roll);
+                model.gameObject.transform.RotateAround(riflePosition, swingAxis, swing);
+                model.gameObject.transform.RotateAround(stockPosition, tiltAxis, tilt);
+            }
         }
     }
 

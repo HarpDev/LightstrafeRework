@@ -34,19 +34,19 @@ public class Game : MonoBehaviour
         return PlayerPrefs.HasKey("va0.7BestTime" + level) ? PlayerPrefs.GetFloat("va0.7BestTime" + level) : -1f;
     }
 
-    private static Level level;
-    public static Level Level
+    private static PlayerMovement player;
+    public static PlayerMovement Player
     {
         get
         {
-            if (level == null)
+            if (player == null)
             {
-                var levelObj = GameObject.Find("Level");
-                if (levelObj != null) level = levelObj.GetComponent<Level>();
+                var levelObj = GameObject.Find("Player");
+                if (levelObj != null) player = levelObj.GetComponent<PlayerMovement>();
             }
-            return level;
+            return player;
         }
-        private set { level = value; }
+        private set { player = value; }
     }
 
     private static Canvas canvas;
@@ -73,8 +73,7 @@ public class Game : MonoBehaviour
         {
             if (postProcessVolume == null)
             {
-                var levelObj = GameObject.Find("Level");
-                if (levelObj != null) postProcessVolume = levelObj.GetComponent<PostProcessVolume>();
+                if (player != null) postProcessVolume = player.gameObject.GetComponent<PostProcessVolume>();
             }
             return postProcessVolume;
         }
@@ -101,7 +100,7 @@ public class Game : MonoBehaviour
     {
         if (UiTree.Count > 0)
         {
-            if (UiTree.Count == 1 && level != null && level.IsPaused() && level.LevelCompleted) return;
+            if (UiTree.Count == 1 && player != null && player.IsPaused() && player.LevelCompleted) return;
             var obj = UiTree[UiTree.Count - 1];
             UiTree.RemoveAt(UiTree.Count - 1);
             Destroy(obj.gameObject);
