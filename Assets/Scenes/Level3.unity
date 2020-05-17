@@ -605,82 +605,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &107988100 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2896325809050378201, guid: ce1ac620db3b8b74a940e04d13b6c177,
-    type: 3}
-  m_PrefabInstance: {fileID: 6963572564891959304}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &107988101 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6072307552294066832, guid: ce1ac620db3b8b74a940e04d13b6c177,
-    type: 3}
-  m_PrefabInstance: {fileID: 6963572564891959304}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &107988103
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 107988100}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 948f4100a11a5c24981795d21301da5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  volumeTrigger: {fileID: 107988101}
-  volumeLayer:
-    serializedVersion: 2
-    m_Bits: 16
-  stopNaNPropagation: 1
-  finalBlitToCameraTarget: 0
-  antialiasingMode: 0
-  temporalAntialiasing:
-    jitterSpread: 0.75
-    sharpness: 0.25
-    stationaryBlending: 0.95
-    motionBlending: 0.85
-  subpixelMorphologicalAntialiasing:
-    quality: 2
-  fastApproximateAntialiasing:
-    fastMode: 0
-    keepAlpha: 0
-  fog:
-    enabled: 1
-    excludeSkybox: 1
-  debugLayer:
-    lightMeter:
-      width: 512
-      height: 256
-      showCurves: 1
-    histogram:
-      width: 512
-      height: 256
-      channel: 3
-    waveform:
-      exposure: 0.12
-      height: 256
-    vectorscope:
-      size: 256
-      exposure: 0.12
-    overlaySettings:
-      linearDepth: 0
-      motionColorIntensity: 4
-      motionGridSize: 64
-      colorBlindnessType: 0
-      colorBlindnessStrength: 1
-  m_Resources: {fileID: 11400000, guid: d82512f9c8e5d4a4d938b575d47f88d4, type: 2}
-  m_ShowToolkit: 0
-  m_ShowCustomSorter: 0
-  breakBeforeColorGrading: 0
-  m_BeforeTransparentBundles: []
-  m_BeforeStackBundles:
-  - assemblyQualifiedName: PostProcessOutline, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-  m_AfterStackBundles:
-  - assemblyQualifiedName: UnityEngine.Rendering.PostProcessing.Blur, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
 --- !u!43 &110908092
 Mesh:
   m_ObjectHideFlags: 0
@@ -14166,11 +14090,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1014179287009641876, guid: ce1ac620db3b8b74a940e04d13b6c177,
-        type: 3}
-      propertyPath: volumeLayer.m_Bits
-      value: 16
-      objectReference: {fileID: 0}
     - target: {fileID: 5006512736309056643, guid: ce1ac620db3b8b74a940e04d13b6c177,
         type: 3}
       propertyPath: m_LocalRotation.x

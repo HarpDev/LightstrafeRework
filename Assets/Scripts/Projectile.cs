@@ -51,7 +51,7 @@ public class Projectile : MonoBehaviour
             visual.transform.localPosition = new Vector3();
 
             _hitTarget = hit.collider.gameObject.GetComponent<Target>();
-            if (_hitTarget != null) Game.Player.hitmarker.Display();
+            if (_hitTarget != null) Game.Canvas.hitmarker.Display();
 
             if (hit.collider.CompareTag("Target"))
             {

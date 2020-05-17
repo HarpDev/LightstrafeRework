@@ -49,15 +49,15 @@ public class Game : MonoBehaviour
         private set { player = value; }
     }
 
-    private static Canvas canvas;
-    public static Canvas Canvas
+    private static CanvasContainer canvas;
+    public static CanvasContainer Canvas
     {
         get
         {
             if (canvas == null)
             {
                 var canvasObj = GameObject.Find("Canvas");
-                if (canvasObj != null) canvas = canvasObj.GetComponent<Canvas>();
+                if (canvasObj != null) canvas = canvasObj.GetComponent<CanvasContainer>();
             }
             return canvas;
         }

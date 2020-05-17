@@ -14,7 +14,7 @@ public class Gun : MonoBehaviour
     public Transform stock;
     public Camera viewModel;
 
-    private const float crouchPositionSpeed = 10;
+    private const float crouchPositionSpeed = 6;
 
     private float _crouchPositionAmt;
 
@@ -89,7 +89,7 @@ public class Gun : MonoBehaviour
                     if (target != null)
                     {
                         target.Explode();
-                        Game.Player.hitmarker.Display();
+                        Game.Canvas.hitmarker.Display();
                     }
                 }
             }
