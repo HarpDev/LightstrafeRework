@@ -18,6 +18,9 @@ public class Target : MonoBehaviour
     private void Awake()
     {
         GetComponent<Rigidbody>().AddTorque(new Vector3(Random.Range(-500, 500), Random.Range(-500, 500), Random.Range(-500, 500)));
+
+        Gun.ShotEvent += new Gun.GunShot(Explode);
+        Projectile.ProjectileHitEvent += new Projectile.ProjectileHit(Explode);
     }
 
     private void FixedUpdate()
@@ -35,9 +38,10 @@ public class Target : MonoBehaviour
         }
     }
 
-    public void Explode()
+    public void Explode(RaycastHit hit)
     {
-        if (_activated) return;
+        if (_activated || hit.collider.gameObject != gameObject) return;
+        Game.Canvas.hitmarker.Display();
         _activatedTicks = 0;
         _activated = true;
         if (ability == Ability.GRAPPLE)

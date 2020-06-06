@@ -4,9 +4,12 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
 
+    public delegate void ProjectileHit(RaycastHit hit);
+    public static event ProjectileHit ProjectileHitEvent;
+
     public Vector3 velocity;
 
-    private const float basespeed = 100;
+    private const float basespeed = 50;
 
     public ParticleSystem explodeParticle;
     public AudioSource explodeSound;
@@ -15,11 +18,9 @@ public class Projectile : MonoBehaviour
 
     public Radial radial;
 
-    private const float drop = 3f;
+    private const float drop = 5f;
 
     private bool _hit;
-
-    private Target _hitTarget;
 
     public void Fire(Vector3 vel, Vector3 realPosition, Vector3 visualPosition)
     {
@@ -45,19 +46,12 @@ public class Projectile : MonoBehaviour
         if (Physics.Raycast(transform.position, velocity.normalized, out var hit, velocity.magnitude * Time.fixedDeltaTime, 1, QueryTriggerInteraction.Ignore))
         {
             if (hit.collider.CompareTag("Player")) return;
+            ProjectileHitEvent(hit);
             transform.position = hit.point;
             _hit = true;
 
             visual.transform.localPosition = new Vector3();
 
-            _hitTarget = hit.collider.gameObject.GetComponent<Target>();
-            if (_hitTarget != null) Game.Canvas.hitmarker.Display();
-
-            if (hit.collider.CompareTag("Target"))
-            {
-                _hitTarget.Explode();
-                visual.GetComponent<MeshRenderer>().enabled = false;
-            }
         } else
         {
             transform.position += velocity * Time.fixedDeltaTime;

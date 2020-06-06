@@ -8,6 +8,9 @@ using UnityEngine.UI;
 public class Gun : MonoBehaviour
 {
 
+    public delegate void GunShot(RaycastHit hit);
+    public static event GunShot ShotEvent;
+
     public PlayerMovement player;
     public Transform barrel;
     public Transform rifle;
@@ -40,16 +43,12 @@ public class Gun : MonoBehaviour
         _canFire = true;
 
         _models = new List<ModelInView>(GetComponentsInChildren<ModelInView>());
+        _lineRenderer = barrel.gameObject.GetComponent<LineRenderer>();
+        if (_lineRenderer == null) _lineRenderer = barrel.gameObject.AddComponent<LineRenderer>();
     }
 
     private void FixedUpdate()
     {
-        if (_lineRenderer != null)
-        {
-            var color = _lineRenderer.material.color;
-            if (color.a > 0) color.a -= Time.fixedDeltaTime;
-            _lineRenderer.material.color = color;
-        }
         if (animator == null) return;
         _currentInfo = animator.GetCurrentAnimatorStateInfo(0);
 
@@ -64,6 +63,14 @@ public class Gun : MonoBehaviour
 
     private void Update()
     {
+        if (_lineRenderer != null && Application.isPlaying)
+        {
+            var emission = _lineRenderer.material.GetColor("_EmissionColor");
+            _lineRenderer.material.SetColor("_EmissionColor", Color.Lerp(emission, Color.black, Time.deltaTime * 4));
+            var color = _lineRenderer.material.color;
+            if (color.a > 0) color.a -= Time.deltaTime * 4;
+            _lineRenderer.material.color = color;
+        }
         if (!Input.GetKey(PlayerInput.PrimaryInteract) && !_canFire)
         {
             _canFire = true;
@@ -71,28 +78,22 @@ public class Gun : MonoBehaviour
 
         if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Idle") && _canFire)
         {
-            _lineRenderer = barrel.gameObject.GetComponent<LineRenderer>();
-            if (_lineRenderer == null) _lineRenderer = barrel.gameObject.AddComponent<LineRenderer>();
-            var screen = viewModel.WorldToScreenPoint(barrel.transform.position);
-
-            Vector3[] positions = { player.camera.ScreenToWorldPoint(screen), player.camera.transform.position + player.CrosshairDirection * 300 };
-            _lineRenderer.endWidth = 0.1f;
-            _lineRenderer.startWidth = 0.1f;
-            _lineRenderer.SetPositions(positions);
-            _lineRenderer.material.color = Color.white;
+            var lineEnd = player.camera.transform.position + player.CrosshairDirection * 300;
             if (Physics.Raycast(player.camera.transform.position, player.CrosshairDirection, out var hit, 300, 1, QueryTriggerInteraction.Ignore))
             {
                 if (!hit.collider.CompareTag("Player"))
                 {
-
-                    var target = hit.collider.gameObject.GetComponent<Target>();
-                    if (target != null)
-                    {
-                        target.Explode();
-                        Game.Canvas.hitmarker.Display();
-                    }
+                    lineEnd = hit.point;
+                    ShotEvent(hit);
                 }
             }
+
+            var screen = viewModel.WorldToViewportPoint(barrel.transform.position);
+            Vector3[] positions = { player.camera.ViewportToWorldPoint(screen), lineEnd };
+            _lineRenderer.endWidth = 0.05f;
+            _lineRenderer.startWidth = 0.05f;
+            _lineRenderer.material.SetColor("_EmissionColor", Color.white * 4);
+            _lineRenderer.SetPositions(positions);
 
             player.source.PlayOneShot(fireSound);
 
@@ -168,7 +169,7 @@ public class Gun : MonoBehaviour
         var swingAxis = rifle.right;
         var tiltAxis = rifle.forward;
 
-        if (_currentInfo.IsName("Reload"))
+        if (_currentInfo.IsTag("Reload"))
             _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, _crouchPositionAmt, Time.deltaTime * 4);
         else
             _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, 0, Time.deltaTime * 2);

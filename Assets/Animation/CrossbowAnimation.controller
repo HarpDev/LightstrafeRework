@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 177dd7f1e870e604d9fec24d798e4a48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  delay: 0.37
 --- !u!1101 &-6566950043726915787
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -205,13 +206,13 @@ AnimatorController:
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0
-    m_Controller: {fileID: 0}
+    m_Controller: {fileID: 9100000}
   - m_Name: Bolts
     m_Type: 3
     m_DefaultFloat: 0
     m_DefaultInt: 1
     m_DefaultBool: 0
-    m_Controller: {fileID: 0}
+    m_Controller: {fileID: 9100000}
   m_AnimatorLayers:
   - serializedVersion: 5
     m_Name: Base Layer

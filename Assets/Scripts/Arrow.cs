@@ -69,12 +69,6 @@ public class Arrow : MonoBehaviour
             goo.Hit(rigidbody.velocity, collision.GetContact(0).point);
         }
 
-        var target = collision.collider.gameObject.GetComponent<Target>();
-        if (target != null)
-        {
-            target.Explode();
-        }
-
         transform.position = collision.GetContact(0).point;
         Hit = true;
         _hitTransform = collision.transform;

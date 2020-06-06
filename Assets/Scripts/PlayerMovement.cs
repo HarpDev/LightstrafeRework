@@ -7,6 +7,10 @@ using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
+
+    public delegate void PlayerContact(Vector3 normal, Collider collider);
+    public event PlayerContact ContactEvent;
+
     public new Camera camera;
     public MeshCollider standingCollider;
     public MeshCollider crouchingCollider;
@@ -39,6 +43,7 @@ public class PlayerMovement : MonoBehaviour
         get
         {
             if (!jumpKitEnabled) return false;
+            if (IsDashing) return true;
             if (Flatten(velocity).magnitude > movementSpeed + 1) return true;
             if (GroundLevel > 0 && Flatten(velocity).magnitude < _previousSpeed) return true;
             if (GroundLevel == 0 && Flatten(velocity).magnitude >= movementSpeed - 1) return true;
@@ -102,7 +107,8 @@ public class PlayerMovement : MonoBehaviour
     private int _cancelLeanTickCount;
 
     private const float airSpeed = 2f;
-    private const float airStrafeAcceleration = 150f;
+    private const float airStrafeAcceleration = 500f;
+    private const float backAirStrafeAcceleration = 40f;
     private const float airMultiplier = 0.65f;
 
     private const float surfAirAccelMultiplier = 50f;
@@ -125,8 +131,17 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _yoinkDirection;
     private float _yoinkStartSpeed;
 
+    public enum ChargeType
+    {
+        NONE,
+        DASH,
+        DOUBLE_JUMP
+    }
+
+    private ChargeType _currentCharge = ChargeType.NONE;
+
     public bool IsDashing { get { return _dashVector.magnitude > 0.05f; } }
-    public static bool DashAvailable { get; set; }
+    //public static bool DashAvailable { get; set; }
     private const float dashSpeed = 30;
     private const int dashCooldown = 300;
     private const float dashCancelSpeed = 40f;
@@ -144,7 +159,7 @@ public class PlayerMovement : MonoBehaviour
     private const float jumpHeight = 15f;
     private const int coyoteTicks = 20;
     private const int jumpForgiveness = 6;
-    public bool DoubleJumpAvailable { get; set; }
+    //public bool DoubleJumpAvailable { get; set; }
 
     public LineRenderer grappleTether;
     public float grappleYOffset;
@@ -184,6 +199,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
+        ContactEvent += new PlayerContact(ContactCollider);
         LookScale = 1;
 
         Yaw += transform.rotation.eulerAngles.y;
@@ -219,9 +235,11 @@ public class PlayerMovement : MonoBehaviour
         Cursor.visible = true;
         Game.OpenPauseMenu();
 
-        Game.PostProcessVolume.profile.TryGetSettings(out Blur blur);
-        blur.BlurIterations.value = 8;
-        blur.enabled.value = true;
+        if (Game.PostProcessVolume.profile.TryGetSettings(out Blur blur))
+        {
+            blur.BlurIterations.value = 8;
+            blur.enabled.value = true;
+        }
     }
 
     public void Unpause()
@@ -348,7 +366,7 @@ public class PlayerMovement : MonoBehaviour
 
         camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, targetFOV, Time.deltaTime * 5);
 
-        if (DashAvailable)
+        if (_currentCharge != ChargeType.NONE)
         {
             _crosshairRotation = Mathf.Lerp(_crosshairRotation, 0, Time.deltaTime * 20);
         }
@@ -358,16 +376,16 @@ public class PlayerMovement : MonoBehaviour
         }
         Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(new Vector3(0, 0, _crosshairRotation));
 
-        if (PlayerInput.SincePressed(PlayerInput.SecondaryInteract) < jumpForgiveness && Time.timeScale > 0 && DashAvailable && Environment.TickCount - _dashTimestamp > dashCooldown)
+        /*if (PlayerInput.SincePressed(PlayerInput.SecondaryInteract) < jumpForgiveness && Time.timeScale > 0 && _currentCharge == ChargeType.DASH && Environment.TickCount - _dashTimestamp > dashCooldown)
         {
             var wishdir = CrosshairDirection;
             source.Play();
-            DashAvailable = false;
+            _currentCharge = ChargeType.NONE;
 
             PlayerInput.ConsumeBuffer(PlayerInput.SecondaryInteract);
 
             Dash(wishdir);
-        }
+        }*/
     }
 
     private void FixedUpdate()
@@ -483,7 +501,7 @@ public class PlayerMovement : MonoBehaviour
                 }*/
                 var movementProjection = Vector3.Dot(movement, -hit.normal);
                 if (movementProjection > 0) movement += hit.normal * movementProjection;
-                OnCollision(hit.normal, hit.collider);
+                if (CanCollide(hit.collider)) ContactEvent(hit.normal, hit.collider);
             }
             else
             {
@@ -519,7 +537,7 @@ public class PlayerMovement : MonoBehaviour
                 {
                     OnCollision(direction, collider);
                 }*/
-                OnCollision(direction, collider);
+                if (CanCollide(collider)) ContactEvent(direction, collider);
 
                 transform.position += direction * distance;
             }
@@ -554,9 +572,8 @@ public class PlayerMovement : MonoBehaviour
         return 0;
     }
 
-    private void OnCollision(Vector3 normal, Collider collider)
+    private void ContactCollider(Vector3 normal, Collider collider)
     {
-        if (!CanCollide(collider)) return;
         if (collider.CompareTag("Instant Kill Block"))
         {
             Game.RestartLevel();
@@ -680,7 +697,7 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = y;
             }
             velocity += Flatten(velocity).normalized * dashCancelSpeed;
-            _dashCancelSpeed += dashCancelSpeed;
+            _dashCancelSpeed += dashCancelSpeed - wallJumpSpeed;
         }
     }
 
@@ -734,7 +751,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!IsOnRail) return;
 
-        DashAvailable = true;
+        _currentCharge = ChargeType.DASH;
 
         var closeIndex = 0;
         var closeDistance = float.MaxValue;
@@ -891,7 +908,7 @@ public class PlayerMovement : MonoBehaviour
         var direction = Vector3.Lerp(velocity.normalized, (target - transform.position).normalized, grappleCorrectionAcceleration);
         velocity = velocity.magnitude * direction.normalized;
 
-        Accelerate(direction, grappleSpeed, swingProjection * f);
+        Accelerate(direction, grappleSpeed, grappleAcceleration * f);
 
         if (Vector3.Dot(towardPoint, CrosshairDirection) < 0 || _grappleTicks++ > grappleMaxTicks)
         {
@@ -902,6 +919,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void WallMove(float f)
     {
+        _currentCharge = ChargeType.DOUBLE_JUMP;
         if (Jump()) return;
 
         if (_wallTickCount == jumpForgiveness)
@@ -979,7 +997,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void GroundMove(float f)
     {
-        DashAvailable = true;
+        _currentCharge = ChargeType.DASH;
         GravityTick(f);
 
         if (Jump()) return;
@@ -1125,6 +1143,16 @@ public class PlayerMovement : MonoBehaviour
                 accel = addspeed / f;
 
             var addvector = accel * Wishdir;
+            var backspeed = Vector3.Dot(addvector, -Flatten(velocity).normalized);
+            if (backspeed > backAirStrafeAcceleration)
+            {
+                var x1 = backspeed;
+                var x2 = backAirStrafeAcceleration;
+                var y1 = addvector.magnitude;
+                var y2 = (x2 * y1) / x1;
+
+                addvector = addvector.normalized * y2;
+            }
             velocity += addvector * f;
         }
 
@@ -1196,11 +1224,22 @@ public class PlayerMovement : MonoBehaviour
             var railJump = PlayerInput.tickCount - _railTimestamp < coyoteTicks;
             _railTimestamp = -coyoteTicks;
 
-            if (!groundJump && !railJump && !wallJump && !DoubleJumpAvailable) return false;
-            if (groundJump || railJump || wallJump) DoubleJumpAvailable = true;
-            else DoubleJumpAvailable = false;
+            if (!groundJump && !railJump && !wallJump && _currentCharge == ChargeType.NONE) return false;
 
             PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+
+            if (!groundJump && !railJump && !wallJump)
+            {
+                if (_currentCharge == ChargeType.DASH && Environment.TickCount - _dashTimestamp > dashCooldown)
+                {
+                    var wishdir = CrosshairDirection;
+                    source.Play();
+
+                    Dash(wishdir);
+                }
+                _currentCharge = ChargeType.NONE;
+                return true;
+            }
 
             SetCameraRotation(0, cameraRotationCorrectSpeed);
 
@@ -1235,22 +1274,22 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                var height = jumpHeight;
-
-                if (IsDashing)
-                {
-                    source.PlayOneShot(wallKick);
-                    CancelDash();
-
-                    height /= 1.5f;
-
-                    if (railJump) source.PlayOneShot(trick);
-                }
                 if (!railJump && !groundJump)
                 {
                     velocity.y = Mathf.Max(jumpHeight, velocity.y);
-                } else
+                }
+                else
                 {
+                    var height = jumpHeight;
+                    if (IsDashing)
+                    {
+                        source.PlayOneShot(wallKick);
+                        CancelDash();
+
+                        height /= 1.5f;
+
+                        if (railJump) source.PlayOneShot(trick);
+                    }
                     velocity.y += height;
                 }
             }
