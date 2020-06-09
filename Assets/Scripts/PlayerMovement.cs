@@ -442,7 +442,14 @@ public class PlayerMovement : MonoBehaviour
         if (WallLevel == 0) _wallTickCount = 0;
         if (GroundLevel == 0) _groundTickCount = 0;
 
-        if (_dashTime > 0) _dashTime -= factor;
+        if (_dashTime > 0)
+        {
+            _slideLeanVector = Vector3.Lerp(_slideLeanVector, Flatten(velocity).normalized, factor * 4);
+            var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
+            SetCameraRotation(leanProjection * 15, 6);
+
+            _dashTime -= factor;
+        }
         if (_dashTime < 0)
         {
             _dashTime = 0;
@@ -683,6 +690,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (IsDashing)
         {
+            SetCameraRotation(0, 6);
+            _dashTime = 0;
             _dashVector = new Vector3();
         }
     }

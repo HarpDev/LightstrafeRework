@@ -27,6 +27,15 @@ public class Platform : MonoBehaviour
 
     private bool _queued;
 
+    private void Start()
+    {
+        if (Vector3.Distance(Game.Player.transform.position, transform.position) < 10)
+        {
+            _queued = true;
+            _glowing = true;
+        }
+    }
+
     private void FixedUpdate()
     {
         if (_queued) return;
