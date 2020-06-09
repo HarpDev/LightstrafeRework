@@ -35,6 +35,7 @@ public class Rings : MonoBehaviour
         ThrowQueue = new Queue<Platform>();
         _rightAvailable = true;
         _leftAvailable = true;
+        Time.timeScale = 0.1f;
     }
 
     private void FixedUpdate()

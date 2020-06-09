@@ -50,10 +50,11 @@ public class Platform : MonoBehaviour
             var towardPlatform = (transform.position - _projectile.transform.position).normalized;
             _lightProjectileVelocity = Vector3.Lerp(_lightProjectileVelocity, towardPlatform * _projectileSpeed, Time.deltaTime * 10);
             _projectile.transform.position += _lightProjectileVelocity * Time.deltaTime;
-            if (Vector3.Distance(_projectile.transform.position, transform.position) < 3)
+            if (Vector3.Distance(_projectile.transform.position, transform.position) < 2)
             {
                 _glowing = true;
                 glowParticle.Play();
+                _projectile.GetComponent<MeshRenderer>().enabled = false;
                 //Destroy(_projectile);
             }
         }
