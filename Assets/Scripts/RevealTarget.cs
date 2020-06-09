@@ -13,7 +13,7 @@ public class RevealTarget : MonoBehaviour
             obj.gameObject.SetActive(false);
         }
 
-        Gun.ShotEvent += new Gun.GunShot(ShotEvent);
+        //Gun.ShotEvent += new Gun.GunShot(ShotEvent);
     }
 
     private void ShotEvent(RaycastHit hit)

@@ -5,7 +5,7 @@ public class Projectile : MonoBehaviour
 {
 
     public delegate void ProjectileHit(RaycastHit hit);
-    public static event ProjectileHit ProjectileHitEvent;
+    public event ProjectileHit ProjectileHitEvent;
 
     public Vector3 velocity;
 
@@ -46,7 +46,7 @@ public class Projectile : MonoBehaviour
         if (Physics.Raycast(transform.position, velocity.normalized, out var hit, velocity.magnitude * Time.fixedDeltaTime, 1, QueryTriggerInteraction.Ignore))
         {
             if (hit.collider.CompareTag("Player")) return;
-            ProjectileHitEvent(hit);
+            //ProjectileHitEvent(hit);
             transform.position = hit.point;
             _hit = true;
 

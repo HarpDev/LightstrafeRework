@@ -9,7 +9,7 @@ public class Gun : MonoBehaviour
 {
 
     public delegate void GunShot(RaycastHit hit);
-    public static event GunShot ShotEvent;
+    public event GunShot ShotEvent;
 
     public PlayerMovement player;
     public Transform barrel;
@@ -84,7 +84,7 @@ public class Gun : MonoBehaviour
                 if (!hit.collider.CompareTag("Player"))
                 {
                     lineEnd = hit.point;
-                    ShotEvent(hit);
+                    //ShotEvent(hit);
                 }
             }
 

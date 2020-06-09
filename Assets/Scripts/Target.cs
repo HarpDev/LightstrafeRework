@@ -19,8 +19,8 @@ public class Target : MonoBehaviour
     {
         GetComponent<Rigidbody>().AddTorque(new Vector3(Random.Range(-500, 500), Random.Range(-500, 500), Random.Range(-500, 500)));
 
-        Gun.ShotEvent += new Gun.GunShot(Explode);
-        Projectile.ProjectileHitEvent += new Projectile.ProjectileHit(Explode);
+        //Gun.ShotEvent += new Gun.GunShot(Explode);
+        //Projectile.ProjectileHitEvent += new Projectile.ProjectileHit(Explode);
     }
 
     private void FixedUpdate()

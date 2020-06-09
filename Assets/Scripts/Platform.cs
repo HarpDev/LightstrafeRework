@@ -11,41 +11,68 @@ public class Platform : MonoBehaviour
 
     private bool _glowing = false;
 
-    private Collider _collider;
+    private readonly float _projectileSpeed = 100;
 
-    private void Start()
-    {
-        Game.Player.ContactEvent += new PlayerMovement.PlayerContact(PlayerContact);
-        Gun.ShotEvent += new Gun.GunShot(Shot);
-        Projectile.ProjectileHitEvent += new Projectile.ProjectileHit(Shot);
+    private Vector3 _lightProjectileVelocity;
 
-        _collider = GetComponent<Collider>();
-    }
+    public GameObject lightProjectile;
+
+    public ParticleSystem glowParticle;
 
     private Color _color;
     private float _range;
     private float _value;
 
+    private GameObject _projectile;
+
+    private bool _queued;
+
+    private void FixedUpdate()
+    {
+        if (_queued) return;
+        if (_projectile != null) return;
+        if (Vector3.Distance(Game.Player.transform.position, transform.position) > 100) return;
+
+        var towardPlatform = (transform.position - Game.Player.transform.position).normalized;
+        var angle = Vector3.Angle(Game.Player.CrosshairDirection, towardPlatform);
+        if (angle < 40)
+        {
+            _queued = true;
+            Game.Player.rings.ThrowQueue.Enqueue(this);
+        }
+    }
+
     private void Update()
     {
+
+        if (_projectile != null && !_glowing)
+        {
+            var towardPlatform = (transform.position - _projectile.transform.position).normalized;
+            _lightProjectileVelocity = Vector3.Lerp(_lightProjectileVelocity, towardPlatform * _projectileSpeed, Time.deltaTime * 10);
+            _projectile.transform.position += _lightProjectileVelocity * Time.deltaTime;
+            if (Vector3.Distance(_projectile.transform.position, transform.position) < 3)
+            {
+                _glowing = true;
+                glowParticle.Play();
+                //Destroy(_projectile);
+            }
+        }
+
         //_glowing = Vector3.Distance(Game.Player.transform.position, transform.position) < 50;
 
         var brightness = 1.1f;
 
         if (_glowing)
         {
-            _range = Mathf.Lerp(_range, 35, Time.deltaTime);
-            if (_value < brightness) _value += Time.deltaTime;
+            _range = Mathf.Lerp(_range, 35, Time.deltaTime * 5);
+            if (_value < brightness) _value += Time.deltaTime * 5;
             if (_value > brightness) _value = brightness;
         }
         else
         {
             _range = Mathf.Lerp(_range, 0, Time.deltaTime);
             if (_value > 0) _value -= Time.deltaTime;
-            if (_value < 0) { 
-                _value = 0;
-                _collider.enabled = false;
-            }
+            if (_value < 0) _value = 0;
         }
 
         Color.RGBToHSV(Color.cyan * 2, out var h, out var s, out _);
@@ -55,20 +82,11 @@ public class Platform : MonoBehaviour
         glow.material.EnableKeyword("_EMISSION");
     }
 
-    private void Shot(RaycastHit hit)
+    public void BeginLight(Vector3 projectileStart, Vector3 projectileDirection)
     {
-        if (!_glowing && hit.collider.gameObject == gameObject)
-        {
-            _glowing = true;
-            Game.Canvas.hitmarker.Display();
-        }
-    }
+        _lightProjectileVelocity = projectileDirection.normalized * _projectileSpeed;
 
-    private void PlayerContact(Vector3 normal, Collider collider)
-    {
-        if (_glowing && collider.gameObject == gameObject)
-        {
-            _glowing = false;
-        }
+        _projectile = Instantiate(lightProjectile);
+        _projectile.transform.position = projectileStart;
     }
 }

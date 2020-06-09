@@ -17,6 +17,8 @@ public class PlayerMovement : MonoBehaviour
     public GameObject abilityDot;
     public new Rigidbody rigidbody;
 
+    public Rings rings;
+
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
@@ -1226,20 +1228,31 @@ public class PlayerMovement : MonoBehaviour
 
             if (!groundJump && !railJump && !wallJump && _currentCharge == ChargeType.NONE) return false;
 
-            PlayerInput.ConsumeBuffer(PlayerInput.Jump);
-
             if (!groundJump && !railJump && !wallJump)
             {
-                if (_currentCharge == ChargeType.DASH && Environment.TickCount - _dashTimestamp > dashCooldown)
+                if (_currentCharge == ChargeType.DASH)
                 {
-                    var wishdir = CrosshairDirection;
-                    source.Play();
+                    if (Environment.TickCount - _dashTimestamp > dashCooldown)
+                    {
+                        var wishdir = CrosshairDirection;
+                        source.Play();
 
-                    Dash(wishdir);
+                        Dash(wishdir);
+                    } else
+                    {
+                        return false;
+                    }
+                }
+                if (_currentCharge == ChargeType.DOUBLE_JUMP)
+                {
+                    velocity.y = Mathf.Max(jumpHeight, velocity.y);
                 }
                 _currentCharge = ChargeType.NONE;
+                PlayerInput.ConsumeBuffer(PlayerInput.Jump);
                 return true;
             }
+
+            PlayerInput.ConsumeBuffer(PlayerInput.Jump);
 
             SetCameraRotation(0, cameraRotationCorrectSpeed);
 
