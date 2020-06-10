@@ -1145,15 +1145,15 @@ public class PlayerMovement : MonoBehaviour
         if (_wallRecovery > 0) _wallRecovery -= f;
         if (_wallRecovery < 0) _wallRecovery = 0;
 
-        var currentspeed = Vector3.Dot(velocity, Wishdir);
-        var addspeed = Mathf.Abs(airSpeed) - currentspeed;
-
-        if (addspeed > 0)
+        var forward = transform.forward * PlayerInput.GetAxisStrafeForward();
+        var forwardspeed = Vector3.Dot(velocity, forward);
+        var forwardaddspeed = Mathf.Abs(airSpeed) - forwardspeed;
+        if (forwardaddspeed > 0)
         {
-            if (accel * f > addspeed)
-                accel = addspeed / f;
+            if (accel * f > forwardaddspeed)
+                accel = forwardaddspeed / f;
 
-            var addvector = accel * Wishdir;
+            var addvector = accel * forward;
             var backspeed = Vector3.Dot(addvector, -Flatten(velocity).normalized);
             if (backspeed > backAirStrafeAcceleration)
             {
@@ -1167,14 +1167,36 @@ public class PlayerMovement : MonoBehaviour
             velocity += addvector * f;
         }
 
-        if (!IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
+        var right = transform.right * PlayerInput.GetAxisStrafeRight();
+        var rightspeed = Vector3.Dot(velocity, right);
+        var rightaddspeed = Mathf.Abs(airSpeed) - rightspeed;
+        if (rightaddspeed > 0)
+        {
+            if (accel * f > rightaddspeed)
+                accel = rightaddspeed / f;
+
+            var addvector = accel * right;
+            var backspeed = Vector3.Dot(addvector, -Flatten(velocity).normalized);
+            if (backspeed > backAirStrafeAcceleration)
+            {
+                var x1 = backspeed;
+                var x2 = backAirStrafeAcceleration;
+                var y1 = addvector.magnitude;
+                var y2 = (x2 * y1) / x1;
+
+                addvector = addvector.normalized * y2;
+            }
+            velocity += addvector * f;
+        }
+
+        /*if (!IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
         {
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
             velocity += Wishdir * f * accel;
             velocity = Flatten(velocity).normalized * speed;
             velocity.y = y;
-        }
+        }*/
     }
 
     public float ApplyFriction(float f, float minimumSpeed = 0, float deceleration = 0)
