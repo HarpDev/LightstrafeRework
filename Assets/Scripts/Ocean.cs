@@ -13,6 +13,7 @@ public class Ocean : MonoBehaviour
 
     private void Start()
     {
+        gameObject.SetActive(true);
         _meshRenderer = GetComponent<MeshRenderer>();
         //_distance = Mathf.Abs(Game.Player.transform.position.y - transform.position.y);
     }
