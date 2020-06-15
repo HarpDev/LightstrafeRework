@@ -105,7 +105,7 @@ GameObject:
   - component: {fileID: 3572696664724812357}
   m_Layer: 0
   m_Name: longwall
-  m_TagString: Untagged
+  m_TagString: Wall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -157,6 +157,7 @@ MonoBehaviour:
   lightProjectile: {fileID: 808331282579653803, guid: cbe3bbfb59df16b4d998730438f8ee1f,
     type: 3}
   glowParticle: {fileID: 3572696664724812356}
+  startGlowing: 0
 --- !u!1 &6213898764400489800
 GameObject:
   m_ObjectHideFlags: 0

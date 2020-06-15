@@ -111,12 +111,12 @@ public class PlayerMovement : MonoBehaviour
     private const float airSpeed = 2f;
     private const float airStrafeAcceleration = 500f;
     private const float backAirStrafeAcceleration = 80f;
-    private const float airMultiplier = 0.65f;
 
     private const float surfAirAccelMultiplier = 50f;
 
     public bool IsOnRail { get { return _currentRail != null; } }
     private const int railCooldownTicks = 40;
+    private const float railSpeed = 80f;
     private int _railTimestamp = -100000;
     private int _railCooldownTimestamp = -100000;
     private int _railDirection;
@@ -758,6 +758,7 @@ public class PlayerMovement : MonoBehaviour
     public void EndRail()
     {
         if (!IsOnRail) return;
+        velocity.y += jumpHeight;
         SetCameraRotation(0, 8);
         _currentRail = null;
         railSound.Stop();
@@ -874,7 +875,7 @@ public class PlayerMovement : MonoBehaviour
         _railLeanVector = Vector3.Lerp(_railLeanVector, GetBalanceVector(closeIndex + _railDirection), f * 20);
 
         var correctionVector = -(transform.position - next).normalized;
-        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
+        velocity = railSpeed * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
 
         if (velocity.y < 0) GravityTick(f);
 
@@ -1337,7 +1338,11 @@ public class PlayerMovement : MonoBehaviour
             rollSound.volume = 0;
             GroundLevel = 0;
 
-            if (IsOnRail) EndRail();
+            if (railJump)
+            {
+                EndRail();
+                return true;
+            }
 
             if (wallJump)
             {
@@ -1371,7 +1376,7 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                if (!railJump && !groundJump)
+                if (!groundJump)
                 {
                     velocity.y = Mathf.Max(jumpHeight, velocity.y);
                 }

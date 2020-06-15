@@ -42,11 +42,11 @@ public class Platform : MonoBehaviour
     {
         if (_queued) return;
         if (_projectile != null) return;
-        if (Vector3.Distance(Game.Player.transform.position, transform.position) > 120) return;
+        var distance = Vector3.Distance(Game.Player.transform.position, transform.position);
 
         var towardPlatform = (transform.position - Game.Player.transform.position).normalized;
         var angle = Vector3.Angle(Game.Player.CrosshairDirection, towardPlatform);
-        if (angle < 30)
+        if ((angle < 30 && distance < 120) || distance < 40)
         {
             _queued = true;
             Game.Player.rings.ThrowQueue.Enqueue(this);
