@@ -23,13 +23,15 @@ public class Platform : MonoBehaviour
     private float _range;
     private float _value;
 
+    public bool startGlowing = false;
+
     private GameObject _projectile;
 
     private bool _queued;
 
     private void Start()
     {
-        if (Vector3.Distance(Game.Player.transform.position, transform.position) < 10)
+        if (startGlowing)
         {
             _queued = true;
             _glowing = true;
@@ -40,11 +42,11 @@ public class Platform : MonoBehaviour
     {
         if (_queued) return;
         if (_projectile != null) return;
-        if (Vector3.Distance(Game.Player.transform.position, transform.position) > 100) return;
+        if (Vector3.Distance(Game.Player.transform.position, transform.position) > 120) return;
 
         var towardPlatform = (transform.position - Game.Player.transform.position).normalized;
         var angle = Vector3.Angle(Game.Player.CrosshairDirection, towardPlatform);
-        if (angle < 40)
+        if (angle < 30)
         {
             _queued = true;
             Game.Player.rings.ThrowQueue.Enqueue(this);
@@ -57,7 +59,7 @@ public class Platform : MonoBehaviour
         if (_projectile != null && !_glowing)
         {
             var towardPlatform = (transform.position - _projectile.transform.position).normalized;
-            _lightProjectileVelocity = Vector3.Lerp(_lightProjectileVelocity, towardPlatform * _projectileSpeed, Time.deltaTime * 10);
+            _lightProjectileVelocity = Vector3.Lerp(_lightProjectileVelocity, towardPlatform * _projectileSpeed * 3, Time.deltaTime * 10);
             _projectile.transform.position += _lightProjectileVelocity * Time.deltaTime;
             if (Vector3.Distance(_projectile.transform.position, transform.position) < 2)
             {

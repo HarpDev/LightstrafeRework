@@ -35,6 +35,7 @@ public class Rings : MonoBehaviour
         ThrowQueue = new Queue<Platform>();
         _rightAvailable = true;
         _leftAvailable = true;
+        //Time.timeScale = 0.1f;
     }
 
     private void FixedUpdate()
@@ -71,7 +72,7 @@ public class Rings : MonoBehaviour
         {
             _throttle = false;
         }
-        if (ThrowQueue.Count > 0 && Time.timeScale > 0 && ((_rightInfo.IsName("Idle") && _rightAvailable) && (_leftInfo.IsName("Idle") && _leftAvailable)))
+        if (ThrowQueue != null && ThrowQueue.Count > 0 && Time.timeScale > 0 && ((_rightInfo.IsName("Idle") && _rightAvailable) && (_leftInfo.IsName("Idle") && _leftAvailable)))
         {
             //var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
 
