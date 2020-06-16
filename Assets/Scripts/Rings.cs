@@ -26,13 +26,13 @@ public class Rings : MonoBehaviour
 
     private bool _shootRight = true;
 
-    public Queue<Platform> ThrowQueue { get; set; }
+    public List<Platform> ThrowQueue { get; set; }
 
     public static bool Fire { get; set; }
 
     private void Start()
     {
-        ThrowQueue = new Queue<Platform>();
+        ThrowQueue = new List<Platform>();
         _rightAvailable = true;
         _leftAvailable = true;
         //Time.timeScale = 0.1f;
@@ -102,7 +102,7 @@ public class Rings : MonoBehaviour
 
     public void Throw(float angle, Transform sphereTransform, Camera viewModel, bool flip)
     {
-        var target = ThrowQueue.Dequeue();
+        var target = ThrowQueue[0];
         var screen = viewModel.WorldToViewportPoint(sphereTransform.position);
 
         if (flip) angle = -angle;
@@ -119,6 +119,7 @@ public class Rings : MonoBehaviour
 
         rightSphere.enabled = false;
         leftSphere.enabled = false;
+        ThrowQueue.RemoveAt(0);
     }
 
     private static Vector3 Flatten(Vector3 vec)

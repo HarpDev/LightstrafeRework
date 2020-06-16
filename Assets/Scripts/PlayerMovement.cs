@@ -92,6 +92,7 @@ public class PlayerMovement : MonoBehaviour
     private const float wallAcceleration = 80f;
     private const float wallSpeed = 25f;
     private const float wallFriction = 10f;
+    private const float wallNeutralFriction = 1f;
     private const int wallFrictionTicks = 5;
     private const float wallJumpAngle = 0.3f;
     private const float wallAngleGive = 10f;
@@ -445,8 +446,12 @@ public class PlayerMovement : MonoBehaviour
         if (_dashTime > 0)
         {
             _slideLeanVector = Vector3.Lerp(_slideLeanVector, Flatten(velocity).normalized, factor * 4);
-            var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
-            SetCameraRotation(leanProjection * 15, 6);
+
+            if (!ApproachingWall)
+            {
+                var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
+                SetCameraRotation(leanProjection * 15, 6);
+            }
 
             _dashTime -= factor;
         }
@@ -985,9 +990,9 @@ public class PlayerMovement : MonoBehaviour
             rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
 
             var angle = Vector3.Dot(CrosshairDirection, _wallNormal);
-            if (Mathf.Abs(angle) > 0.7f)
+            if (angle > 0.7f)
             {
-                ApplyFriction(wallFriction * f);
+                ApplyFriction(wallNeutralFriction * f);
             } else
             {
                 var direction = Flatten(CrosshairDirection - angle * _wallNormal).normalized;
@@ -1353,17 +1358,14 @@ public class PlayerMovement : MonoBehaviour
                 var y = velocity.y;
                 var velocityDirection = velocity.normalized;
                 var angle = Vector3.Dot(CrosshairDirection, _wallNormal);
-                if (Mathf.Abs(angle) > 0.7f)
+                if (angle > 0.7f)
                 {
                     velocityDirection = CrosshairDirection;
                 }
                 var direction = Flatten(velocityDirection + _wallNormal * wallJumpAngle).normalized;
                 velocity = Flatten(velocity).magnitude * direction;
                 velocity += Flatten(velocityDirection).normalized * wallJumpSpeed;
-                if (velocity.magnitude < movementSpeed)
-                {
-                    velocity = velocity.normalized * movementSpeed;
-                }
+                if (velocity.magnitude < movementSpeed) velocity = velocity.normalized * movementSpeed;
                 velocity.y = y;
                 velocity.y = Mathf.Max(jumpHeight, velocity.y);
                 if (IsDashing)

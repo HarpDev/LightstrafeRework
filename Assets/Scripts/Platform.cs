@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
 
@@ -49,7 +50,10 @@ public class Platform : MonoBehaviour
         if ((angle < 30 && distance < 120) || distance < 40)
         {
             _queued = true;
-            Game.Player.rings.ThrowQueue.Enqueue(this);
+            var queue = Game.Player.rings.ThrowQueue;
+            queue.Add(this);
+            queue = queue.OrderBy(o => (o.transform.position - Game.Player.transform.position).sqrMagnitude).ToList();
+            Game.Player.rings.ThrowQueue = queue;
         }
     }
 

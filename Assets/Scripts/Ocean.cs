@@ -15,6 +15,7 @@ public class Ocean : MonoBehaviour
     {
         gameObject.SetActive(true);
         _meshRenderer = GetComponent<MeshRenderer>();
+        _y = Game.Player.camera.transform.position.y - distance;
         //_distance = Mathf.Abs(Game.Player.transform.position.y - transform.position.y);
     }
 
@@ -40,6 +41,9 @@ public class Ocean : MonoBehaviour
             }
             _rise += Time.deltaTime;
             _meshRenderer.material.SetTextureOffset("_MainTex", new Vector2(position.x / transform.localScale.x, position.z / transform.localScale.z));
+        } else
+        {
+            _y = Game.Player.camera.transform.position.y - distance;
         }
     }
 }
