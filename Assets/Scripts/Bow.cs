@@ -89,7 +89,7 @@ public class Bow : MonoBehaviour
 
         var finalPosition = bowPos + new Vector3(xCalc, 0, zCalc);
 
-        if (player.GroundLevel == 0 && !player.IsOnRail && player.WallLevel == 0)
+        if (!player.IsOnGround && !player.IsOnRail && !player.IsOnWall)
             finalPosition.y += 0f;
         else if (!player.IsSliding)
             finalPosition.y += Drawback / 3f;

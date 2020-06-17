@@ -141,6 +141,7 @@ LineRenderer:
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -152,6 +153,7 @@ LineRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -295,7 +297,8 @@ MonoBehaviour:
   showGizmos: 1
   detail: 0.02
   gizmoSize: 0.28
-  hitboxSize: 0.8
+  hitboxSize: 3
+  hitbox: 1
   smoothedPoints:
   - {x: 0, y: 0, z: 0}
   - {x: 0.209016, y: 0, z: 0}

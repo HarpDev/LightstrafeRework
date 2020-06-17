@@ -89,7 +89,7 @@ public class Crossbow : MonoBehaviour
 
         var angle = 0f;
 
-        if (player.IsSliding && !player.ApproachingWall && player.WallLevel == 0)
+        if (player.IsSliding && !player.ApproachingWall && !player.IsOnWall)
         {
             if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
         }

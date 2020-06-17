@@ -8,6 +8,17 @@ using UnityEngine.UI;
 public class PlayerMovement : MonoBehaviour
 {
 
+    public struct SpeedAccel
+    {
+        public float speed;
+        public float acceleration;
+        public SpeedAccel(float speed, float acceleration)
+        {
+            this.speed = speed;
+            this.acceleration = acceleration;
+        }
+    }
+
     public delegate void PlayerContact(Vector3 normal, Collider collider);
     public event PlayerContact ContactEvent;
 
@@ -31,6 +42,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public float Yaw { get; set; }
+    public float YawFutureInterpolation { get; set; }
     public float YawIncrease { get; set; }
     public float Pitch { get; set; }
     public float LookScale { get; set; }
@@ -39,35 +51,38 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 Wishdir { get; set; }
     public Vector3 CrosshairDirection { get; set; }
     public Vector3 InterpolatedPosition { get { return Vector3.Lerp(_previousPosition, transform.position, _motionInterpolationDelta / Time.fixedDeltaTime); } }
-    public bool IsStrafing { get { return PlayerInput.GetAxisStrafeForward() == 0 && (Input.GetKey(PlayerInput.MoveLeft) || Input.GetKey(PlayerInput.MoveRight)); } }
     public bool IsSliding
     {
         get
         {
             if (!jumpKitEnabled) return false;
             if (IsDashing) return true;
-            if (Flatten(velocity).magnitude > movementSpeed + 1) return true;
-            if (GroundLevel > 0 && Flatten(velocity).magnitude < _previousSpeed) return true;
-            if (GroundLevel == 0 && Flatten(velocity).magnitude >= movementSpeed - 1) return true;
-            if (WallLevel > 0) return true;
+            if (Flatten(velocity).magnitude > groundSpeed.speed + 1) return true;
+            if (!IsOnGround && Flatten(velocity).magnitude < _previousSpeed) return true;
+            if (IsOnGround && Flatten(velocity).magnitude >= groundSpeed.speed - 1) return true;
+            if (IsOnWall) return true;
             if (IsOnRail) return true;
             if (GrappleHooked) return true;
-            if (_isDownColliding && GroundLevel == 0) return true;
+            if (_isDownColliding && !IsOnGround) return true;
             return false;
         }
     }
     public float Gravity { get { return (velocity.y - Mathf.Lerp(velocity.y, -terminalVelocity, gravity)) * (IsDashing ? 0 : 1); } }
 
-    public int GroundLevel { get; set; }
+    // Surfaces have a "level" to make them a little more sticky than being able to come off them in 1 tick.
+    // This is to prevent repeated landings on surfaces.
+    public bool IsOnWall { get { return _wallLevel > 0; } set { if (value) _wallLevel = surfaceMaxLevel; else _wallLevel = 0; } }
+    private int _wallLevel;
+    public bool IsOnGround { get { return _groundLevel > 0; } set { if (value) _groundLevel = surfaceMaxLevel; else _groundLevel = 0; } }
+    private int _groundLevel;
+    private const int surfaceMaxLevel = 5;
+
     private const float cameraRotationCorrectSpeed = 4f;
-    private const float movementSpeed = 20f;
+    private SpeedAccel groundSpeed = new SpeedAccel(20, 200);
     private const float groundAngle = 45;
-    private const float groundAcceleration = 200f;
     private const float groundFriction = 5f;
     private const float slideMovementScale = 2f;
     private const float slideFriction = 0.2f;
-    private const int surfaceMaxLevel = 5;
-    private const float stepHeight = 0.8f;
     private int _groundTickCount;
     private int _groundTimestamp = -100000;
     private Vector3 _previousPosition;
@@ -87,23 +102,18 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public bool ApproachingWall { get; set; }
-    public int WallLevel { get; set; }
     private const float wallCatchFriction = 10f;
-    private const float wallAcceleration = 80f;
-    private const float wallSpeed = 25f;
-    private const float wallFriction = 10f;
+    private SpeedAccel wallSpeed = new SpeedAccel(25, 80);
+    private const float wallFriction = 5f;
     private const float wallNeutralFriction = 1f;
-    private const int wallFrictionTicks = 5;
     private const float wallJumpAngle = 0.3f;
     private const float wallAngleGive = 10f;
     private const float wallStamina = 200f;
-    private const float wallEndBoostSpeed = 1f;
+    private SpeedAccel wallEndBoostSpeed = new SpeedAccel(1, 1);
     private const float wallLeanDegrees = 20f;
     private const float wallLeanPreTime = 0.3f;
-    private const float wallAirAccelRecovery = 0.3f;
-    private const float wallJumpSpeed = 5f;
+    private SpeedAccel wallJumpSpeed = new SpeedAccel(40, 0.2f);
     private Vector3 _wallNormal;
-    private float _wallRecovery;
     private int _wallTimestamp = -100000;
     private int _wallTickCount;
     private float _wallStamina;
@@ -144,33 +154,31 @@ public class PlayerMovement : MonoBehaviour
     private ChargeType _currentCharge = ChargeType.NONE;
 
     public bool IsDashing { get { return _dashVector.magnitude > 0.05f; } }
-    //public static bool DashAvailable { get; set; }
-    private const float dashSpeed = 30;
+    private const float dashSpeed = 25;
     private const int dashCooldown = 300;
-    private const float dashCancelSpeed = 40f;
-    private const float dashCancelDecay = 4f;
-    private const float dashTime = 0.3f;
-    private float _dashCancelSpeed;
+    private SpeedAccel dashCancelSpeed = new SpeedAccel(25, 1);
+    private const float dashCancelTempSpeed = 20;
+    private const float dashCancelTempSpeedDecay = 20;
+    private const float dashTime = 0.35f;
+    private const float dashDecay = 35f;
     private float _dashTime;
+    private float _dashCancelTempSpeed;
     private int _dashTimestamp = -100000;
     private Vector3 _dashVector;
 
-    public float MaxSpeed { get { return 50f; } }
     private const float gravity = 0.5f;
     private const float terminalVelocity = 60;
 
     private const float jumpHeight = 15f;
     private const int coyoteTicks = 20;
     private const int jumpForgiveness = 6;
-    //public bool DoubleJumpAvailable { get; set; }
 
     public LineRenderer grappleTether;
     public float grappleYOffset;
     public bool GrappleHooked { get; set; }
     private const float grappleControlAcceleration = 40f;
     private const float grappleDistance = 25f;
-    private const float grappleAcceleration = 40f;
-    private const float grappleSpeed = 80f;
+    private SpeedAccel grappleSpeed = new SpeedAccel(80, 40);
     private const float grappleCorrectionAcceleration = 0.02f;
     private const int grappleMaxTicks = 200;
     private int _grappleTicks;
@@ -218,10 +226,15 @@ public class PlayerMovement : MonoBehaviour
         crouchingCollider.enabled = false;
         CurrentCollider = standingCollider;
 
+        if (Game.I.lastCheckpoint.sqrMagnitude > 0.05f)
+        {
+            transform.position = Game.I.lastCheckpoint;
+        }
+
         if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) && Vector3.Angle(hit.normal, Vector3.up) < groundAngle)
         {
             transform.position = hit.point + Vector3.up * 0.3f;
-            GroundLevel = surfaceMaxLevel;
+            IsOnGround = true;
             _groundTickCount = 1;
         }
     }
@@ -308,6 +321,10 @@ public class PlayerMovement : MonoBehaviour
 
             Yaw = (Yaw + YawIncrease) % 360f;
 
+            var interpolation = Mathf.Lerp(Yaw, Yaw + YawFutureInterpolation, Time.deltaTime * 10) - Yaw;
+            Yaw += interpolation;
+            YawFutureInterpolation -= interpolation;
+
             Pitch -= Input.GetAxis("Mouse Y") * (Game.Sensitivity / 10) * LookScale;
             Pitch += Input.GetAxis("Joy 1 Y 2") * Game.Sensitivity * LookScale;
 
@@ -349,7 +366,7 @@ public class PlayerMovement : MonoBehaviour
             if (_crouchAmount > 0)
             {
                 _crouchAmount -= Time.deltaTime * 6;
-                if (!IsOnRail && WallLevel == 0)
+                if (!IsOnRail && !IsOnWall)
                 {
                     SetCameraRotation(0, 5);
                 }
@@ -363,7 +380,7 @@ public class PlayerMovement : MonoBehaviour
 
         camera.transform.position = InterpolatedPosition + position;
 
-        var targetFOV = velocity.magnitude + (100 - movementSpeed);
+        var targetFOV = velocity.magnitude + (100 - groundSpeed.speed);
         targetFOV = Mathf.Max(targetFOV, 100);
         targetFOV = Mathf.Min(targetFOV, 120);
 
@@ -378,17 +395,6 @@ public class PlayerMovement : MonoBehaviour
             _crosshairRotation = Mathf.Lerp(_crosshairRotation, 45, Time.deltaTime * 20);
         }
         Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(new Vector3(0, 0, _crosshairRotation));
-
-        /*if (PlayerInput.SincePressed(PlayerInput.SecondaryInteract) < jumpForgiveness && Time.timeScale > 0 && _currentCharge == ChargeType.DASH && Environment.TickCount - _dashTimestamp > dashCooldown)
-        {
-            var wishdir = CrosshairDirection;
-            source.Play();
-            _currentCharge = ChargeType.NONE;
-
-            PlayerInput.ConsumeBuffer(PlayerInput.SecondaryInteract);
-
-            Dash(wishdir);
-        }*/
     }
 
     private void FixedUpdate()
@@ -407,8 +413,8 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Timestamps used for coyote time
-        if (GroundLevel > 0) _groundTimestamp = PlayerInput.tickCount;
-        if (WallLevel > 0) _wallTimestamp = PlayerInput.tickCount;
+        if (IsOnGround) _groundTimestamp = PlayerInput.tickCount;
+        if (IsOnWall) _wallTimestamp = PlayerInput.tickCount;
         if (IsOnRail)
         {
             _railCooldownTimestamp = PlayerInput.tickCount;
@@ -423,9 +429,9 @@ public class PlayerMovement : MonoBehaviour
             GrappleMove(factor);
         else if (IsOnRail)
             RailMove(factor);
-        else if (WallLevel > 0)
+        else if (IsOnWall)
             WallMove(factor);
-        else if (GroundLevel > 0)
+        else if (IsOnGround)
             GroundMove(factor);
         else
             AirMove(factor);
@@ -434,14 +440,14 @@ public class PlayerMovement : MonoBehaviour
         {
             _cancelLeanTickCount++;
         }
-        if (_cancelLeanTickCount >= 5 && WallLevel == 0)
+        if (_cancelLeanTickCount >= 5 && !IsOnWall)
         {
             ApproachingWall = false;
             SetCameraRotation(0, cameraRotationCorrectSpeed);
         }
 
-        if (WallLevel == 0) _wallTickCount = 0;
-        if (GroundLevel == 0) _groundTickCount = 0;
+        if (!IsOnWall) _wallTickCount = 0;
+        if (!IsOnGround) _groundTickCount = 0;
 
         if (_dashTime > 0)
         {
@@ -455,18 +461,16 @@ public class PlayerMovement : MonoBehaviour
 
             _dashTime -= factor;
         }
-        if (_dashTime < 0)
+        if (_dashTime <= 0)
         {
             _dashTime = 0;
-
-            StopDash();
+            _dashVector = Vector3.Lerp(_dashVector, new Vector3(), factor * dashDecay);
         }
-        if (_dashCancelSpeed < 0) _dashCancelSpeed = 0;
-        if (_dashCancelSpeed > 0)
+        if (_dashCancelTempSpeed > 0)
         {
-            var change = Mathf.Lerp(_dashCancelSpeed, 0, factor * dashCancelDecay);
-            velocity -= Flatten(velocity).normalized * (_dashCancelSpeed - change);
-            _dashCancelSpeed = change;
+            var loss = factor * dashCancelTempSpeedDecay;
+            velocity -= Flatten(velocity).normalized * loss;
+            _dashCancelTempSpeed -= loss;
         }
         if (Game.PostProcessVolume != null && Game.PostProcessVolume.profile.TryGetSettings(out MotionBlur motion))
         {
@@ -479,17 +483,17 @@ public class PlayerMovement : MonoBehaviour
         var movement = (velocity + _dashVector) * Time.fixedDeltaTime;
         _previousPosition = transform.position;
 
-        if (GroundLevel > 0) GroundLevel--;
-        if (WallLevel > 0) WallLevel--;
+        if (IsOnGround) _groundLevel--;
+        if (IsOnWall) _wallLevel--;
         _isDownColliding = false;
         var iterations = 0;
 
         var hold = 0.1f;
-        if (GroundLevel > 0)
+        if (IsOnGround)
         {
             movement += Vector3.down * hold;
         }
-        if (WallLevel > 0)
+        if (IsOnWall)
         {
             movement -= _wallNormal * hold;
         }
@@ -502,17 +506,6 @@ public class PlayerMovement : MonoBehaviour
                 transform.position += movement.normalized * hit.distance;
                 movement -= movement.normalized * hit.distance;
 
-                /*var stepCheck = StepCheck(hit.normal, transform.position, hit.collider);
-                if (stepCheck > 0)
-                {
-                    transform.position += Vector3.up * (stepHeight - stepCheck);
-                }
-                else
-                {
-                    var movementProjection = Vector3.Dot(movement, -hit.normal);
-                    if (movementProjection > 0) movement += hit.normal * movementProjection;
-                    OnCollision(hit.normal, hit.collider);
-                }*/
                 var movementProjection = Vector3.Dot(movement, -hit.normal);
                 if (movementProjection > 0) movement += hit.normal * movementProjection;
                 if (CanCollide(hit.collider)) ContactEvent(hit.normal, hit.collider);
@@ -541,16 +534,6 @@ public class PlayerMovement : MonoBehaviour
                     continue;
                 }
 
-                /*var stepCheck = StepCheck(direction, transform.position, collider);
-                if (stepCheck > 0)
-                {
-                    direction = Vector3.up;
-                    distance = stepHeight - stepCheck;
-                }
-                else
-                {
-                    OnCollision(direction, collider);
-                }*/
                 if (CanCollide(collider)) ContactEvent(direction, collider);
 
                 transform.position += direction * distance;
@@ -569,34 +552,9 @@ public class PlayerMovement : MonoBehaviour
         return true;
     }
 
-    private float StepCheck(Vector3 normal, Vector3 origin, Collider collider = null)
-    {
-        var stepCheck = origin + (-Flatten(normal).normalized * 0.51f) + (Vector3.down * (1 - stepHeight));
-        if (Flatten(normal).normalized.magnitude > 0.05f
-            && Physics.Raycast(stepCheck, Vector3.down, out var rayHit, stepHeight, 1, QueryTriggerInteraction.Ignore)
-            && rayHit.normal.y == 1
-            && Vector3.Dot(Flatten(velocity), Flatten(normal)) < 0)
-        {
-            if (collider != null && rayHit.collider != collider)
-            {
-                return 0;
-            }
-            return rayHit.distance;
-        }
-        return 0;
-    }
-
     private void ContactCollider(Vector3 normal, Collider collider)
     {
         if (collider.GetComponent<KillCollider>() != null)
-        {
-            Game.RestartLevel();
-        }
-        if (collider.CompareTag("Instant Kill Block"))
-        {
-            Game.RestartLevel();
-        }
-        if (collider.CompareTag("Kill Block") && GroundLevel > 0)
         {
             Game.RestartLevel();
         }
@@ -612,13 +570,13 @@ public class PlayerMovement : MonoBehaviour
 
         if (angle < groundAngle && !collider.CompareTag("Wall"))
         {
-            GroundLevel = surfaceMaxLevel;
+            IsOnGround = true;
         }
 
-        if (!collider.CompareTag("Uninteractable") && Mathf.Abs(angle - 90) < wallAngleGive && GroundLevel == 0 && jumpKitEnabled)
+        if (!collider.CompareTag("Uninteractable") && Mathf.Abs(angle - 90) < wallAngleGive && !IsOnGround && jumpKitEnabled)
         {
             _wallNormal = Flatten(normal).normalized;
-            WallLevel = surfaceMaxLevel;
+            IsOnWall = true;
         }
         if (angle < 90) _isDownColliding = true;
     }
@@ -680,7 +638,7 @@ public class PlayerMovement : MonoBehaviour
     {
         source.Play();
 
-        if (velocity.magnitude < movementSpeed) velocity = wishdir * movementSpeed;
+        if (velocity.magnitude < groundSpeed.speed) velocity = wishdir * groundSpeed.speed;
 
         var x1 = Flatten(velocity).magnitude;
         var x2 = Flatten(wishdir).magnitude;
@@ -730,7 +688,6 @@ public class PlayerMovement : MonoBehaviour
         {
             SetCameraRotation(0, 6);
             _dashTime = 0;
-            _dashVector = new Vector3();
         }
     }
 
@@ -739,14 +696,9 @@ public class PlayerMovement : MonoBehaviour
         if (IsDashing)
         {
             StopDash();
-            if (Flatten(velocity).magnitude < movementSpeed)
-            {
-                var y = velocity.y;
-                velocity = Flatten(velocity).normalized * movementSpeed;
-                velocity.y = y;
-            }
-            velocity += Flatten(velocity).normalized * dashCancelSpeed;
-            _dashCancelSpeed += dashCancelSpeed - wallJumpSpeed;
+            Accelerate(Flatten(velocity).normalized, dashCancelSpeed);
+            velocity += Flatten(velocity).normalized * dashCancelTempSpeed;
+            _dashCancelTempSpeed += dashCancelTempSpeed;
         }
     }
 
@@ -757,6 +709,15 @@ public class PlayerMovement : MonoBehaviour
         source.PlayOneShot(railLand);
         railSound.Play();
         railSound.volume = 1;
+        if (rail.railDirection == Rail.RailDirection.BACKWARD)
+        {
+            Game.I.lastCheckpoint = rail.smoothedPoints[rail.smoothedPoints.Length - 1];
+            _railDirection = -1;
+        } else if (rail.railDirection == Rail.RailDirection.FORWARD)
+        {
+            Game.I.lastCheckpoint = rail.smoothedPoints[0];
+            _railDirection = 1;
+        }
         if (GrappleHooked) DetachGrapple();
     }
 
@@ -868,6 +829,8 @@ public class PlayerMovement : MonoBehaviour
             next = _currentRail.smoothedPoints[closeIndex + _railDirection] + _railLeanVector;
         }
 
+        var previousDirection = Flatten(velocity).normalized;
+        var previousAngle = Mathf.Atan2(previousDirection.z, previousDirection.x);
 
         var railVector = -(current - next).normalized;
 
@@ -889,6 +852,10 @@ public class PlayerMovement : MonoBehaviour
         SetCameraRotation(projection, 6);
 
         railSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
+
+        var newDirection = Flatten(velocity).normalized;
+        var newAngle = Mathf.Atan2(newDirection.z, newDirection.x);
+        YawFutureInterpolation += (Mathf.Rad2Deg * previousAngle) - (Mathf.Rad2Deg * newAngle);
 
         Jump();
     }
@@ -949,7 +916,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (velocityProjection < 0) velocity -= towardPoint * velocityProjection;
 
-        if (velocity.magnitude < 0.05f) velocity += towardPoint * f * grappleAcceleration;
+        if (velocity.magnitude < 0.05f) velocity += towardPoint * f * grappleSpeed.acceleration;
         var magnitude = velocity.magnitude;
         velocity += CrosshairDirection * grappleControlAcceleration * f;
         velocity = velocity.normalized * magnitude;
@@ -958,7 +925,7 @@ public class PlayerMovement : MonoBehaviour
         var direction = Vector3.Lerp(velocity.normalized, (target - transform.position).normalized, grappleCorrectionAcceleration);
         velocity = velocity.magnitude * direction.normalized;
 
-        Accelerate(direction, grappleSpeed, grappleAcceleration * f);
+        Accelerate(direction, grappleSpeed, f);
 
         if (Vector3.Dot(towardPoint, CrosshairDirection) < 0 || _grappleTicks++ > grappleMaxTicks)
         {
@@ -993,11 +960,12 @@ public class PlayerMovement : MonoBehaviour
             if (angle > 0.7f)
             {
                 ApplyFriction(wallNeutralFriction * f);
-            } else
+            }
+            else
             {
                 var direction = Flatten(CrosshairDirection - angle * _wallNormal).normalized;
-                if (_wallTickCount - jumpForgiveness < wallFrictionTicks) ApplyFriction(wallFriction * f, movementSpeed);
-                Accelerate(direction, wallSpeed, wallAcceleration * f);
+                ApplyFriction(wallFriction * f, groundSpeed.speed);
+                Accelerate(direction, wallSpeed, f);
             }
         }
 
@@ -1010,8 +978,8 @@ public class PlayerMovement : MonoBehaviour
         if (_wallStamina <= 0)
         {
             _wallStamina = 0;
-            WallLevel = 0;
-            Accelerate(normal, wallEndBoostSpeed, wallEndBoostSpeed);
+            IsOnWall = false;
+            Accelerate(normal, wallEndBoostSpeed);
         }
         _wallStamina -= f * _wallTickCount;
 
@@ -1045,7 +1013,7 @@ public class PlayerMovement : MonoBehaviour
             if (_landFrictionTicks++ < landFrictionTicks) ApplyFriction(landFriction * f, movementSpeed);
         }*/
 
-        Accelerate(-_wallNormal, 10, Gravity * f);
+        Accelerate(-_wallNormal, new SpeedAccel(10, Gravity), f);
     }
 
     public void GravityTick(float f)
@@ -1080,7 +1048,16 @@ public class PlayerMovement : MonoBehaviour
 
                 AirAccelerate(f, slideMovementScale);
 
-                ApplyFriction(slideFriction * f, movementSpeed);
+                ApplyFriction(slideFriction * f, groundSpeed.speed);
+
+                if (PlayerInput.GetAxisStrafeRight() == 0 && Vector3.Angle(Wishdir, velocity) < 90)
+                {
+                    var speed = Flatten(velocity).magnitude;
+                    var y = velocity.y;
+                    velocity += Wishdir * f * airStrafeAcceleration;
+                    velocity = Flatten(velocity).normalized * speed;
+                    velocity.y = y;
+                }
             }
             else
             {
@@ -1096,17 +1073,17 @@ public class PlayerMovement : MonoBehaviour
 
     public void GroundAccelerate(float f, float frictionMod = 1f)
     {
-        ApplyFriction(f * groundFriction * frictionMod, 0, movementSpeed);
+        ApplyFriction(f * groundFriction * frictionMod, 0, groundSpeed.speed);
         if (Wishdir.magnitude > 0)
         {
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
 
-            velocity += Wishdir * f * groundAcceleration;
+            velocity += Wishdir * f * groundSpeed.acceleration;
 
-            if (Flatten(velocity).magnitude >= movementSpeed && Vector3.Angle(Wishdir, velocity) < 90)
+            if (Flatten(velocity).magnitude >= groundSpeed.speed && Vector3.Angle(Wishdir, velocity) < 90)
             {
-                velocity = Flatten(velocity).normalized * Mathf.Max(speed, movementSpeed);
+                velocity = Flatten(velocity).normalized * Mathf.Max(speed, groundSpeed.speed);
                 velocity.y = y;
             }
         }
@@ -1167,10 +1144,10 @@ public class PlayerMovement : MonoBehaviour
             if (hit.distance / movement.magnitude / Time.fixedDeltaTime < jumpForgiveness) eatJump = true;
         }
 
-        //var groundMod = 1 - Mathf.Min(Flatten(velocity).magnitude / (movementSpeed - 1), 1);
-        //if (!_isDownColliding) GroundAccelerate(f * groundMod * airMultiplier, 0);
-        //f *= 1 - groundMod;
-        AirAccelerate(f, 1 - currentLean);
+        var groundMod = 1 - Mathf.Min(Flatten(velocity).magnitude / (groundSpeed.speed - 1), 1);
+        if (!_isDownColliding) GroundAccelerate(f * groundMod, 0);
+        f *= 1 - groundMod;
+        AirAccelerate(f, 1 - (currentLean * (2 - currentLean)));
 
         if (eatJump)
         {
@@ -1187,11 +1164,8 @@ public class PlayerMovement : MonoBehaviour
 
         var accel = airStrafeAcceleration;
 
-        if (_isDownColliding && GroundLevel == 0) accel *= surfAirAccelMultiplier;
+        if (_isDownColliding && !IsOnGround) accel *= surfAirAccelMultiplier;
         accel *= accelMod;
-        accel *= 1 - _wallRecovery / wallAirAccelRecovery;
-        if (_wallRecovery > 0) _wallRecovery -= f;
-        if (_wallRecovery < 0) _wallRecovery = 0;
 
         var forward = transform.forward * PlayerInput.GetAxisStrafeForward();
         var forwardspeed = Vector3.Dot(velocity, forward);
@@ -1236,15 +1210,6 @@ public class PlayerMovement : MonoBehaviour
             }
             velocity += addvector * f;
         }
-
-        /*if (!IsStrafing && Vector3.Angle(Wishdir, velocity) < 90)
-        {
-            var speed = Flatten(velocity).magnitude;
-            var y = velocity.y;
-            velocity += Wishdir * f * accel;
-            velocity = Flatten(velocity).normalized * speed;
-            velocity.y = y;
-        }*/
     }
 
     public float ApplyFriction(float f, float minimumSpeed = 0, float deceleration = 0)
@@ -1269,15 +1234,16 @@ public class PlayerMovement : MonoBehaviour
         return speed - newspeed;
     }
 
-    public void Accelerate(Vector3 wishdir, float wishspeed, float accel)
+    public void Accelerate(Vector3 wishdir, SpeedAccel speed, float f = 1)
     {
         var currentspeed = Vector3.Dot(velocity, wishdir.normalized);
-        var addspeed = Mathf.Abs(wishspeed) - currentspeed;
+        var addspeed = Mathf.Abs(speed.speed) - currentspeed;
 
         if (addspeed <= 0)
             return;
 
-        var accelspeed = Mathf.Abs(accel);
+        var accelspeed = Mathf.Lerp(currentspeed, speed.speed, speed.acceleration * f) -  currentspeed;
+        //var accelspeed = Mathf.Abs(speed.acceleration * f);
         if (accelspeed > addspeed)
             accelspeed = addspeed;
 
@@ -1317,7 +1283,8 @@ public class PlayerMovement : MonoBehaviour
                         source.Play();
 
                         Dash(wishdir);
-                    } else
+                    }
+                    else
                     {
                         return false;
                     }
@@ -1341,7 +1308,7 @@ public class PlayerMovement : MonoBehaviour
             }
 
             rollSound.volume = 0;
-            GroundLevel = 0;
+            IsOnGround = false;
 
             if (railJump)
             {
@@ -1351,8 +1318,7 @@ public class PlayerMovement : MonoBehaviour
 
             if (wallJump)
             {
-                _wallRecovery = wallAirAccelRecovery;
-                WallLevel = 0;
+                IsOnWall = false;
                 _wallTimestamp = -coyoteTicks;
 
                 var y = velocity.y;
@@ -1363,17 +1329,17 @@ public class PlayerMovement : MonoBehaviour
                     velocityDirection = CrosshairDirection;
                 }
                 var direction = Flatten(velocityDirection + _wallNormal * wallJumpAngle).normalized;
-                velocity = Flatten(velocity).magnitude * direction;
-                velocity += Flatten(velocityDirection).normalized * wallJumpSpeed;
-                if (velocity.magnitude < movementSpeed) velocity = velocity.normalized * movementSpeed;
+                velocity = Mathf.Max(velocity.magnitude, wallSpeed.speed) * direction;
+                Accelerate(Flatten(velocityDirection).normalized, wallJumpSpeed);
+
                 velocity.y = y;
                 velocity.y = Mathf.Max(jumpHeight, velocity.y);
                 if (IsDashing)
                 {
                     CancelDash();
                     var cancelForce = Mathf.Min(y * 2.2f, 80);
-                    velocity.y = cancelForce;
-                    if (velocity.y > jumpHeight) source.PlayOneShot(wallKick);
+                    velocity.y = Mathf.Max(cancelForce, jumpHeight / 2);
+                    source.PlayOneShot(wallKick);
                 }
             }
             else

@@ -8,7 +8,7 @@ public class Ocean : MonoBehaviour
 
     private MeshRenderer _meshRenderer;
     private float _y;
-    private const float distance = 20;
+    private const float distance = 25;
     private float _rise;
 
     private void Start()
@@ -25,18 +25,14 @@ public class Ocean : MonoBehaviour
         var position = transform.position;
         position.x = Game.Player.camera.transform.position.x;
         position.z = Game.Player.camera.transform.position.z;
-        position.y = _y;
+        position.y = Mathf.Lerp(position.y, _y + _rise, Time.deltaTime);
         transform.position = position;
 
         if (Application.isPlaying)
         {
-            var target = Game.Player.camera.transform.position.y - (distance - _rise);
-            if (_y < target)
+            if (_y < Game.Player.camera.transform.position.y - distance)
             {
-                _y = Mathf.Lerp(_y, target, Time.deltaTime);
-            }
-            else
-            {
+                _y = Game.Player.camera.transform.position.y - distance;
                 _rise = 0;
             }
             _rise += Time.deltaTime;

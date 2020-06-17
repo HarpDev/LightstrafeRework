@@ -22,6 +22,15 @@ public class Rail : MonoBehaviour
 
     public LineRenderer line;
 
+    public enum RailDirection
+    {
+        OMNIDIRECTIONAL,
+        FORWARD,
+        BACKWARD
+    }
+
+    public RailDirection railDirection;
+
     public void Update()
     {
         GetPoints();

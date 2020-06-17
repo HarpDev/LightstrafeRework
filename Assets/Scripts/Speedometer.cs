@@ -17,7 +17,7 @@ public class Speedometer : MonoBehaviour
     // Update is called once per frame
     private void Update()
     {
-        var speed = Flatten(Game.Player.velocity).magnitude / Game.Player.MaxSpeed;
+        var speed = Flatten(Game.Player.velocity).magnitude / 50;
 
         var layer1 = Mathf.Min(1, Mathf.Max(0, speed));
         _layer1Lerp = Mathf.Lerp(_layer1Lerp, layer1, Time.deltaTime * 5);

@@ -12,6 +12,8 @@ public class Game : MonoBehaviour
     public Canvas Options;
     public Canvas Pause;
 
+    public Vector3 lastCheckpoint;
+
     public static readonly Color green = new Color(19f / 255f, 176f / 255f, 65f / 255f);
     public static readonly Color gold = new Color(255f / 255f, 226f / 255f, 0);
 

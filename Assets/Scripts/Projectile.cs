@@ -5,7 +5,7 @@ public class Projectile : MonoBehaviour
 {
 
     public delegate void ProjectileHit(RaycastHit hit);
-    public event ProjectileHit ProjectileHitEvent;
+    //public event ProjectileHit ProjectileHitEvent;
 
     public Vector3 velocity;
 

@@ -9,7 +9,7 @@ public class Gun : MonoBehaviour
 {
 
     public delegate void GunShot(RaycastHit hit);
-    public event GunShot ShotEvent;
+    //public event GunShot ShotEvent;
 
     public PlayerMovement player;
     public Transform barrel;
@@ -119,7 +119,7 @@ public class Gun : MonoBehaviour
 
         var velocityChange = player.velocity - _prevVelocity;
 
-        if (player.IsSliding && !player.ApproachingWall && player.WallLevel == 0)
+        if (player.IsSliding && !player.ApproachingWall && !player.IsOnWall)
         {
             if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
         }
@@ -127,7 +127,7 @@ public class Gun : MonoBehaviour
         _crouchPositionAmt = Mathf.Max(0, Mathf.Min(1, _crouchPositionAmt));
 
         _upChange -= velocityChange.y * Time.deltaTime * 70;
-        if (player.GroundLevel == 0) _upChange += Time.deltaTime * Mathf.Lerp(20, 10, _crouchPositionAmt);
+        if (!player.IsOnGround) _upChange += Time.deltaTime * Mathf.Lerp(20, 10, _crouchPositionAmt);
         else
         {
             _upChange -= velocityChange.y * Time.deltaTime * Mathf.Lerp(120, 60, _crouchPositionAmt);
