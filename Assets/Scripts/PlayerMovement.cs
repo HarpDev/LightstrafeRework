@@ -106,6 +106,7 @@ public class PlayerMovement : MonoBehaviour
     private SpeedAccel wallSpeed = new SpeedAccel(25, 80);
     private const float wallFriction = 5f;
     private const float wallNeutralFriction = 1f;
+    private const int wallFrictionTicks = 5;
     private const float wallJumpAngle = 0.3f;
     private const float wallAngleGive = 10f;
     private const float wallStamina = 200f;
@@ -118,6 +119,8 @@ public class PlayerMovement : MonoBehaviour
     private int _wallTickCount;
     private float _wallStamina;
     private int _cancelLeanTickCount;
+    private GameObject _lastWall;
+    private GameObject _currentWall;
 
     private const float airSpeed = 2f;
     private const float airStrafeAcceleration = 500f;
@@ -573,10 +576,11 @@ public class PlayerMovement : MonoBehaviour
             IsOnGround = true;
         }
 
-        if (!collider.CompareTag("Uninteractable") && Mathf.Abs(angle - 90) < wallAngleGive && !IsOnGround && jumpKitEnabled)
+        if (!collider.CompareTag("Uninteractable") && Mathf.Abs(angle - 90) < wallAngleGive && !IsOnGround && jumpKitEnabled && collider.gameObject != _lastWall)
         {
             _wallNormal = Flatten(normal).normalized;
             IsOnWall = true;
+            _currentWall = collider.gameObject;
         }
         if (angle < 90) _isDownColliding = true;
     }
@@ -964,7 +968,7 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 var direction = Flatten(CrosshairDirection - angle * _wallNormal).normalized;
-                ApplyFriction(wallFriction * f, groundSpeed.speed);
+                if (_wallTickCount - jumpForgiveness < wallFrictionTicks) ApplyFriction(wallFriction * f, groundSpeed.speed);
                 Accelerate(direction, wallSpeed, f);
             }
         }
@@ -1111,7 +1115,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (didHit
             && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive
-            && CanCollide(hit.collider, false))
+            && CanCollide(hit.collider, false)
+            && hit.collider.gameObject != _lastWall)
         {
             if (!ApproachingWall) ApproachingWall = true;
 
@@ -1320,6 +1325,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 IsOnWall = false;
                 _wallTimestamp = -coyoteTicks;
+                _lastWall = _currentWall;
 
                 var y = velocity.y;
                 var velocityDirection = velocity.normalized;
