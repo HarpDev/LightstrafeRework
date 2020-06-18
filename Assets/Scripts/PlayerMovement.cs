@@ -22,6 +22,16 @@ public class PlayerMovement : MonoBehaviour
     public delegate void PlayerContact(Vector3 normal, Collider collider);
     public event PlayerContact ContactEvent;
 
+    public delegate void Jump(ref JumpEvent jumpEvent);
+    public event Jump PlayerJumpEvent;
+
+    public struct JumpEvent
+    {
+        public bool cancelled;
+        public float jumpHeight;
+        public GameObject currentGround;
+    }
+
     public new Camera camera;
     public MeshCollider standingCollider;
     public MeshCollider crouchingCollider;
@@ -92,6 +102,7 @@ public class PlayerMovement : MonoBehaviour
     private float _motionInterpolationDelta;
     private float _crosshairRotation;
     private bool _isDownColliding;
+    private GameObject _currentGround;
 
     private float _cameraRotation;
     private float _cameraRotationSpeed;
@@ -581,6 +592,7 @@ public class PlayerMovement : MonoBehaviour
         if (angle < groundAngle && !collider.CompareTag("Wall"))
         {
             IsOnGround = true;
+            _currentGround = collider.gameObject;
         }
 
         if (!collider.CompareTag("Uninteractable")
@@ -871,7 +883,7 @@ public class PlayerMovement : MonoBehaviour
         var newAngle = Mathf.Atan2(newDirection.z, newDirection.x);
         YawFutureInterpolation += (Mathf.Rad2Deg * previousAngle) - (Mathf.Rad2Deg * newAngle);
 
-        Jump();
+        PlayerJump();
     }
 
     public void AttachGrapple(Vector3 position)
@@ -945,13 +957,13 @@ public class PlayerMovement : MonoBehaviour
         {
             DetachGrapple();
         }
-        Jump();
+        PlayerJump();
     }
 
     public void WallMove(float f)
     {
         _currentCharge = ChargeType.DOUBLE_JUMP;
-        if (Jump()) return;
+        if (PlayerJump()) return;
 
         if (_wallTickCount == jumpForgiveness)
         {
@@ -1040,7 +1052,7 @@ public class PlayerMovement : MonoBehaviour
         _currentCharge = ChargeType.DASH;
         GravityTick(f);
 
-        if (Jump()) return;
+        if (PlayerJump()) return;
 
         _groundTickCount++;
 
@@ -1171,7 +1183,7 @@ public class PlayerMovement : MonoBehaviour
                 PlayerInput.SimulateKeyPress(PlayerInput.Jump);
             }
         }
-        else Jump();
+        else PlayerJump();
     }
 
     public void AirAccelerate(float f, float accelMod = 1)
@@ -1267,7 +1279,7 @@ public class PlayerMovement : MonoBehaviour
         velocity.z += accelspeed * wishdir.z;
     }
 
-    public bool Jump()
+    public bool PlayerJump()
     {
         int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
         if (sinceJump < jumpForgiveness)
@@ -1287,6 +1299,14 @@ public class PlayerMovement : MonoBehaviour
             _railTimestamp = -coyoteTicks;
 
             if (!groundJump && !railJump && !wallJump && _currentCharge == ChargeType.NONE) return false;
+            var jumpEvent = new JumpEvent
+            {
+                jumpHeight = jumpHeight,
+                cancelled = false,
+                currentGround = _currentGround
+            };
+            PlayerJumpEvent(ref jumpEvent);
+            if (jumpEvent.cancelled) return false;
 
             if (!groundJump && !railJump && !wallJump)
             {
@@ -1306,7 +1326,7 @@ public class PlayerMovement : MonoBehaviour
                 }
                 if (_currentCharge == ChargeType.DOUBLE_JUMP)
                 {
-                    velocity.y = Mathf.Max(jumpHeight, velocity.y);
+                    velocity.y = Mathf.Max(jumpEvent.jumpHeight, velocity.y);
                 }
                 _currentCharge = ChargeType.NONE;
                 PlayerInput.ConsumeBuffer(PlayerInput.Jump);
@@ -1350,12 +1370,12 @@ public class PlayerMovement : MonoBehaviour
                 Accelerate(Flatten(velocityDirection).normalized, wallJumpSpeed);
 
                 velocity.y = y;
-                velocity.y = Mathf.Max(jumpHeight, velocity.y);
+                velocity.y = Mathf.Max(jumpEvent.jumpHeight, velocity.y);
                 if (IsDashing)
                 {
                     CancelDash();
                     var cancelForce = Mathf.Min(y * 2.2f, 80);
-                    velocity.y = Mathf.Max(cancelForce, jumpHeight / 2);
+                    velocity.y = Mathf.Max(cancelForce, jumpEvent.jumpHeight / 2);
                     source.PlayOneShot(wallKick);
                 }
             }
@@ -1363,11 +1383,11 @@ public class PlayerMovement : MonoBehaviour
             {
                 if (!groundJump)
                 {
-                    velocity.y = Mathf.Max(jumpHeight, velocity.y);
+                    velocity.y = Mathf.Max(jumpEvent.jumpHeight, velocity.y);
                 }
                 else
                 {
-                    var height = jumpHeight;
+                    var height = jumpEvent.jumpHeight;
                     if (IsDashing)
                     {
                         source.PlayOneShot(wallKick);

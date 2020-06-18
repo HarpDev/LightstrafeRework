@@ -34,7 +34,7 @@ public class Platform : MonoBehaviour
 
     private void Start()
     {
-        Game.Player.ContactEvent += new PlayerMovement.PlayerContact(PlayerCollide);
+        Game.Player.PlayerJumpEvent += new PlayerMovement.Jump(PlayerJump);
         if (startGlowing)
         {
             _queued = true;
@@ -66,12 +66,11 @@ public class Platform : MonoBehaviour
         }
     }
 
-    private void PlayerCollide(Vector3 normal, Collider collider)
+    private void PlayerJump(ref PlayerMovement.JumpEvent jumpEvent)
     {
-        if (collider.gameObject != gameObject) return;
-        if (bouncePad && Game.Player.IsOnGround)
+        if (jumpEvent.currentGround == gameObject && bouncePad)
         {
-            Game.Player.velocity.y = bouncePadStrength;
+            jumpEvent.jumpHeight = bouncePadStrength;
         }
     }
 
