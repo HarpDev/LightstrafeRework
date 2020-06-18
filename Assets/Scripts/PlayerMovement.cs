@@ -121,6 +121,7 @@ public class PlayerMovement : MonoBehaviour
     private int _cancelLeanTickCount;
     private GameObject _lastWall;
     private GameObject _currentWall;
+    private Vector3 _lastWallNormal;
 
     private const float airSpeed = 2f;
     private const float airStrafeAcceleration = 500f;
@@ -228,6 +229,12 @@ public class PlayerMovement : MonoBehaviour
         standingCollider.enabled = true;
         crouchingCollider.enabled = false;
         CurrentCollider = standingCollider;
+
+        var positionOverride = GameObject.Find("PlayerStartPositionOverride");
+        if (positionOverride != null)
+        {
+            transform.position = positionOverride.transform.position;
+        }
 
         if (Game.I.lastCheckpoint.sqrMagnitude > 0.05f)
         {
@@ -576,7 +583,10 @@ public class PlayerMovement : MonoBehaviour
             IsOnGround = true;
         }
 
-        if (!collider.CompareTag("Uninteractable") && Mathf.Abs(angle - 90) < wallAngleGive && !IsOnGround && jumpKitEnabled && collider.gameObject != _lastWall)
+        if (!collider.CompareTag("Uninteractable")
+            && Mathf.Abs(angle - 90) < wallAngleGive
+            && !IsOnGround && jumpKitEnabled
+            && (collider.gameObject != _lastWall || Vector3.Dot(Flatten(normal).normalized, _lastWallNormal) < 0.7))
         {
             _wallNormal = Flatten(normal).normalized;
             IsOnWall = true;
@@ -1116,7 +1126,7 @@ public class PlayerMovement : MonoBehaviour
         if (didHit
             && Math.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < wallAngleGive
             && CanCollide(hit.collider, false)
-            && hit.collider.gameObject != _lastWall)
+            && (hit.collider.gameObject != _lastWall || Vector3.Dot(Flatten(hit.normal).normalized, _lastWallNormal) < 0.7))
         {
             if (!ApproachingWall) ApproachingWall = true;
 
@@ -1326,6 +1336,7 @@ public class PlayerMovement : MonoBehaviour
                 IsOnWall = false;
                 _wallTimestamp = -coyoteTicks;
                 _lastWall = _currentWall;
+                _lastWallNormal = _wallNormal;
 
                 var y = velocity.y;
                 var velocityDirection = velocity.normalized;

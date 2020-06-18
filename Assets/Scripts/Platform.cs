@@ -25,6 +25,8 @@ public class Platform : MonoBehaviour
     private float _value;
 
     public bool startGlowing = false;
+    public bool bouncePad = false;
+    public float bouncePadStrength = 50;
 
     private GameObject _projectile;
 
@@ -32,12 +34,19 @@ public class Platform : MonoBehaviour
 
     private void Start()
     {
+        Game.Player.ContactEvent += new PlayerMovement.PlayerContact(PlayerCollide);
         if (startGlowing)
         {
             _queued = true;
             _glowing = true;
         }
+        if (bouncePad)
+        {
+            color = Color.yellow;
+        }
     }
+
+    private Color color = Color.cyan;
 
     private void FixedUpdate()
     {
@@ -54,6 +63,15 @@ public class Platform : MonoBehaviour
             queue.Add(this);
             queue = queue.OrderBy(o => (o.transform.position - Game.Player.transform.position).sqrMagnitude).ToList();
             Game.Player.rings.ThrowQueue = queue;
+        }
+    }
+
+    private void PlayerCollide(Vector3 normal, Collider collider)
+    {
+        if (collider.gameObject != gameObject) return;
+        if (bouncePad && Game.Player.IsOnGround)
+        {
+            Game.Player.velocity.y = bouncePadStrength;
         }
     }
 
@@ -91,7 +109,7 @@ public class Platform : MonoBehaviour
             if (_value < 0) _value = 0;
         }
 
-        Color.RGBToHSV(Color.cyan * 2, out var h, out var s, out _);
+        Color.RGBToHSV(color * 2, out var h, out var s, out _);
         _color = Color.HSVToRGB(h, s, Mathf.Pow(_value, 2));
         lightSource.range = _range;
         glow.material.SetColor("_EmissionColor", _color);
