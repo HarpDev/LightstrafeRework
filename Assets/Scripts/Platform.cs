@@ -34,7 +34,7 @@ public class Platform : MonoBehaviour
 
     private void Start()
     {
-        Game.Player.PlayerJumpEvent += new PlayerMovement.Jump(PlayerJump);
+        if (bouncePad) Game.Player.PlayerJumpEvent += new PlayerMovement.Jump(BouncePadJump);
         if (startGlowing)
         {
             _queued = true;
@@ -66,9 +66,9 @@ public class Platform : MonoBehaviour
         }
     }
 
-    private void PlayerJump(ref PlayerMovement.JumpEvent jumpEvent)
+    private void BouncePadJump(ref PlayerMovement.JumpEvent jumpEvent)
     {
-        if (jumpEvent.currentGround == gameObject && bouncePad)
+        if (jumpEvent.currentGround == gameObject)
         {
             jumpEvent.jumpHeight = bouncePadStrength;
         }
