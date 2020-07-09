@@ -92,7 +92,6 @@ public class PlayerMovement : MonoBehaviour
     private const float groundAngle = 45;
     private const float groundFriction = 5f;
     private const float slideMovementScale = 2f;
-    private const float slideFriction = 0.2f;
     private int _groundTickCount;
     private int _groundTimestamp = -100000;
     private Vector3 _previousPosition;
@@ -119,6 +118,7 @@ public class PlayerMovement : MonoBehaviour
     private const int wallFrictionTicks = 5;
     private const float wallJumpAngle = 0.3f;
     private const float wallAngleGive = 10f;
+    private const float wallAirAccelRecovery = 0.6f;
     private SpeedAccel wallUpCancelSpeed = new SpeedAccel(80, 2.2f);
     private const float wallStamina = 200f;
     private SpeedAccel wallEndBoostSpeed = new SpeedAccel(1, 1);
@@ -134,6 +134,7 @@ public class PlayerMovement : MonoBehaviour
     private GameObject _lastWall;
     private GameObject _currentWall;
     private Vector3 _lastWallNormal;
+    private float _wallRecovery;
 
     private SpeedAccel airSpeed = new SpeedAccel(2, 500);
     private const float backAirStrafeAcceleration = 80f;
@@ -453,11 +454,11 @@ public class PlayerMovement : MonoBehaviour
         if (ApproachingWall)
         {
             _cancelLeanTickCount++;
-        }
-        if (_cancelLeanTickCount >= 5 && !IsOnWall)
-        {
-            ApproachingWall = false;
-            SetCameraRotation(0, cameraRotationCorrectSpeed);
+            if (_cancelLeanTickCount >= 5 && !IsOnWall)
+            {
+                ApproachingWall = false;
+                SetCameraRotation(0, cameraRotationCorrectSpeed);
+            }
         }
 
         if (!IsOnWall) _wallTickCount = 0;
@@ -595,7 +596,8 @@ public class PlayerMovement : MonoBehaviour
             if (IsOnWall && Vector3.Angle(_wallNormal, Flatten(normal).normalized) > 10)
             {
                 IsOnWall = false;
-            } else
+            }
+            else
             {
                 IsOnWall = true;
             }
@@ -736,7 +738,8 @@ public class PlayerMovement : MonoBehaviour
         {
             Game.I.lastCheckpoint = rail.smoothedPoints[rail.smoothedPoints.Length - 1];
             _railDirection = -1;
-        } else if (rail.railDirection == Rail.RailDirection.FORWARD)
+        }
+        else if (rail.railDirection == Rail.RailDirection.FORWARD)
         {
             Game.I.lastCheckpoint = rail.smoothedPoints[0];
             _railDirection = 1;
@@ -1029,6 +1032,7 @@ public class PlayerMovement : MonoBehaviour
     {
         _currentCharge = ChargeType.DASH;
         GravityTick(f);
+        _lastWall = null;
 
         if (PlayerJump()) return;
 
@@ -1051,17 +1055,6 @@ public class PlayerMovement : MonoBehaviour
                 SetCameraRotation(leanProjection * 15, 6);
 
                 AirAccelerate(f, slideMovementScale);
-
-                ApplyFriction(slideFriction * f, groundSpeed.speed);
-
-                if (PlayerInput.GetAxisStrafeRight() == 0 && Vector3.Angle(Wishdir, velocity) < 90)
-                {
-                    var speed = Flatten(velocity).magnitude;
-                    var y = velocity.y;
-                    velocity += Wishdir * f * airSpeed.acceleration;
-                    velocity = Flatten(velocity).normalized * speed;
-                    velocity.y = y;
-                }
             }
             else
             {
@@ -1107,7 +1100,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Lean in
-        var movement = velocity + _dashVector;
+        var movement = velocity + (_dashVector * _dashTime);
         var didHit = rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude * wallLeanPreTime, QueryTriggerInteraction.Ignore);
 
         var eatJump = false;
@@ -1152,7 +1145,9 @@ public class PlayerMovement : MonoBehaviour
         var groundMod = 1 - Mathf.Min(Flatten(velocity).magnitude / (groundSpeed.speed - 1), 1);
         GroundAccelerate(f * groundMod, 0);
         f *= 1 - groundMod;
-        AirAccelerate(f, 1 - (currentLean * (2 - currentLean)));
+        var mod = 1 - Mathf.Min(currentLean * 2, 1);
+
+        AirAccelerate(f, mod);
 
         if (eatJump)
         {
@@ -1164,10 +1159,12 @@ public class PlayerMovement : MonoBehaviour
         else PlayerJump();
     }
 
-    public void AirAccelerate(float f, float accelMod = 1)
+    // Returns the amount of speed gained from air strafing
+    public float AirAccelerate(float f, float accelMod = 1)
     {
 
         var accel = airSpeed.acceleration;
+        var airStrafeGains = 0f;
 
         accel *= accelMod;
 
@@ -1190,6 +1187,7 @@ public class PlayerMovement : MonoBehaviour
 
                 addvector = addvector.normalized * y2;
             }
+            airStrafeGains += Mathf.Max(0, (velocity + addvector * f - velocity).magnitude);
             velocity += addvector * f;
         }
 
@@ -1212,8 +1210,23 @@ public class PlayerMovement : MonoBehaviour
 
                 addvector = addvector.normalized * y2;
             }
+            airStrafeGains += Mathf.Max(0, (velocity + addvector * f - velocity).magnitude);
             velocity += addvector * f;
         }
+
+        if (PlayerInput.GetAxisStrafeRight() == 0 && Vector3.Angle(Wishdir, velocity) < 90)
+        {
+            accel *= 1 - _wallRecovery / wallAirAccelRecovery;
+            var speed = Flatten(velocity).magnitude;
+            var y = velocity.y;
+            velocity += Wishdir * f * accel;
+            velocity = Flatten(velocity).normalized * speed;
+            velocity.y = y;
+        }
+        if (_wallRecovery > 0) _wallRecovery -= f;
+        if (_wallRecovery < 0) _wallRecovery = 0;
+
+        return airStrafeGains;
     }
 
     public float ApplyFriction(float f, float minimumSpeed = 0, float deceleration = 0)
@@ -1246,7 +1259,7 @@ public class PlayerMovement : MonoBehaviour
         if (addspeed <= 0)
             return;
 
-        var accelspeed = Mathf.Lerp(currentspeed, speed.speed, speed.acceleration * f) -  currentspeed;
+        var accelspeed = Mathf.Lerp(currentspeed, speed.speed, speed.acceleration * f) - currentspeed;
         if (accelspeed > addspeed)
             accelspeed = addspeed;
 
@@ -1307,10 +1320,12 @@ public class PlayerMovement : MonoBehaviour
                     height /= 1.5f;
                 }
                 velocity.y += height;
-            } else if (wallJump)
+            }
+            else if (wallJump)
             {
 
                 // Jumping from wall
+                _wallRecovery = wallAirAccelRecovery;
                 SetCameraRotation(0, cameraRotationCorrectSpeed);
                 source.PlayOneShot(jump);
                 rollSound.volume = 0;
@@ -1345,7 +1360,8 @@ public class PlayerMovement : MonoBehaviour
                     velocity.y = Mathf.Max(cancelForce, jumpEvent.jumpHeight / 2);
                     source.PlayOneShot(wallKick);
                 }
-            } else
+            }
+            else
             {
 
                 // Using charge
