@@ -28,7 +28,6 @@ public class Target : MonoBehaviour
         if (_activated)
         {
             if (core.activeSelf && ability == Ability.GRAPPLE && !Game.Player.GrappleHooked) core.SetActive(false);
-            if (core.activeSelf && ability == Ability.DASH && !Game.Player.IsBeingYoinked) core.SetActive(false);
             if (!core.activeSelf) _activatedTicks++;
             if (_activatedTicks > abilityCooldown)
             {
@@ -47,10 +46,6 @@ public class Target : MonoBehaviour
         if (ability == Ability.GRAPPLE)
         {
             Game.Player.AttachGrapple(transform.position);
-        }
-        if (ability == Ability.DASH)
-        {
-            Game.Player.Yoink(transform.position);
         }
     }
 

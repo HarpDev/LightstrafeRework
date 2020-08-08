@@ -78,7 +78,7 @@ public class Arrow : MonoBehaviour
         model.SetActive(false);
         var vector = Game.Player.transform.position - transform.position;
         var amount = Mathf.Pow(Mathf.Max(radius - vector.magnitude, 0) / radius, 2);
-        Game.Player.Accelerate(vector.normalized, new PlayerMovement.SpeedAccel(0, amount * power));
+        //Game.Player.Accelerate(vector.normalized, new PlayerMovement.SpeedAccel(0, amount * power));
         Game.Player.velocity += vector.normalized * amount * power;
 
         if (explodeSound != null) explodeSound.Play();
