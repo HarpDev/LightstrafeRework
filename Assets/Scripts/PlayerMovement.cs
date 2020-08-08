@@ -72,17 +72,17 @@ public class PlayerMovement : MonoBehaviour
 
     // Surfaces have a "level" to make them a little more sticky than being able to come off them in 1 tick.
     // This is to prevent repeated landings on surfaces.
-    public bool IsOnWall { get { return _wallLevel > 0; } set { if (value) _wallLevel = surfaceMaxLevel; else _wallLevel = 0; } }
+    public bool IsOnWall { get { return _wallLevel > 0; } set { if (value) _wallLevel = SURFACE_MAX_LEVEL; else _wallLevel = 0; } }
     private int _wallLevel;
-    public bool IsOnGround { get { return _groundLevel > 0; } set { if (value) _groundLevel = surfaceMaxLevel; else _groundLevel = 0; } }
+    public bool IsOnGround { get { return _groundLevel > 0; } set { if (value) _groundLevel = SURFACE_MAX_LEVEL; else _groundLevel = 0; } }
     private int _groundLevel;
-    private const int surfaceMaxLevel = 5;
+    public const int SURFACE_MAX_LEVEL = 5;
 
-    private const float cameraRotationCorrectSpeed = 4f;
-    private const float groundAccel = 200;
-    private const float groundAngle = 45;
-    private const float groundFriction = 5f;
-    private const float slideMovementScale = 2f;
+    public const float CAMERA_ROLL_CORRECT_SPEED = 4f;
+    public const float GROUND_ACCELERATION = 200;
+    public const float GROUND_ANGLE = 45;
+    public const float GROUND_FRICTION = 5f;
+    public const float SLIDE_MOVEMENT_SCALE = 2f;
     private int _groundTickCount;
     private int _groundTimestamp = -100000;
     private Vector3 _previousPosition;
@@ -101,28 +101,28 @@ public class PlayerMovement : MonoBehaviour
         _cameraRotationSpeed = speed;
     }
 
-    private const float WSPEED = 20;
-    private const float FLOWSPEED = 40;
-    private const float FLOW_DECAY = 3f;
+    public const float WSPEED = 20;
+    public const float FLOWSPEED = 40;
+    public const float FLOW_DECAY = 3f;
 
     public bool ApproachingWall { get; set; }
-    private const float WALL_CATCH_FRICTION = 10f;
-    private const float WALL_ACCELERATION = 10;
-    private const float WALL_FRICTION = 5f;
-    private const float WALL_NEUTRAL_FRICTION = 1f;
-    private const int WALL_FRICTION_TICKS = 5;
-    private const float WALL_JUMP_ANGLE = 0.3f;
-    private const float WALL_VERTICAL_ANGLE_GIVE = 10f;
-    private const float WALL_AIR_ACCEL_RECOVERY = 0.3f;
-    private const float WALL_UP_CANCEL_SPEED = 80;
-    private const float WALL_UP_CANCEL_ACCELERATION = 2.2f;
-    private const float WALL_STAMINA = 200f;
-    private const float WALL_END_BOOST_SPEED = 1;
-    private const float WALL_NEUTRAL_DOT = 0.9f;
-    private const float WALL_LEAN_DEGREES = 20f;
-    private const float WALL_LEAN_PREDICTION_TIME = 0.3f;
-    private const float WALL_JUMP_FLOW_ACCEL = 0.2f;
-    private const float WALL_JUMP_SPEED = 4;
+    public const float WALL_CATCH_FRICTION = 10f;
+    public const float WALL_ACCELERATION = 10;
+    public const float WALL_FRICTION = 5f;
+    public const float WALL_NEUTRAL_FRICTION = 1f;
+    public const int WALL_FRICTION_TICKS = 5;
+    public const float WALL_JUMP_ANGLE = 0.3f;
+    public const float WALL_VERTICAL_ANGLE_GIVE = 10f;
+    public const float WALL_AIR_ACCEL_RECOVERY = 0.3f;
+    public const float WALL_UP_CANCEL_SPEED = 80;
+    public const float WALL_UP_CANCEL_ACCELERATION = 2.2f;
+    public const float WALL_STAMINA = 200f;
+    public const float WALL_END_BOOST_SPEED = 1;
+    public const float WALL_NEUTRAL_DOT = 0.9f;
+    public const float WALL_LEAN_DEGREES = 20f;
+    public const float WALL_LEAN_PREDICTION_TIME = 0.3f;
+    public const float WALL_JUMP_FLOW_ACCEL = 0.2f;
+    public const float WALL_JUMP_SPEED = 4;
     private Vector3 _wallNormal;
     private int _wallTimestamp = -100000;
     private int _wallTickCount;
@@ -138,8 +138,8 @@ public class PlayerMovement : MonoBehaviour
     private const float BACKWARDS_AIR_ACCEL_CAP = 80f;
 
     public bool IsOnRail { get { return _currentRail != null; } }
-    private const int RAIL_COOLDOWN_TICKS = 40;
-    private const float RAIL_SPEED = 80f;
+    public const int RAIL_COOLDOWN_TICKS = 40;
+    public const float RAIL_SPEED = 80f;
     private int _railCooldownTimestamp = -100000;
     private int _railDirection;
     private Vector3 _railLeanVector;
@@ -156,34 +156,35 @@ public class PlayerMovement : MonoBehaviour
     private ChargeType _currentCharge = ChargeType.NONE;
 
     public bool IsDashing { get { return _dashVector.magnitude > 0.05f; } }
-    private const float DASH_SPEED = 25;
-    private const int DASH_COOLDOWN = 300;
-    private const float DASH_CANCEL_FLOW_ACCELERATION = 0.2f;
-    private const float DASH_CANCEL_TEMP_SPEED = 20;
-    private const float DASH_CANCEL_TEMP_SPEED_DECAY = 20;
-    private const float DASH_TIME = 0.35f;
-    private const float DASH_DECAY = 35f;
+    public const float DASH_SPEED = 25;
+    public const float DASH_THRESHOLD = -15;
+    public const int DASH_COOLDOWN = 300;
+    public const float DASH_CANCEL_FLOW_ACCELERATION = 0.2f;
+    public const float DASH_CANCEL_TEMP_SPEED = 20;
+    public const float DASH_CANCEL_TEMP_SPEED_DECAY = 20;
+    public const float DASH_TIME = 0.35f;
+    public const float DASH_DECAY = 35f;
     private float _dashTime;
     private float _dashCancelTempSpeed;
     private int _dashTimestamp = -100000;
     private Vector3 _dashVector;
 
-    private const float GRAVITY = 0.5f;
-    private const float TERMINAL_VELOCITY = 60;
+    public const float GRAVITY = 0.5f;
+    public const float TERMINAL_VELOCITY = 60;
 
-    private const float JUMP_HEIGHT = 15f;
-    private const int COYOTE_TICKS = 20;
-    private const int JUMP_FORGIVENESS = 6;
+    public const float JUMP_HEIGHT = 15f;
+    public const int COYOTE_TICKS = 20;
+    public const int JUMP_FORGIVENESS = 6;
 
     public LineRenderer grappleTether;
     public bool GrappleHooked { get; set; }
-    private const float GRAPPLE_Y_OFFSET = -0.7f;
-    private const float GRAPPLE_CONTROL_ACCELERATION = 40f;
-    private const float GRAPPLE_DISTANCE = 25f;
-    private const float GRAPPLE_SPEED = 80;
-    private const float GRAPPLE_ACCELERATION = 40;
-    private const float GRAPPLE_CORRECTION_ACCELERATION = 0.02f;
-    private const int GRAPPLE_MAX_TICKS = 200;
+    public const float GRAPPLE_Y_OFFSET = -0.7f;
+    public const float GRAPPLE_CONTROL_ACCELERATION = 40f;
+    public const float GRAPPLE_DISTANCE = 25f;
+    public const float GRAPPLE_SPEED = 80;
+    public const float GRAPPLE_ACCELERATION = 40;
+    public const float GRAPPLE_CORRECTION_ACCELERATION = 0.02f;
+    public const int GRAPPLE_MAX_TICKS = 200;
     private int _grappleTicks;
     private Vector3 _grappleAttachPosition;
     public bool TimerRunning { get; private set; }
@@ -240,7 +241,7 @@ public class PlayerMovement : MonoBehaviour
             transform.position = Game.I.lastCheckpoint;
         }
 
-        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) && Vector3.Angle(hit.normal, Vector3.up) < groundAngle)
+        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) && Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
         {
             transform.position = hit.point + Vector3.up * 0.3f;
             IsOnGround = true;
@@ -395,7 +396,7 @@ public class PlayerMovement : MonoBehaviour
 
         camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, targetFOV, Time.deltaTime * 5);
 
-        if (_currentCharge != ChargeType.NONE)
+        if (Mathf.Atan2(CrosshairDirection.y, Flatten(CrosshairDirection).magnitude) * Mathf.Rad2Deg > DASH_THRESHOLD)
         {
             _crosshairRotation = Mathf.Lerp(_crosshairRotation, 0, Time.deltaTime * 20);
         }
@@ -451,7 +452,7 @@ public class PlayerMovement : MonoBehaviour
             if (_cancelLeanTickCount >= 5 && !IsOnWall)
             {
                 ApproachingWall = false;
-                SetCameraRotation(0, cameraRotationCorrectSpeed);
+                SetCameraRotation(0, CAMERA_ROLL_CORRECT_SPEED);
             }
         }
 
@@ -577,7 +578,7 @@ public class PlayerMovement : MonoBehaviour
 
         var angle = Vector3.Angle(Vector3.up, normal);
 
-        if (angle < groundAngle && !collider.CompareTag("Wall"))
+        if (angle < GROUND_ANGLE && !collider.CompareTag("Wall"))
         {
             IsOnGround = true;
             _currentGround = collider.gameObject;
@@ -1012,7 +1013,7 @@ public class PlayerMovement : MonoBehaviour
                 var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
                 SetCameraRotation(leanProjection * 15, 6);
 
-                AirAccelerate(f, slideMovementScale);
+                AirAccelerate(f, SLIDE_MOVEMENT_SCALE);
             }
             else
             {
@@ -1022,19 +1023,19 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            AirAccelerate(f, slideMovementScale);
+            AirAccelerate(f, SLIDE_MOVEMENT_SCALE);
         }
     }
 
     public void GroundAccelerate(float f, float frictionMod = 1f)
     {
-        ApplyFriction(f * groundFriction * frictionMod, 0, WSPEED);
+        ApplyFriction(f * GROUND_FRICTION * frictionMod, 0, WSPEED);
         if (Wishdir.magnitude > 0)
         {
             var speed = Flatten(velocity).magnitude;
             var y = velocity.y;
 
-            velocity += Wishdir * f * groundAccel;
+            velocity += Wishdir * f * GROUND_ACCELERATION;
 
             if (Flatten(velocity).magnitude >= WSPEED && Vector3.Angle(Wishdir, velocity) < 90)
             {
@@ -1094,7 +1095,7 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = y;
             }
         }
-        else if (didHit && Vector3.Angle(Vector3.up, hit.normal) < groundAngle && CanCollide(hit.collider))
+        else if (didHit && Vector3.Angle(Vector3.up, hit.normal) < GROUND_ANGLE && CanCollide(hit.collider))
         {
             // Eat jump inputs if you are < jumpForgiveness away from the ground to not eat double jump
             if (hit.distance / movement.magnitude / Time.fixedDeltaTime < JUMP_FORGIVENESS) eatJump = true;
@@ -1149,27 +1150,36 @@ public class PlayerMovement : MonoBehaviour
             velocity += addvector * f;
         }
 
-        var right = transform.right * PlayerInput.GetAxisStrafeRight();
-        var rightspeed = Vector3.Dot(velocity, right);
-        var rightaddspeed = Mathf.Abs(AIR_SPEED) - rightspeed;
-        if (rightaddspeed > 0)
+        if (PlayerInput.GetAxisStrafeRight() != 0)
         {
-            if (accel * f > rightaddspeed)
-                accel = rightaddspeed / f;
+            var right = transform.right * PlayerInput.GetAxisStrafeRight();
+            var offset = velocity + right * AIR_SPEED;
+            var angle = Mathf.Atan2(offset.z, offset.x) - Mathf.Atan2(velocity.z, velocity.x);
 
-            var addvector = accel * right;
-            var backspeed = Vector3.Dot(addvector, -Flatten(velocity).normalized);
-            if (backspeed > BACKWARDS_AIR_ACCEL_CAP)
+            var offsetAngle = Mathf.Atan2(right.z, right.x) - angle;
+            right = new Vector3(Mathf.Cos(offsetAngle), 0, Mathf.Sin(offsetAngle));
+
+            var rightspeed = Vector3.Dot(velocity, right);
+            var rightaddspeed = Mathf.Abs(AIR_SPEED) - rightspeed;
+            if (rightaddspeed > 0)
             {
-                var x1 = backspeed;
-                var x2 = BACKWARDS_AIR_ACCEL_CAP;
-                var y1 = addvector.magnitude;
-                var y2 = (x2 * y1) / x1;
+                if (accel * f > rightaddspeed)
+                    accel = rightaddspeed / f;
 
-                addvector = addvector.normalized * y2;
+                var addvector = accel * right;
+                var backspeed = Vector3.Dot(addvector, -Flatten(velocity).normalized);
+                if (backspeed > BACKWARDS_AIR_ACCEL_CAP)
+                {
+                    var x1 = backspeed;
+                    var x2 = BACKWARDS_AIR_ACCEL_CAP;
+                    var y1 = addvector.magnitude;
+                    var y2 = (x2 * y1) / x1;
+
+                    addvector = addvector.normalized * y2;
+                }
+                airStrafeGains += Mathf.Max(0, (velocity + addvector * f - velocity).magnitude);
+                velocity += addvector * f;
             }
-            airStrafeGains += Mathf.Max(0, (velocity + addvector * f - velocity).magnitude);
-            velocity += addvector * f;
         }
 
         if (PlayerInput.GetAxisStrafeRight() == 0 && Vector3.Angle(Wishdir, velocity) < 90)
@@ -1264,7 +1274,7 @@ public class PlayerMovement : MonoBehaviour
             {
 
                 // Jumping from ground
-                SetCameraRotation(0, cameraRotationCorrectSpeed);
+                SetCameraRotation(0, CAMERA_ROLL_CORRECT_SPEED);
                 source.PlayOneShot(jump);
                 rollSound.volume = 0;
                 IsOnGround = false;
@@ -1284,7 +1294,7 @@ public class PlayerMovement : MonoBehaviour
 
                 // Jumping from wall
                 _wallRecovery = WALL_AIR_ACCEL_RECOVERY;
-                SetCameraRotation(0, cameraRotationCorrectSpeed);
+                SetCameraRotation(0, CAMERA_ROLL_CORRECT_SPEED);
                 source.PlayOneShot(jump);
                 rollSound.volume = 0;
                 IsOnWall = false;
@@ -1322,8 +1332,7 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-
-                if (CrosshairDirection.y > -0.3f)
+                if (Mathf.Atan2(CrosshairDirection.y, Flatten(CrosshairDirection).magnitude) * Mathf.Rad2Deg > DASH_THRESHOLD)
                 {
                     velocity.y = Mathf.Max(jumpEvent.jumpHeight, velocity.y);
                 }
