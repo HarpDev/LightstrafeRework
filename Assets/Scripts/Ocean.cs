@@ -35,7 +35,7 @@ public class Ocean : MonoBehaviour
                 _y = Game.Player.camera.transform.position.y - distance;
                 _rise = 0;
             }
-            _rise += Time.deltaTime;
+            //_rise += Time.deltaTime;
             _meshRenderer.material.SetTextureOffset("_MainTex", new Vector2(position.x / transform.localScale.x, position.z / transform.localScale.z));
         } else
         {

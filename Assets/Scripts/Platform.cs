@@ -56,19 +56,22 @@ public class Platform : MonoBehaviour
 
         var towardPlatform = (transform.position - Game.Player.transform.position).normalized;
         var angle = Vector3.Angle(Game.Player.CrosshairDirection, towardPlatform);
-        if ((angle < 30 && distance < 120) || distance < 40)
+        if ((angle < 30 && distance < 100) || distance < 40)
         {
-            _queued = true;
-            var queue = Game.Player.rings.ThrowQueue;
-            queue.Add(this);
-            queue = queue.OrderBy(o => (o.transform.position - Game.Player.transform.position).sqrMagnitude).ToList();
-            Game.Player.rings.ThrowQueue = queue;
+            if (Physics.Raycast(Game.Player.camera.transform.position, towardPlatform, out var hit, distance, 1, QueryTriggerInteraction.Ignore) && hit.collider.gameObject == gameObject)
+            {
+                _queued = true;
+                var queue = Game.Player.rings.ThrowQueue;
+                queue.Add(this);
+                queue = queue.OrderBy(o => (o.transform.position - Game.Player.transform.position).sqrMagnitude).ToList();
+                Game.Player.rings.ThrowQueue = queue;
+            }
         }
     }
 
     private void BouncePadJump(ref PlayerMovement.JumpEvent jumpEvent)
     {
-        if (jumpEvent.currentGround == gameObject)
+        if (jumpEvent.currentGround == gameObject && jumpEvent.type == PlayerMovement.JumpType.GROUND)
         {
             jumpEvent.jumpHeight = bouncePadStrength;
         }

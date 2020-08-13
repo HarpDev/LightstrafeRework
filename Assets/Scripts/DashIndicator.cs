@@ -25,7 +25,9 @@ public class DashIndicator : MonoBehaviour
 
         var threshold = camera.WorldToScreenPoint(camera.transform.position + directionVector);
 
-        _image.transform.position = threshold;
+        var position = _image.transform.position;
+        position.y = threshold.y;
+        _image.transform.position = position;
     }
     private static Vector3 Flatten(Vector3 vec)
     {

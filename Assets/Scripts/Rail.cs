@@ -31,6 +31,11 @@ public class Rail : MonoBehaviour
 
     public RailDirection railDirection;
 
+    public void Start()
+    {
+        Update();
+    }
+
     public void Update()
     {
         GetPoints();
