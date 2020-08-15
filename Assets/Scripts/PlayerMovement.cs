@@ -122,7 +122,7 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_NEUTRAL_DOT = 0.9f;
     public const float WALL_LEAN_DEGREES = 20f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.3f;
-    public const float WALL_JUMP_FLOW_ACCEL = 0.2f;
+    public const float WALL_JUMP_FLOW_ACCEL = 0.4f;
     public const float WALL_KICK_SPEED = 10;
     public const float WALL_KICK_FADEOFF = 3;
     private Vector3 _wallNormal;
@@ -136,7 +136,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _lastWallNormal;
     private float _wallRecovery;
 
-    private const float AIR_SPEED = 2;
+    private const float AIR_SPEED = 4;
     private const float AIR_ACCELERATION = 100;
     private const float BACKWARDS_AIR_ACCEL_CAP = 80f;
 
@@ -573,7 +573,14 @@ public class PlayerMovement : MonoBehaviour
         }
 
         _previousSpeed = Flatten(velocity).magnitude;
-        speedText.text = "" + (int)_previousSpeed;
+        var measurement = (int)(_previousSpeed - _dashCancelTempSpeed - FLOWSPEED);
+        if (measurement > 0)
+        {
+            speedText.text = "" + measurement;
+        } else
+        {
+            speedText.text = "";
+        }
     }
 
     private bool CanCollide(Collider collider, bool ignoreUninteractable = true)
@@ -733,7 +740,7 @@ public class PlayerMovement : MonoBehaviour
         {
             Game.I.lastCheckpoint = rail.smoothedPoints[0];
             var direction = rail.smoothedPoints[1] - Game.I.lastCheckpoint;
-            var angle = Mathf.Atan2(direction.z, direction.x);
+            var angle = Mathf.Atan2(direction.x, direction.z);
             Game.I.checkpointYaw = Mathf.Rad2Deg * angle;
             _railDirection = 1;
         }
@@ -988,7 +995,7 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 var direction = Flatten(CrosshairDirection - angle * _wallNormal).normalized;
-                if (_wallTickCount - JUMP_FORGIVENESS_TICKS < WALL_FRICTION_TICKS) ApplyFriction(WALL_FRICTION * f, FLOWSPEED);
+                if (_wallTickCount - JUMP_FORGIVENESS_TICKS < WALL_FRICTION_TICKS) ApplyFriction(WALL_FRICTION * f, WSPEED);
                 Accelerate(direction, WSPEED, WALL_ACCELERATION, f);
             }
         }
