@@ -732,7 +732,7 @@ public class PlayerMovement : MonoBehaviour
         {
             Game.I.lastCheckpoint = rail.smoothedPoints[rail.smoothedPoints.Length - 1];
             var direction = rail.smoothedPoints[rail.smoothedPoints.Length - 2] - Game.I.lastCheckpoint;
-            var angle = Mathf.Atan2(direction.z, direction.x);
+            var angle = Mathf.Atan2(direction.x, direction.z);
             Game.I.checkpointYaw = Mathf.Rad2Deg * angle;
             _railDirection = -1;
         }
