@@ -48,6 +48,7 @@ public class PlayerMovement : MonoBehaviour
     public float YawFutureInterpolation { get; set; }
     public float YawIncrease { get; set; }
     public float Pitch { get; set; }
+    public float PitchFutureInterpolation { get; set; }
     public float LookScale { get; set; }
     public Collider CurrentCollider { get; private set; }
     public float CameraRoll { get; set; }
@@ -104,7 +105,7 @@ public class PlayerMovement : MonoBehaviour
 
     public const float WSPEED = 20;
     public const float FLOWSPEED = 40;
-    public const float FLOW_DECAY = 3f;
+    public const float FLOW_DECAY = 5f;
 
     public bool ApproachingWall { get; set; }
     public const float WALL_CATCH_FRICTION = 10f;
@@ -128,7 +129,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _wallNormal;
     private int _wallTimestamp = -100000;
     private int _wallTickCount;
-    private bool _wallJumpIsBuffered;
+    private bool _jumpIsBuffered;
     private float _wallStamina;
     private int _cancelLeanTickCount;
     private GameObject _lastWall;
@@ -171,7 +172,6 @@ public class PlayerMovement : MonoBehaviour
     public const float DASH_DECAY = 35f;
     private float _dashTime;
     private float _dashCancelTempSpeed;
-    private int _dashTimestamp = -100000;
     private Vector3 _dashVector;
 
     public const float GRAVITY = 0.5f;
@@ -183,11 +183,12 @@ public class PlayerMovement : MonoBehaviour
 
     public LineRenderer grappleTether;
     public bool GrappleHooked { get; set; }
-    public const float GRAPPLE_Y_OFFSET = -0.7f;
-    public const float GRAPPLE_CONTROL_ACCELERATION = 40f;
+    public const float GRAPPLE_Y_OFFSET = -1.2f;
+    public const float GRAPPLE_FORWARD_OFFSET = 0.5f;
+    public const float GRAPPLE_CONTROL_ACCELERATION = 400f;
     public const float GRAPPLE_DISTANCE = 25f;
     public const float GRAPPLE_SPEED = 80;
-    public const float GRAPPLE_ACCELERATION = 40;
+    public const float GRAPPLE_ACCELERATION = 1;
     public const float GRAPPLE_CORRECTION_ACCELERATION = 0.02f;
     public const int GRAPPLE_MAX_TICKS = 200;
     private int _grappleTicks;
@@ -202,7 +203,6 @@ public class PlayerMovement : MonoBehaviour
 
     /* Audio */
     public AudioSource source;
-    public AudioSource rollSound;
     public AudioSource grappleDuring;
     public AudioClip jump;
     public AudioClip jumpair;
@@ -337,12 +337,16 @@ public class PlayerMovement : MonoBehaviour
 
             Yaw = (Yaw + YawIncrease) % 360f;
 
-            var interpolation = Mathf.Lerp(Yaw, Yaw + YawFutureInterpolation, Time.deltaTime * 10) - Yaw;
-            Yaw += interpolation;
-            YawFutureInterpolation -= interpolation;
+            var yawinterpolation = Mathf.Lerp(Yaw, Yaw + YawFutureInterpolation, Time.deltaTime * 10) - Yaw;
+            Yaw += yawinterpolation;
+            YawFutureInterpolation -= yawinterpolation;
 
             Pitch -= Input.GetAxis("Mouse Y") * (Game.Sensitivity / 10) * LookScale;
             Pitch += Input.GetAxis("Joy 1 Y 2") * Game.Sensitivity * LookScale;
+
+            var pitchinterpolation = Mathf.Lerp(Pitch, Pitch + PitchFutureInterpolation, Time.deltaTime * 10) - Pitch;
+            Pitch += pitchinterpolation;
+            PitchFutureInterpolation -= pitchinterpolation;
 
             Pitch = Mathf.Max(Pitch, -90);
             Pitch = Mathf.Min(Pitch, 90);
@@ -427,6 +431,18 @@ public class PlayerMovement : MonoBehaviour
 
             source.Play();
             Dash(wishdir);
+        }
+
+        if (Input.GetKeyDown(PlayerInput.SecondaryInteract))
+        {
+            if (Physics.Raycast(camera.transform.position, CrosshairDirection, out var hit, 100, 1, QueryTriggerInteraction.Ignore))
+            {
+                var target = hit.collider.gameObject.GetComponent<Target>();
+                if (target != null)
+                {
+                    target.Explode(hit);
+                }
+            }
         }
     }
 
@@ -577,7 +593,8 @@ public class PlayerMovement : MonoBehaviour
         if (measurement > 0)
         {
             speedText.text = "" + measurement;
-        } else
+        }
+        else
         {
             speedText.text = "";
         }
@@ -689,7 +706,6 @@ public class PlayerMovement : MonoBehaviour
             }
         }*/
         _dashVector = DASH_SPEED * wishdir.normalized;
-        _dashTimestamp = Environment.TickCount;
 
         //velocity += add;
         Gun.forwardChange += 2;
@@ -900,8 +916,9 @@ public class PlayerMovement : MonoBehaviour
         grappleDuring.volume = 0.4f;
         grappleDuring.Play();
         _grappleTicks = 0;
+        _currentCharge = ChargeType.DOUBLE_JUMP;
 
-        var list = new List<Vector3> { new Vector3(0, GRAPPLE_Y_OFFSET, 0), position };
+        var list = new List<Vector3> { new Vector3(0, GRAPPLE_Y_OFFSET, GRAPPLE_FORWARD_OFFSET), position };
 
         grappleTether.positionCount = list.Count;
         grappleTether.SetPositions(list.ToArray());
@@ -918,7 +935,20 @@ public class PlayerMovement : MonoBehaviour
         SetCameraRotation(0, 2);
         grappleDuring.volume = 0;
 
+        var y = velocity.y;
+        velocity = Flatten(CrosshairDirection).normalized * Flatten(velocity).magnitude;
+        velocity.y = y;
+        YawFutureInterpolation = 0;
+        PitchFutureInterpolation = 0;
+
         source.PlayOneShot(grappleRelease);
+    }
+
+
+    private void VectorToYawPitch(Vector3 vector, out float yaw, out float pitch)
+    {
+        yaw = Mathf.Atan2(vector.x, vector.z) * Mathf.Rad2Deg;
+        pitch = -Mathf.Asin(vector.y) * Mathf.Rad2Deg;
     }
 
     public void GrappleMove(float f)
@@ -927,9 +957,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (!grappleTether.enabled) grappleTether.enabled = true;
 
-        rollSound.volume = 0;
-
-        var list = new List<Vector3> { new Vector3(0, GRAPPLE_Y_OFFSET, 0), camera.transform.InverseTransformPoint(position) };
+        var list = new List<Vector3> { new Vector3(0, GRAPPLE_Y_OFFSET, GRAPPLE_FORWARD_OFFSET), camera.transform.InverseTransformPoint(position) };
 
         grappleTether.positionCount = list.Count;
         grappleTether.SetPositions(list.ToArray());
@@ -937,6 +965,18 @@ public class PlayerMovement : MonoBehaviour
         var towardPoint = (position - transform.position).normalized;
         var velocityProjection = Vector3.Dot(velocity, towardPoint);
         var tangentVector = (velocity + towardPoint * -velocityProjection).normalized;
+
+        VectorToYawPitch(tangentVector, out var tangyaw, out var tangpitch);
+
+        var yawChange = tangyaw - Yaw;
+        if (Mathf.Abs(yawChange) > 300)
+        {
+            if (yawChange > 300) yawChange -= 360;
+            else if (yawChange < 300) yawChange += 360;
+        }
+        var pitchChange = tangpitch - Pitch;
+        YawFutureInterpolation += yawChange / 25;
+        PitchFutureInterpolation += pitchChange / 25;
 
         var swingProjection = Mathf.Max(0, Vector3.Dot(velocity, Vector3.Lerp(towardPoint, tangentVector, 0.5f)));
 
@@ -958,10 +998,11 @@ public class PlayerMovement : MonoBehaviour
 
         Accelerate(direction, GRAPPLE_SPEED, GRAPPLE_ACCELERATION, f);
 
-        if (Vector3.Dot(towardPoint, CrosshairDirection) < 0 || _grappleTicks++ > GRAPPLE_MAX_TICKS)
+        if (Vector3.Dot(towardPoint, CrosshairDirection) < 0 || _grappleTicks > GRAPPLE_MAX_TICKS)
         {
-            DetachGrapple();
+            //DetachGrapple();
         }
+        _grappleTicks++;
         PlayerJump();
     }
 
@@ -984,9 +1025,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (_wallTickCount >= JUMP_FORGIVENESS_TICKS)
         {
-            rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
-            rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
-
             var angle = Vector3.Dot(Flatten(CrosshairDirection).normalized, _wallNormal);
             if (Mathf.Abs(angle) > WALL_NEUTRAL_DOT)
             {
@@ -1050,8 +1088,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (_groundTickCount >= JUMP_FORGIVENESS_TICKS)
         {
-            rollSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 20, 1), 2);
-            rollSound.volume = Mathf.Min(velocity.magnitude / 30, 1);
 
             if (IsSliding || IsDashing)
             {
@@ -1095,8 +1131,6 @@ public class PlayerMovement : MonoBehaviour
     {
         GravityTick(f);
         _slideLeanVector = Flatten(velocity).normalized;
-
-        rollSound.volume = 0;
 
         if (!jumpKitEnabled)
         {
@@ -1158,7 +1192,7 @@ public class PlayerMovement : MonoBehaviour
         {
             if (PlayerInput.SincePressed(PlayerInput.Jump) < JUMP_FORGIVENESS_TICKS)
             {
-                _wallJumpIsBuffered = true;
+                _jumpIsBuffered = true;
             }
         }
         else PlayerJump();
@@ -1287,9 +1321,9 @@ public class PlayerMovement : MonoBehaviour
     public bool PlayerJump()
     {
         int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
-        if (sinceJump < JUMP_FORGIVENESS_TICKS || _wallJumpIsBuffered)
+        if (sinceJump < JUMP_FORGIVENESS_TICKS || _jumpIsBuffered)
         {
-            _wallJumpIsBuffered = false;
+            _jumpIsBuffered = false;
             if (GrappleHooked)
             {
                 DetachGrapple();
@@ -1321,7 +1355,7 @@ public class PlayerMovement : MonoBehaviour
                 currentGround = _currentGround,
                 type = type
             };
-            PlayerJumpEvent(ref jumpEvent);
+            PlayerJumpEvent?.Invoke(ref jumpEvent);
             if (jumpEvent.cancelled) return false;
 
             if (wallJump)
@@ -1330,7 +1364,6 @@ public class PlayerMovement : MonoBehaviour
                 _wallRecovery = WALL_AIR_ACCEL_RECOVERY;
                 SetCameraRotation(0, CAMERA_ROLL_CORRECT_SPEED);
                 source.PlayOneShot(jump);
-                rollSound.volume = 0;
                 IsOnWall = false;
 
                 _wallTimestamp = -COYOTE_TICKS;
@@ -1356,7 +1389,13 @@ public class PlayerMovement : MonoBehaviour
                 if (!coyoteJump)
                 {
                     var timing = Mathf.Max(sinceJump, _wallTickCount);
-                    velocity += Flatten(velocityDirection).normalized * Mathf.Max(0, WALL_KICK_SPEED - (WALL_KICK_FADEOFF * timing));
+                    var speed = Mathf.Max(0, WALL_KICK_SPEED - (WALL_KICK_FADEOFF * timing));
+                    velocity += Flatten(velocityDirection).normalized * speed;
+
+                    if (speed > 0)
+                    {
+                        source.PlayOneShot(ding);
+                    }
                 }
 
                 velocity.y = y;
@@ -1377,7 +1416,6 @@ public class PlayerMovement : MonoBehaviour
             {
                 SetCameraRotation(0, CAMERA_ROLL_CORRECT_SPEED);
                 source.PlayOneShot(jump);
-                rollSound.volume = 0;
 
                 var height = jumpEvent.jumpHeight;
                 if (!groundJump)

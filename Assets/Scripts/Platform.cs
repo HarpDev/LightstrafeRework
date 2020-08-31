@@ -28,6 +28,9 @@ public class Platform : MonoBehaviour
     public bool bouncePad = false;
     public float bouncePadStrength = 50;
 
+    public Transform grapplePoint;
+    public bool grapplePlatform;
+
     private GameObject _projectile;
 
     private bool _queued;
@@ -35,6 +38,7 @@ public class Platform : MonoBehaviour
     private void Start()
     {
         if (bouncePad) Game.Player.PlayerJumpEvent += new PlayerMovement.Jump(BouncePadJump);
+        if (grapplePlatform) Game.Player.ContactEvent += new PlayerMovement.PlayerContact(ContactCollider);
         if (startGlowing)
         {
             _queued = true;
@@ -66,6 +70,14 @@ public class Platform : MonoBehaviour
                 queue = queue.OrderBy(o => (o.transform.position - Game.Player.transform.position).sqrMagnitude).ToList();
                 Game.Player.rings.ThrowQueue = queue;
             }
+        }
+    }
+    private void ContactCollider(Vector3 normal, Collider collider)
+    {
+        if (collider.gameObject == gameObject)
+        {
+            Game.Player.AttachGrapple(grapplePoint.position);
+            gameObject.SetActive(false);
         }
     }
 
