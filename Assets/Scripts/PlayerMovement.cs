@@ -12,6 +12,9 @@ public class PlayerMovement : MonoBehaviour
     public delegate void PlayerContact(Vector3 normal, Collider collider);
     public event PlayerContact ContactEvent;
 
+    public delegate void PlayerTrigger(Vector3 normal, Collider collider);
+    public event PlayerTrigger TriggerEvent;
+
     public delegate void Jump(ref JumpEvent jumpEvent);
     public event Jump PlayerJumpEvent;
 
@@ -188,9 +191,9 @@ public class PlayerMovement : MonoBehaviour
     public const float GRAPPLE_CONTROL_ACCELERATION = 400f;
     public const float GRAPPLE_DISTANCE = 25f;
     public const float GRAPPLE_SPEED = 80;
-    public const float GRAPPLE_ACCELERATION = 1;
-    public const float GRAPPLE_CORRECTION_ACCELERATION = 0.02f;
-    public const int GRAPPLE_MAX_TICKS = 200;
+    public const float GRAPPLE_ACCELERATION = 0.7f;
+    public const float GRAPPLE_CORRECTION_ACCELERATION = 0.1f;
+    public const int GRAPPLE_MAX_TICKS = 150;
     private int _grappleTicks;
     private Vector3 _grappleAttachPosition;
     public bool TimerRunning { get; private set; }
@@ -220,6 +223,7 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         ContactEvent += new PlayerContact(ContactCollider);
+        TriggerEvent += new PlayerTrigger(ContactTrigger);
         LookScale = 1;
 
         Yaw += transform.rotation.eulerAngles.y;
@@ -578,7 +582,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 if (collider.isTrigger)
                 {
-                    OnTrigger(collider);
+                    TriggerEvent(direction, collider);
                     continue;
                 }
 
@@ -649,7 +653,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void OnTrigger(Collider other)
+    private void ContactTrigger(Vector3 normal, Collider other)
     {
         // Rail Grab
         if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > RAIL_COOLDOWN_TICKS || other.transform.parent.gameObject != _lastRail))
@@ -909,6 +913,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void AttachGrapple(Vector3 position)
     {
+        if (GrappleHooked) return;
         source.PlayOneShot(grappleAttach);
         if (IsOnRail) EndRail();
         _grappleAttachPosition = position;
@@ -966,38 +971,54 @@ public class PlayerMovement : MonoBehaviour
         var velocityProjection = Vector3.Dot(velocity, towardPoint);
         var tangentVector = (velocity + towardPoint * -velocityProjection).normalized;
 
-        VectorToYawPitch(tangentVector, out var tangyaw, out var tangpitch);
-
-        var yawChange = tangyaw - Yaw;
-        if (Mathf.Abs(yawChange) > 300)
+        var towardPointLookProjection = Vector3.Dot(towardPoint, CrosshairDirection);
+        if (towardPointLookProjection < 0)
         {
-            if (yawChange > 300) yawChange -= 360;
-            else if (yawChange < 300) yawChange += 360;
+            var lookAdjust = CrosshairDirection - towardPoint * towardPointLookProjection;
+
+            VectorToYawPitch(lookAdjust, out var tangyaw, out var tangpitch);
+
+            var yawChange = tangyaw - Yaw;
+            if (Mathf.Abs(yawChange) > 300)
+            {
+                if (yawChange > 300) yawChange -= 360;
+                else if (yawChange < 300) yawChange += 360;
+            }
+            var pitchChange = tangpitch - Pitch;
+            YawFutureInterpolation += yawChange / 15;
+            PitchFutureInterpolation += pitchChange / 15;
         }
-        var pitchChange = tangpitch - Pitch;
-        YawFutureInterpolation += yawChange / 25;
-        PitchFutureInterpolation += pitchChange / 25;
 
         var swingProjection = Mathf.Max(0, Vector3.Dot(velocity, Vector3.Lerp(towardPoint, tangentVector, 0.5f)));
 
         var projection = Mathf.Sqrt(swingProjection) * Vector3.Dot(-transform.right, towardPoint) * 6;
         SetCameraRotation(projection, 2);
 
-        grappleDuring.pitch = (_grappleTicks * 2f / GRAPPLE_MAX_TICKS) + 1;
-
-        if (velocityProjection < 0) velocity -= towardPoint * velocityProjection;
+        grappleDuring.pitch = 1;
 
         if (velocity.magnitude < 0.05f) velocity += towardPoint * f * GRAPPLE_ACCELERATION;
         var magnitude = velocity.magnitude;
-        velocity += CrosshairDirection * GRAPPLE_CONTROL_ACCELERATION * f;
+        velocity += (CrosshairDirection - Vector3.Dot(CrosshairDirection, towardPoint) * towardPoint).normalized * GRAPPLE_CONTROL_ACCELERATION * f;
         velocity = velocity.normalized * magnitude;
 
-        var target = position + tangentVector * GRAPPLE_DISTANCE;
-        var direction = Vector3.Lerp(velocity.normalized, (target - transform.position).normalized, GRAPPLE_CORRECTION_ACCELERATION);
-        velocity = velocity.magnitude * direction.normalized;
+        if (Vector3.Distance(position, transform.position) > GRAPPLE_DISTANCE)
+        {
+            var target = position + tangentVector * GRAPPLE_DISTANCE;
+            var direction = Vector3.Lerp(velocity.normalized, (target - transform.position).normalized, GRAPPLE_CORRECTION_ACCELERATION);
+            velocity = velocity.magnitude * direction.normalized;
+        }
 
-        Accelerate(direction, GRAPPLE_SPEED, GRAPPLE_ACCELERATION, f);
+        if (velocityProjection < 0)
+        {
+            velocity -= towardPoint * (velocityProjection / 10);
+        }
 
+        Accelerate(velocity.normalized, GRAPPLE_SPEED, GRAPPLE_ACCELERATION, f);
+
+        if (_grappleTicks > GRAPPLE_MAX_TICKS)
+        {
+            //DetachGrapple();
+        }
         if (Vector3.Dot(towardPoint, CrosshairDirection) < 0 || _grappleTicks > GRAPPLE_MAX_TICKS)
         {
             //DetachGrapple();

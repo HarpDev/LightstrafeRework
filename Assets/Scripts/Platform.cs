@@ -38,7 +38,7 @@ public class Platform : MonoBehaviour
     private void Start()
     {
         if (bouncePad) Game.Player.PlayerJumpEvent += new PlayerMovement.Jump(BouncePadJump);
-        if (grapplePlatform) Game.Player.ContactEvent += new PlayerMovement.PlayerContact(ContactCollider);
+        if (grapplePlatform) Game.Player.TriggerEvent += new PlayerMovement.PlayerTrigger(ContactTrigger);
         if (startGlowing)
         {
             _queued = true;
@@ -59,10 +59,10 @@ public class Platform : MonoBehaviour
         var distance = Vector3.Distance(Game.Player.transform.position, transform.position);
 
         var towardPlatform = (transform.position - Game.Player.transform.position).normalized;
-        var angle = Vector3.Angle(Game.Player.CrosshairDirection, towardPlatform);
-        if ((angle < 30 && distance < 100) || distance < 40)
+        var angle = Vector3.Angle(Game.Player.velocity, towardPlatform);
+        if ((angle < 30 && distance < Game.Player.velocity.magnitude * 3) || distance < 40)
         {
-            if (Physics.Raycast(Game.Player.camera.transform.position, towardPlatform, out var hit, distance, 1, QueryTriggerInteraction.Ignore) && hit.collider.gameObject == gameObject)
+            if (!Physics.Raycast(Game.Player.camera.transform.position, towardPlatform, out var hit, distance, 1, QueryTriggerInteraction.Ignore) || hit.collider.gameObject == gameObject)
             {
                 _queued = true;
                 var queue = Game.Player.rings.ThrowQueue;
@@ -72,12 +72,11 @@ public class Platform : MonoBehaviour
             }
         }
     }
-    private void ContactCollider(Vector3 normal, Collider collider)
+    private void ContactTrigger(Vector3 normal, Collider collider)
     {
         if (collider.gameObject == gameObject)
         {
             Game.Player.AttachGrapple(grapplePoint.position);
-            gameObject.SetActive(false);
         }
     }
 
