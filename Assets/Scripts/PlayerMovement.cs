@@ -147,7 +147,7 @@ public class PlayerMovement : MonoBehaviour
     public bool IsOnRail { get { return _currentRail != null; } }
     public const int RAIL_COOLDOWN_TICKS = 40;
     public const float RAIL_SPEED = 80f;
-    private int _railCooldownTimestamp = -100000;
+    private int _railTimestamp = -100000;
     private int _railDirection;
     private int _railTickCount;
     private Vector3 _railLeanVector;
@@ -468,7 +468,7 @@ public class PlayerMovement : MonoBehaviour
         // Timestamps used for coyote time
         if (IsOnGround) _groundTimestamp = PlayerInput.tickCount;
         if (IsOnWall) _wallTimestamp = PlayerInput.tickCount;
-        if (IsOnRail) _railCooldownTimestamp = PlayerInput.tickCount;
+        if (IsOnRail) _railTimestamp = PlayerInput.tickCount;
 
         // Movement happens here
         var factor = Time.fixedDeltaTime;
@@ -656,7 +656,7 @@ public class PlayerMovement : MonoBehaviour
     private void ContactTrigger(Vector3 normal, Collider other)
     {
         // Rail Grab
-        if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railCooldownTimestamp > RAIL_COOLDOWN_TICKS || other.transform.parent.gameObject != _lastRail))
+        if (other.CompareTag("Rail") && (PlayerInput.tickCount - _railTimestamp > RAIL_COOLDOWN_TICKS || other.transform.parent.gameObject != _lastRail))
         {
             _lastRail = other.transform.parent.gameObject;
             SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
@@ -875,9 +875,6 @@ public class PlayerMovement : MonoBehaviour
             next = _currentRail.smoothedPoints[closeIndex + _railDirection] + _railLeanVector;
         }
 
-        var previousDirection = Flatten(velocity).normalized;
-        var previousAngle = Mathf.Atan2(previousDirection.z, previousDirection.x);
-
         var railVector = -(current - next).normalized;
 
         if ((_railDirection == -1 && closeIndex == 0 || _railDirection == 1 && closeIndex == _currentRail.smoothedPoints.Length - 1) && Vector3.Dot(transform.position - current, railVector) > 0)
@@ -899,13 +896,8 @@ public class PlayerMovement : MonoBehaviour
 
         railSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
 
-        if (_railTickCount > 0)
-        {
-            var newDirection = Flatten(velocity).normalized;
-            var newAngle = Mathf.Atan2(newDirection.z, newDirection.x);
-            var angleChange = (Mathf.Rad2Deg * previousAngle) - (Mathf.Rad2Deg * newAngle);
-            YawFutureInterpolation += Mathf.Abs(angleChange) > 180 ? 0 : angleChange;
-        }
+        railVector.y /= 3;
+        LookTowardTick(railVector, 15);
 
         PlayerJump();
         _railTickCount++;
@@ -956,6 +948,21 @@ public class PlayerMovement : MonoBehaviour
         pitch = -Mathf.Asin(vector.y) * Mathf.Rad2Deg;
     }
 
+    private void LookTowardTick(Vector3 vector, float reduction)
+    {
+        VectorToYawPitch(vector, out var tangyaw, out var tangpitch);
+
+        var yawChange = tangyaw - Yaw;
+        if (Mathf.Abs(yawChange) > 200)
+        {
+            if (yawChange > 200) yawChange -= 360;
+            else if (yawChange < 200) yawChange += 360;
+        }
+        var pitchChange = tangpitch - Pitch;
+        YawFutureInterpolation += yawChange / reduction;
+        PitchFutureInterpolation += pitchChange / reduction;
+    }
+
     public void GrappleMove(float f)
     {
         var position = _grappleAttachPosition;
@@ -971,23 +978,8 @@ public class PlayerMovement : MonoBehaviour
         var velocityProjection = Vector3.Dot(velocity, towardPoint);
         var tangentVector = (velocity + towardPoint * -velocityProjection).normalized;
 
-        var towardPointLookProjection = Vector3.Dot(towardPoint, CrosshairDirection);
-        if (towardPointLookProjection < 0)
-        {
-            var lookAdjust = CrosshairDirection - towardPoint * towardPointLookProjection;
-
-            VectorToYawPitch(lookAdjust, out var tangyaw, out var tangpitch);
-
-            var yawChange = tangyaw - Yaw;
-            if (Mathf.Abs(yawChange) > 300)
-            {
-                if (yawChange > 300) yawChange -= 360;
-                else if (yawChange < 300) yawChange += 360;
-            }
-            var pitchChange = tangpitch - Pitch;
-            YawFutureInterpolation += yawChange / 15;
-            PitchFutureInterpolation += pitchChange / 15;
-        }
+        var lookAdjust = Vector3.Lerp(tangentVector, towardPoint, 0.3f);
+        LookTowardTick(lookAdjust, 35);
 
         var swingProjection = Mathf.Max(0, Vector3.Dot(velocity, Vector3.Lerp(towardPoint, tangentVector, 0.5f)));
 
@@ -1352,10 +1344,13 @@ public class PlayerMovement : MonoBehaviour
                 return true;
             }
 
-            if (IsOnRail)
+            if (PlayerInput.tickCount - _railTimestamp < COYOTE_TICKS)
             {
-                EndRail();
-                PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+                if (_railTickCount > RAIL_COOLDOWN_TICKS)
+                {
+                    EndRail();
+                    PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+                }
                 return true;
             }
 

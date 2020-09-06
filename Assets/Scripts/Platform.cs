@@ -60,7 +60,7 @@ public class Platform : MonoBehaviour
 
         var towardPlatform = (transform.position - Game.Player.transform.position).normalized;
         var angle = Vector3.Angle(Game.Player.velocity, towardPlatform);
-        if ((angle < 30 && distance < Game.Player.velocity.magnitude * 3) || distance < 40)
+        if ((angle < 50 && distance < Game.Player.velocity.magnitude * 3) || distance < 40)
         {
             if (!Physics.Raycast(Game.Player.camera.transform.position, towardPlatform, out var hit, distance, 1, QueryTriggerInteraction.Ignore) || hit.collider.gameObject == gameObject)
             {
