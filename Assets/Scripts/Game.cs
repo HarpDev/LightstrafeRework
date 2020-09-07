@@ -12,6 +12,7 @@ public class Game : MonoBehaviour
     public Canvas Options;
     public Canvas Pause;
 
+    public string checkpointScene;
     public Vector3 lastCheckpoint;
     public float checkpointYaw;
 

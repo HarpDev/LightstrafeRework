@@ -6,6 +6,12 @@ public class ButtonFunctions : MonoBehaviour
 
     public void RestartLevel()
     {
+        Game.I.lastCheckpoint = new Vector3();
+        Game.RestartLevel();
+    }
+
+    public void ReturnToLastCheckpoint()
+    {
         Game.RestartLevel();
     }
 

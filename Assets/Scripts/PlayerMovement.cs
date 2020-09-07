@@ -245,7 +245,7 @@ public class PlayerMovement : MonoBehaviour
             transform.position = positionOverride.transform.position;
         }
 
-        if (Game.I.lastCheckpoint.sqrMagnitude > 0.05f)
+        if (Game.I.lastCheckpoint.sqrMagnitude > 0.05f && Game.I.checkpointScene == SceneManager.GetActiveScene().name)
         {
             transform.position = Game.I.lastCheckpoint;
             Yaw = Game.I.checkpointYaw;
@@ -751,6 +751,7 @@ public class PlayerMovement : MonoBehaviour
         if (rail.railDirection == Rail.RailDirection.BACKWARD)
         {
             Game.I.lastCheckpoint = rail.smoothedPoints[rail.smoothedPoints.Length - 1];
+            Game.I.checkpointScene = SceneManager.GetActiveScene().name;
             var direction = rail.smoothedPoints[rail.smoothedPoints.Length - 2] - Game.I.lastCheckpoint;
             var angle = Mathf.Atan2(direction.x, direction.z);
             Game.I.checkpointYaw = Mathf.Rad2Deg * angle;
@@ -759,6 +760,7 @@ public class PlayerMovement : MonoBehaviour
         else if (rail.railDirection == Rail.RailDirection.FORWARD)
         {
             Game.I.lastCheckpoint = rail.smoothedPoints[0];
+            Game.I.checkpointScene = SceneManager.GetActiveScene().name;
             var direction = rail.smoothedPoints[1] - Game.I.lastCheckpoint;
             var angle = Mathf.Atan2(direction.x, direction.z);
             Game.I.checkpointYaw = Mathf.Rad2Deg * angle;
