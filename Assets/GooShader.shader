@@ -242,7 +242,8 @@
             float3 shadowColor = col.rgb;
 			half rim = 1.0 - saturate(dot(normalize(i.viewDir), o.Normal));
 			o.Emission = _Emission + shadowColor + _RimColor.rgb * pow(rim, _RimPower) * 4;
-			o.Alpha = 0.75 + pow(rim, _RimPower) / 4;
+			//o.Alpha = 0.75 + pow(rim, _RimPower) / 4;
+			o.Alpha = 1;
 
 			thickness = tex2D(_LocalThickness, i.uv_MainTex).r;
         }

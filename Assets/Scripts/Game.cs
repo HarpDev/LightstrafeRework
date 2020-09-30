@@ -19,6 +19,9 @@ public class Game : MonoBehaviour
     public static readonly Color green = new Color(19f / 255f, 176f / 255f, 65f / 255f);
     public static readonly Color gold = new Color(255f / 255f, 226f / 255f, 0);
 
+    public int TotalPlatforms { get; set; }
+    public int LitPlatforms { get; set; }
+
     public static float Sensitivity
     {
         get
@@ -30,12 +33,12 @@ public class Game : MonoBehaviour
     }
     public static void SetBestLevelTime(string level, float time)
     {
-        PlayerPrefs.SetFloat("va0.7BestTime" + level, time);
+        PlayerPrefs.SetFloat("va0.8BestTime" + level, time);
     }
 
     public static float GetBestLevelTime(string level)
     {
-        return PlayerPrefs.HasKey("va0.7BestTime" + level) ? PlayerPrefs.GetFloat("va0.7BestTime" + level) : -1f;
+        return PlayerPrefs.HasKey("va0.8BestTime" + level) ? PlayerPrefs.GetFloat("va0.8BestTime" + level) : -1f;
     }
 
     private static PlayerMovement player;
@@ -86,6 +89,8 @@ public class Game : MonoBehaviour
 
     private void Awake()
     {
+        TotalPlatforms = 0;
+        LitPlatforms = 0;
         UiTree = new List<Canvas>();
         Time.timeScale = 1;
         if (I == null)
