@@ -184,8 +184,8 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 0.94049495, y: 13.221267, z: 6.728647}
-  m_Center: {x: -0.012144268, y: -0.02306413, z: 1.3946866}
+  m_Size: {x: 0.94049495, y: 13.221267, z: 21.70586}
+  m_Center: {x: -0.012144268, y: -0.023064373, z: 0.7506367}
 --- !u!114 &182629684052634575
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -289,7 +289,7 @@ GameObject:
   - component: {fileID: 1524533250096905900}
   - component: {fileID: 1524533250096905888}
   m_Layer: 0
-  m_Name: longwall (9)
+  m_Name: one side longwall
   m_TagString: Wall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -324,8 +324,8 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 1, y: 12.32695, z: 45.929504}
-  m_Center: {x: 0, y: 2.217308, z: 0.0953064}
+  m_Size: {x: 1, y: 36.891876, z: 45.929504}
+  m_Center: {x: 4.2197149e-16, y: 1.2367096, z: 0.0953064}
 --- !u!114 &1524533250096905888
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -344,6 +344,10 @@ MonoBehaviour:
     type: 3}
   glowParticle: {fileID: 1524533250096905889}
   startGlowing: 0
+  bouncePad: 0
+  bouncePadStrength: 50
+  grapplePoint: {fileID: 0}
+  grapplePlatform: 0
 --- !u!1 &8250817001098672557
 GameObject:
   m_ObjectHideFlags: 0

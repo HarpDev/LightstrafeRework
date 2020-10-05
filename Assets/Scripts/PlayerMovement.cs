@@ -34,6 +34,7 @@ public class PlayerMovement : MonoBehaviour
     public new Rigidbody rigidbody;
 
     public Text speedText;
+    public Text wallkickText;
 
     public Rings rings;
 
@@ -66,8 +67,7 @@ public class PlayerMovement : MonoBehaviour
             if (!jumpKitEnabled) return false;
             if (IsDashing) return true;
             if (Flatten(velocity).magnitude > WSPEED + 1) return true;
-            if (!IsOnGround && Flatten(velocity).magnitude < _previousSpeed) return true;
-            if (IsOnGround && Flatten(velocity).magnitude >= WSPEED - 1) return true;
+            if (!IsOnGround) return true;
             if (IsOnWall) return true;
             if (IsOnRail) return true;
             if (GrappleHooked) return true;
@@ -85,7 +85,7 @@ public class PlayerMovement : MonoBehaviour
     public const int SURFACE_MAX_LEVEL = 5;
 
     public const float CAMERA_ROLL_CORRECT_SPEED = 60f;
-    public const float GROUND_ACCELERATION = 200;
+    public const float GROUND_ACCELERATION = 500;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 5f;
     public const float SLIDE_MOVEMENT_SCALE = 2f;
@@ -108,7 +108,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public const float WSPEED = 20;
-    public const float FLOWSPEED = 40;
+    public const float FLOWSPEED = 50;
     public const float FLOW_DECAY = 5f;
 
     public bool ApproachingWall { get; set; }
@@ -126,7 +126,7 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_LEAN_DEGREES = 15f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_FLOW_ACCEL = 0.4f;
-    public const float WALL_KICK_SPEED = 8;
+    public const float WALL_KICK_SPEED = 15;
     public const float WALL_KICK_FADEOFF = 3;
     private Vector3 _wallNormal;
     private int _wallTimestamp = -100000;
@@ -139,8 +139,8 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _lastWallNormal;
     private float _wallRecovery;
 
-    private const float AIR_SPEED = 4;
-    private const float AIR_ACCELERATION = 100;
+    private const float AIR_SPEED = 7;
+    private const float AIR_ACCELERATION = 180;
     private const float BACKWARDS_AIR_ACCEL_CAP = 80f;
 
     public bool IsOnRail { get { return _currentRail != null; } }
@@ -1066,7 +1066,7 @@ public class PlayerMovement : MonoBehaviour
                 Accelerate(direction, WSPEED, WALL_ACCELERATION, f);
             }
             var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
-            SetCameraRotation((WALL_LEAN_DEGREES + 5) * -projection * (_wallStamina / WALL_STAMINA), 20);
+            SetCameraRotation((WALL_LEAN_DEGREES + 2) * -projection * (_wallStamina / WALL_STAMINA), 50);
         }
 
         if (_wallStamina <= 0)
@@ -1427,8 +1427,18 @@ public class PlayerMovement : MonoBehaviour
                 {
                     var timing = 1 - (Mathf.Max(sinceJump, _wallTickCount) / (float)JUMP_FORGIVENESS_TICKS);
 
-                    var speed = Mathf.Max(0, WALL_KICK_SPEED * timing);
+                    var ease = Mathf.Pow(timing, 3);
+
+                    var speed = Mathf.Max(0, WALL_KICK_SPEED * ease);
                     velocity += jumpDirection * speed;
+
+                    if (sinceJump > _wallTickCount)
+                    {
+                        wallkickText.text = "-" + sinceJump + " : " + speed;
+                    } else
+                    {
+                        wallkickText.text = "+" + _wallTickCount + " : " + speed;
+                    }
                 }
 
                 velocity.y = y;
@@ -1465,6 +1475,9 @@ public class PlayerMovement : MonoBehaviour
                         CancelDash();
 
                         height /= 1.5f;
+                    } else
+                    {
+                        Accelerate(Flatten(velocity).normalized, FLOWSPEED, WALL_JUMP_FLOW_ACCEL);
                     }
                 }
                 velocity.y = Mathf.Max(height, velocity.y);

@@ -46,8 +46,8 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 1, y: 8.289307, z: 14.723694}
-  m_Center: {x: 0, y: 1.3867493, z: 0.043670654}
+  m_Size: {x: 1, y: 16.032913, z: 14.723694}
+  m_Center: {x: 0, y: 1.5885086, z: 0.043670654}
 --- !u!114 &6979725089678554297
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -66,6 +66,10 @@ MonoBehaviour:
     type: 3}
   glowParticle: {fileID: 5875041758235262151}
   startGlowing: 0
+  bouncePad: 0
+  bouncePadStrength: 50
+  grapplePoint: {fileID: 0}
+  grapplePlatform: 0
 --- !u!1 &1411586082547260308
 GameObject:
   m_ObjectHideFlags: 0
