@@ -66,10 +66,10 @@ public class Platform : MonoBehaviour
             if (!Physics.Raycast(Game.Player.camera.transform.position, towardPlatform, out var hit, distance, 1, QueryTriggerInteraction.Ignore) || hit.collider.gameObject == gameObject)
             {
                 _queued = true;
-                var queue = Game.Player.rings.ThrowQueue;
-                queue.Add(this);
-                queue = queue.OrderBy(o => (o.transform.position - Game.Player.transform.position).sqrMagnitude).ToList();
-                Game.Player.rings.ThrowQueue = queue;
+                //var queue = Game.Player.rings.ThrowQueue;
+                //queue.Add(this);
+                //queue = queue.OrderBy(o => (o.transform.position - Game.Player.transform.position).sqrMagnitude).ToList();
+                //Game.Player.rings.ThrowQueue = queue;
             }
         }
     }

@@ -36,8 +36,6 @@ public class PlayerMovement : MonoBehaviour
     public Text speedText;
     public Text wallkickText;
 
-    public Rings rings;
-
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
@@ -85,9 +83,9 @@ public class PlayerMovement : MonoBehaviour
     public const int SURFACE_MAX_LEVEL = 5;
 
     public const float CAMERA_ROLL_CORRECT_SPEED = 60f;
-    public const float GROUND_ACCELERATION = 500;
+    public const float GROUND_ACCELERATION = 100;
     public const float GROUND_ANGLE = 45;
-    public const float GROUND_FRICTION = 5f;
+    public const float GROUND_FRICTION = 1f;
     public const float SLIDE_MOVEMENT_SCALE = 2f;
     private int _groundTickCount;
     private int _groundTimestamp = -100000;
@@ -179,7 +177,8 @@ public class PlayerMovement : MonoBehaviour
     public const float GRAVITY = 0.5f;
     public const float TERMINAL_VELOCITY = 60;
 
-    public const float JUMP_HEIGHT = 15f;
+    public const float GROUND_JUMP_HEIGHT = 13f;
+    public const float DOUBLE_JUMP_HEIGHT = 17f;
     public const int COYOTE_TICKS = 20;
     public const int JUMP_FORGIVENESS_TICKS = 6;
 
@@ -321,7 +320,8 @@ public class PlayerMovement : MonoBehaviour
         var xcolor = x1 > 0 ? x1 * Color.red : -x1 * Color.magenta;
         var ycolor = y1 > 0 ? y1 * Color.green : -y1 * Color.yellow;
 
-        RenderSettings.fogColor = (xcolor + ycolor) * (Game.I.LitPlatforms / (float)Game.I.TotalPlatforms);
+        float platformFactor = Game.I.TotalPlatforms == 0 ? 0 : (Game.I.LitPlatforms / (float)Game.I.TotalPlatforms);
+        RenderSettings.fogColor = (xcolor + ycolor) * platformFactor;
         camera.backgroundColor = RenderSettings.fogColor;
 
         if (TimerRunning)
@@ -387,11 +387,11 @@ public class PlayerMovement : MonoBehaviour
         var crouchChange = _crouchAmount;
         if (IsSliding)
         {
-            standingCollider.enabled = false;
-            crouchingCollider.enabled = true;
-            CurrentCollider = crouchingCollider;
+            //standingCollider.enabled = false;
+            //crouchingCollider.enabled = true;
+            //CurrentCollider = crouchingCollider;
 
-            if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
+            //if (_crouchAmount < 1) _crouchAmount += Time.deltaTime * 6;
         }
         else
         {
@@ -432,7 +432,7 @@ public class PlayerMovement : MonoBehaviour
         }
         Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(new Vector3(0, 0, _crosshairRotation));
 
-        if (Input.GetKeyDown(PlayerInput.PrimaryInteract) && !IsDashing && !IsOnRail)
+        if (Input.GetKeyDown(PlayerInput.SecondaryInteract) && !IsDashing && !IsOnRail)
         {
             var wishdir = CrosshairDirection;
 
@@ -785,7 +785,7 @@ public class PlayerMovement : MonoBehaviour
     public void EndRail()
     {
         if (!IsOnRail) return;
-        velocity.y += JUMP_HEIGHT;
+        velocity.y += GROUND_JUMP_HEIGHT;
         SetCameraRotation(0, CAMERA_ROLL_CORRECT_SPEED);
         _currentRail = null;
         railSound.Stop();
@@ -1292,7 +1292,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (PlayerInput.GetAxisStrafeRight() == 0 && Vector3.Angle(Wishdir, velocity) < 90)
+        /*if (PlayerInput.GetAxisStrafeRight() == 0 && Vector3.Angle(Wishdir, velocity) < 90)
         {
             accel *= 1 - _wallRecovery / WALL_AIR_ACCEL_RECOVERY;
             var speed = Flatten(velocity).magnitude;
@@ -1300,7 +1300,7 @@ public class PlayerMovement : MonoBehaviour
             velocity += Wishdir * f * accel;
             velocity = Flatten(velocity).normalized * speed;
             velocity.y = y;
-        }
+        }*/
 
         return airStrafeGains;
     }
@@ -1348,6 +1348,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public enum JumpType { WALL, AIR, GROUND }
+    private int _kickCount;
 
     public bool PlayerJump()
     {
@@ -1384,7 +1385,7 @@ public class PlayerMovement : MonoBehaviour
             if (wallJump) type = JumpType.WALL;
             var jumpEvent = new JumpEvent
             {
-                jumpHeight = JUMP_HEIGHT,
+                jumpHeight = GROUND_JUMP_HEIGHT,
                 cancelled = false,
                 currentGround = _currentGround,
                 type = type
@@ -1425,20 +1426,36 @@ public class PlayerMovement : MonoBehaviour
 
                 if (!coyoteJump)
                 {
-                    var timing = 1 - (Mathf.Max(sinceJump, _wallTickCount) / (float)JUMP_FORGIVENESS_TICKS);
+                    var timing = Mathf.Max(sinceJump, _wallTickCount);
 
-                    var ease = Mathf.Pow(timing, 3);
+                    var normalized = 1 - (timing / (float)JUMP_FORGIVENESS_TICKS);
+                    var ease = Mathf.Pow(normalized, 3);
 
-                    var speed = Mathf.Max(0, WALL_KICK_SPEED * ease);
+                    var speed = Mathf.Max(0, (WALL_KICK_SPEED - (5 - _kickCount)) * ease);
+                    if (timing < 4)
+                    {
+                        source.pitch = (_kickCount / 10f) + 1;
+                        source.PlayOneShot(trick);
+                        _kickCount++;
+                        if (_kickCount > 5) _kickCount = 5;
+                    } else
+                    {
+                        _kickCount = 0;
+                        source.pitch = 1;
+                    }
                     velocity += jumpDirection * speed;
 
                     if (sinceJump > _wallTickCount)
                     {
-                        wallkickText.text = "-" + sinceJump + " : " + speed;
+                        wallkickText.text = "-" + sinceJump;
                     } else
                     {
-                        wallkickText.text = "+" + _wallTickCount + " : " + speed;
+                        wallkickText.text = "+" + _wallTickCount;
                     }
+                } else
+                {
+                    _kickCount = 0;
+                    source.pitch = 1;
                 }
 
                 velocity.y = y;
@@ -1460,7 +1477,7 @@ public class PlayerMovement : MonoBehaviour
                 SetCameraRotation(0, CAMERA_ROLL_CORRECT_SPEED);
                 source.PlayOneShot(jump);
 
-                var height = jumpEvent.jumpHeight;
+                var height = DOUBLE_JUMP_HEIGHT;
                 if (!groundJump)
                 {
                     _currentCharge = ChargeType.NONE;
@@ -1475,9 +1492,6 @@ public class PlayerMovement : MonoBehaviour
                         CancelDash();
 
                         height /= 1.5f;
-                    } else
-                    {
-                        Accelerate(Flatten(velocity).normalized, FLOWSPEED, WALL_JUMP_FLOW_ACCEL);
                     }
                 }
                 velocity.y = Mathf.Max(height, velocity.y);

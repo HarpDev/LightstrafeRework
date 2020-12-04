@@ -11,7 +11,9 @@ GameObject:
   - component: {fileID: 3390251773245004514}
   - component: {fileID: 3909951783906992209}
   - component: {fileID: 5451911821459302519}
-  - component: {fileID: 6478402775143445924}
+  - component: {fileID: 4119749335505124548}
+  - component: {fileID: 1056774179567382381}
+  - component: {fileID: 4962803189761442351}
   m_Layer: 0
   m_Name: LightProjectile
   m_TagString: Untagged
@@ -48,7 +50,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 808331282579653803}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -56,6 +58,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -80,9 +83,36 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!96 &6478402775143445924
-TrailRenderer:
-  serializedVersion: 2
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &4119749335505124548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 808331282579653803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c2c6a7219ee65b4db49163275b4d684, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1056774179567382381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 808331282579653803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3ab3560a7821054585be40f2a92fa28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  distIncrement: 0.1
+  limitTrailLength: 0
+  maxPositions: 10
+--- !u!120 &4962803189761442351
+LineRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -96,6 +126,7 @@ TrailRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -120,7 +151,9 @@ TrailRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Time: 1
+  m_Positions:
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 0.2
@@ -128,22 +161,22 @@ TrailRenderer:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0
+        time: 0.0169487
+        value: 0
+        inSlope: 1.9329554
+        outSlope: 1.9329554
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.10689697
+      - serializedVersion: 3
+        time: 1
         value: 1
         inSlope: 0
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 1
-        value: 0
-        inSlope: -3.1427562
-        outSlope: -3.1427562
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.11186439
+        inWeight: 0
         outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
@@ -183,6 +216,5 @@ TrailRenderer:
     textureMode: 0
     shadowBias: 0.5
     generateLightingData: 0
-  m_MinVertexDistance: 0.1
-  m_Autodestruct: 0
-  m_Emitting: 1
+  m_UseWorldSpace: 1
+  m_Loop: 0

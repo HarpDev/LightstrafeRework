@@ -4,18 +4,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-[ExecuteAlways]
 public class Gun : MonoBehaviour
 {
 
-    public delegate void GunShot(RaycastHit hit);
-    //public event GunShot ShotEvent;
+    public delegate void GunShot(RaycastHit hit, ref bool doCatch);
+    public event GunShot ShotEvent;
 
     public PlayerMovement player;
     public Transform barrel;
     public Transform rifle;
     public Transform stock;
     public Camera viewModel;
+
+    public SkinnedMeshRenderer handMesh;
 
     private const float crouchPositionSpeed = 6;
 
@@ -38,13 +39,25 @@ public class Gun : MonoBehaviour
 
     private LineRenderer _lineRenderer;
 
+    private float _chargeTarget;
+    private float _charge;
+
+    public void ChargeHands()
+    {
+        _chargeTarget = 10;
+    }
+
     private void Start()
     {
+        player = Game.Player;
+
         _canFire = true;
 
         _models = new List<ModelInView>(GetComponentsInChildren<ModelInView>());
         _lineRenderer = barrel.gameObject.GetComponent<LineRenderer>();
         if (_lineRenderer == null) _lineRenderer = barrel.gameObject.AddComponent<LineRenderer>();
+
+        handMesh.material.SetColor("_EmissionColor", Color.black);
     }
 
     private void FixedUpdate()
@@ -63,6 +76,11 @@ public class Gun : MonoBehaviour
 
     private void Update()
     {
+        handMesh.material.SetColor("_EmissionColor", Color.white * _charge);
+        handMesh.material.EnableKeyword("_EMISSION");
+        _charge = Mathf.Lerp(_charge, _chargeTarget, Time.deltaTime * 2);
+        _chargeTarget = Mathf.Lerp(_chargeTarget, 0, Time.deltaTime);
+
         if (_lineRenderer != null && Application.isPlaying)
         {
             var emission = _lineRenderer.material.GetColor("_EmissionColor");
@@ -75,16 +93,19 @@ public class Gun : MonoBehaviour
         {
             _canFire = true;
         }
+        if (_canFire && _currentInfo.IsName("Idle")) _uncrouchUntilCanFire = false;
 
         if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Idle") && _canFire)
         {
+            bool doCatch = false;
+
             var lineEnd = player.camera.transform.position + player.CrosshairDirection * 300;
             if (Physics.Raycast(player.camera.transform.position, player.CrosshairDirection, out var hit, 300, 1, QueryTriggerInteraction.Ignore))
             {
                 if (!hit.collider.CompareTag("Player"))
                 {
                     lineEnd = hit.point;
-                    //ShotEvent(hit);
+                    ShotEvent(hit, ref doCatch);
                 }
             }
 
@@ -100,10 +121,14 @@ public class Gun : MonoBehaviour
             if (animator != null)
             {
                 animator.SetBool("Fire", true);
+                animator.SetBool("Hit", doCatch);
+                if (doCatch) _uncrouchUntilCanFire = true;
             }
             _canFire = false;
         }
     }
+
+    private bool _uncrouchUntilCanFire;
 
     private float _upChange;
     private float _upSoften;
@@ -114,12 +139,11 @@ public class Gun : MonoBehaviour
 
     private void LateUpdate()
     {
-
         var yawMovement = player.YawIncrease;
 
         var velocityChange = player.velocity - _prevVelocity;
 
-        if (player.IsSliding && !player.ApproachingWall && !player.IsOnWall)
+        if (player.IsSliding && !player.ApproachingWall && !player.IsOnWall && !_uncrouchUntilCanFire)
         {
             if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
         }
