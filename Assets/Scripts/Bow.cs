@@ -22,6 +22,21 @@ public class Bow : MonoBehaviour
     private Vector3 _angleEulers;
 
     public float Drawback { get; set; }
+    public bool UseSideGun
+    {
+        get
+        {
+            if (!player.jumpKitEnabled) return false;
+            if (!player.ApproachingWall) return false;
+
+            if (player.IsDashing) return true;
+            if (Flatten(player.velocity).magnitude > PlayerMovement.BASE_SPEED + 1) return true;
+            if (!player.IsOnGround) return true;
+            if (player.IsOnRail) return true;
+            if (player.GrappleHooked) return true;
+            return false;
+        }
+    }
 
     private void Update()
     {
@@ -36,7 +51,7 @@ public class Bow : MonoBehaviour
         var bowPos = bowPosition;
         var boltPos = boltPosition;
 
-        if (Application.isPlaying && player.IsSliding)
+        if (Application.isPlaying && UseSideGun)
         {
             bowAngle -= Drawback * 10;
             bowAngle += 180;
@@ -70,7 +85,7 @@ public class Bow : MonoBehaviour
         _angleEulers = Vector3.Lerp(_angleEulers, new Vector3(90 - bowAngle, -90, -90), Time.deltaTime * lerpSpeed);
         transform.localRotation = Quaternion.Euler(_angleEulers);
 
-        if (player.IsSliding)
+        if (UseSideGun)
             transform.Rotate(new Vector3(-1, 0, 0), Space.Self);
 
         var rightVelocity = Vector3.Dot(player.velocity, Flatten(player.transform.right));
@@ -91,7 +106,7 @@ public class Bow : MonoBehaviour
 
         if (!player.IsOnGround && !player.IsOnRail && !player.IsOnWall)
             finalPosition.y += 0f;
-        else if (!player.IsSliding)
+        else if (!UseSideGun)
             finalPosition.y += Drawback / 3f;
 
         //if (player.GroundLevel > 0) finalPosition += CameraBobbing.BobbingVector;

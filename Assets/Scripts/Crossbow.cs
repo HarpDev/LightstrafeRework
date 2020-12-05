@@ -82,6 +82,21 @@ public class Crossbow : MonoBehaviour
     }
 
     private AnimatorStateInfo _currentInfo;
+    public bool UseSideGun
+    {
+        get
+        {
+            if (!player.jumpKitEnabled) return false;
+            if (!player.ApproachingWall) return false;
+
+            if (player.IsDashing) return true;
+            if (Flatten(player.velocity).magnitude > PlayerMovement.BASE_SPEED + 1) return true;
+            if (!player.IsOnGround) return true;
+            if (player.IsOnRail) return true;
+            if (player.GrappleHooked) return true;
+            return false;
+        }
+    }
 
     private void Update()
     {
@@ -89,7 +104,7 @@ public class Crossbow : MonoBehaviour
 
         var angle = 0f;
 
-        if (player.IsSliding && !player.ApproachingWall && !player.IsOnWall)
+        if (UseSideGun)
         {
             if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
         }

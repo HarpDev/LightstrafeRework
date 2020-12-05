@@ -13,7 +13,7 @@ public class Speedometer : MonoBehaviour
 
     private void Update()
     {
-        var speed = Flatten(Game.Player.velocity).magnitude / PlayerMovement.FLOWSPEED;
+        var speed = Flatten(Game.Player.velocity).magnitude / PlayerMovement.BASE_SPEED;
 
         var layer1 = Mathf.Min(1, Mathf.Max(0, speed));
         _layer1Lerp = Mathf.Lerp(_layer1Lerp, layer1, Time.deltaTime * 5);

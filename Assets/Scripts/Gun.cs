@@ -18,9 +18,9 @@ public class Gun : MonoBehaviour
 
     public SkinnedMeshRenderer handMesh;
 
-    private const float crouchPositionSpeed = 6;
+    private const float crouchPositionSpeed = 4;
 
-    private float _crouchPositionAmt;
+    private float _crouchFactor;
 
     public static float forwardChange;
     private float _rightChange;
@@ -44,7 +44,7 @@ public class Gun : MonoBehaviour
 
     public void ChargeHands()
     {
-        _chargeTarget = 10;
+        _chargeTarget = 3;
     }
 
     private void Start()
@@ -100,7 +100,7 @@ public class Gun : MonoBehaviour
             bool doCatch = false;
 
             var lineEnd = player.camera.transform.position + player.CrosshairDirection * 300;
-            if (Physics.Raycast(player.camera.transform.position, player.CrosshairDirection, out var hit, 300, 1, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(player.camera.transform.position, player.CrosshairDirection, out var hit, 300, 1, QueryTriggerInteraction.Collide))
             {
                 if (!hit.collider.CompareTag("Player"))
                 {
@@ -136,6 +136,22 @@ public class Gun : MonoBehaviour
     private Vector3 _prevVelocity;
 
     private float _crouchReloadMod;
+    public bool UseSideGun
+    {
+        get
+        {
+            if (!player.jumpKitEnabled) return false;
+            if (player.ApproachingWall) return false;
+            if (_uncrouchUntilCanFire) return false;
+
+            if (player.IsDashing) return true;
+            if (Flatten(player.velocity).magnitude > PlayerMovement.BASE_SPEED + 1) return true;
+            if (!player.IsOnGround) return true;
+            if (player.IsOnRail) return true;
+            if (player.GrappleHooked) return true;
+            return false;
+        }
+    }
 
     private void LateUpdate()
     {
@@ -143,18 +159,21 @@ public class Gun : MonoBehaviour
 
         var velocityChange = player.velocity - _prevVelocity;
 
-        if (player.IsSliding && !player.ApproachingWall && !player.IsOnWall && !_uncrouchUntilCanFire)
+        if (UseSideGun)
         {
-            if (_crouchPositionAmt < 1) _crouchPositionAmt += Time.deltaTime * crouchPositionSpeed;
+            if (_crouchFactor < 1) _crouchFactor += Time.deltaTime * crouchPositionSpeed;
         }
-        else if (_crouchPositionAmt > 0) _crouchPositionAmt -= Time.deltaTime * crouchPositionSpeed;
-        _crouchPositionAmt = Mathf.Max(0, Mathf.Min(1, _crouchPositionAmt));
+        else if (_crouchFactor > 0) _crouchFactor -= Time.deltaTime * crouchPositionSpeed;
+        _crouchFactor = Mathf.Max(0, Mathf.Min(1, _crouchFactor));
+
+        //var crouchAmt = Mathf.Pow(_crouchFactor, 2);
+        var crouchAmt = -(Mathf.Cos(Mathf.PI * _crouchFactor) - 1) / 2;
 
         _upChange -= velocityChange.y * Time.deltaTime * 70;
-        if (!player.IsOnGround) _upChange += Time.deltaTime * Mathf.Lerp(20, 10, _crouchPositionAmt);
+        if (!player.IsOnGround && !player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(20, 10, crouchAmt);
         else
         {
-            _upChange -= velocityChange.y * Time.deltaTime * Mathf.Lerp(120, 60, _crouchPositionAmt);
+            _upChange -= velocityChange.y * Time.deltaTime * Mathf.Lerp(120, 60, crouchAmt);
         }
 
         _rightChange -= yawMovement / 3;
@@ -178,11 +197,11 @@ public class Gun : MonoBehaviour
         _prevVelocity = player.velocity;
 
         var forward = 0;
-        var right = -0.02f * _crouchPositionAmt;
-        var up = Mathf.Lerp(0, 0.02f, _crouchPositionAmt);
+        var right = -0.02f * crouchAmt;
+        var up = Mathf.Lerp(0, 0.02f, crouchAmt);
 
-        var roll = Mathf.Lerp(_rightSoften, 60, _crouchPositionAmt);
-        var swing = _rightSoften / Mathf.Lerp(10, 5, _crouchPositionAmt);
+        var roll = Mathf.Lerp(_rightSoften, 60, crouchAmt);
+        var swing = _rightSoften / Mathf.Lerp(10, 5, crouchAmt);
         var tilt = _upSoften;
 
         var barrelPosition = barrel.position;
@@ -194,7 +213,7 @@ public class Gun : MonoBehaviour
         var tiltAxis = rifle.forward;
 
         if (_currentInfo.IsTag("Reload"))
-            _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, _crouchPositionAmt, Time.deltaTime * 4);
+            _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, crouchAmt, Time.deltaTime * 4);
         else
             _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, 0, Time.deltaTime * 2);
         tilt += 5 * _crouchReloadMod;
