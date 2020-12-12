@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: 490f8b0324aa631408b1aea0efc90d93
 ModelImporter:
-  serializedVersion: 19300
+  serializedVersion: 20101
   internalIDToNameTable:
   - first:
       74: -4828548317358185830
@@ -42,6 +42,18 @@ ModelImporter:
   - first:
       74: 381480385454479262
     second: hands|AbilityCatch
+  - first:
+      74: 5180743597508234511
+    second: hands|EquipPistol
+  - first:
+      74: 1538542680204402641
+    second: hands|EquipRifle
+  - first:
+      74: -5918312211683683714
+    second: hands|PistolFire
+  - first:
+      74: -7573045527961762510
+    second: hands|PistolIdle
   externalObjects: {}
   materials:
     materialImportMode: 1
@@ -69,7 +81,457 @@ ModelImporter:
     animationWrapMode: 0
     extraExposedTransformPaths: []
     extraUserProperties: []
-    clipAnimations: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: Cube|Fire
+      takeName: Cube|Fire
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 57
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|AbilityCatch
+      takeName: hands|AbilityCatch
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 95
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask:
+      - path: 
+        weight: 1
+      - path: Camera
+        weight: 0
+      - path: Cube
+        weight: 0
+      - path: hands
+        weight: 1
+      - path: hands/Barrel
+        weight: 0
+      - path: hands/Barrel/Barrel_end
+        weight: 1
+      - path: hands/Bolt
+        weight: 0
+      - path: hands/Bolt/Bolt_end
+        weight: 1
+      - path: hands/Bone.025
+        weight: 1
+      - path: hands/Bone.025/Bone.026
+        weight: 1
+      - path: hands/Bone.025/Bone.026/Bone.027
+        weight: 1
+      - path: hands/Bone.025/Bone.026/Bone.027/Bone.028
+        weight: 1
+      - path: hands/Bone.025/Bone.026/Bone.027/Bone.028/Bone.029
+        weight: 1
+      - path: hands/Bone.025/Bone.026/Bone.027/Bone.028/Bone.029/Bone.030
+        weight: 1
+      - path: hands/Bone.025/Bone.026/Bone.027/Bone.028/Bone.029/Bone.030/Bone.030_end
+        weight: 1
+      - path: hands/Bone.025/Bone.031
+        weight: 1
+      - path: hands/Bone.025/Bone.031/Bone.033
+        weight: 1
+      - path: hands/Bone.025/Bone.031/Bone.033/Bone.034
+        weight: 1
+      - path: hands/Bone.025/Bone.031/Bone.033/Bone.034/Bone.035
+        weight: 1
+      - path: hands/Bone.025/Bone.031/Bone.033/Bone.034/Bone.035/Bone.036
+        weight: 1
+      - path: hands/Bone.025/Bone.031/Bone.033/Bone.034/Bone.035/Bone.036/Bone.036_end
+        weight: 1
+      - path: hands/Bone.025/Bone.032
+        weight: 1
+      - path: hands/Bone.025/Bone.032/Bone.037
+        weight: 1
+      - path: hands/Bone.025/Bone.032/Bone.037/Bone.038
+        weight: 1
+      - path: hands/Bone.025/Bone.032/Bone.037/Bone.038/Bone.039
+        weight: 1
+      - path: hands/Bone.025/Bone.032/Bone.037/Bone.038/Bone.039/Bone.040
+        weight: 1
+      - path: hands/Bone.025/Bone.032/Bone.037/Bone.038/Bone.039/Bone.040/Bone.040_end
+        weight: 1
+      - path: hands/Bone.025/Bone.041
+        weight: 1
+      - path: hands/Bone.025/Bone.041/Bone.042
+        weight: 1
+      - path: hands/Bone.025/Bone.041/Bone.042/Bone.043
+        weight: 1
+      - path: hands/Bone.025/Bone.041/Bone.042/Bone.043/Bone.044
+        weight: 1
+      - path: hands/Bone.025/Bone.041/Bone.042/Bone.043/Bone.044/Bone.045
+        weight: 1
+      - path: hands/Bone.025/Bone.041/Bone.042/Bone.043/Bone.044/Bone.045/Bone.045_end
+        weight: 1
+      - path: hands/Bone.025/Bone.046
+        weight: 1
+      - path: hands/Bone.025/Bone.046/Bone.047
+        weight: 1
+      - path: hands/Bone.025/Bone.046/Bone.047/Bone.048
+        weight: 1
+      - path: hands/Bone.025/Bone.046/Bone.047/Bone.048/Bone.049
+        weight: 1
+      - path: hands/Bone.025/Bone.046/Bone.047/Bone.048/Bone.049/Bone.049_end
+        weight: 1
+      - path: hands/Camera 1
+        weight: 0
+      - path: hands/Camera 1/Camera_end
+        weight: 1
+      - path: hands/Pistol
+        weight: 0
+      - path: hands/Pistol/PistolMag
+        weight: 1
+      - path: hands/Pistol/PistolMag/PistolMag_end
+        weight: 1
+      - path: hands/Pistol/PistolSlide
+        weight: 1
+      - path: hands/Pistol/PistolSlide/PistolSlide_end
+        weight: 1
+      - path: hands/Rifle
+        weight: 0
+      - path: hands/Rifle/Rifle_end
+        weight: 1
+      - path: hands/righthand
+        weight: 0
+      - path: hands/righthand/Bone.001
+        weight: 1
+      - path: hands/righthand/Bone.001/Bone.004
+        weight: 1
+      - path: hands/righthand/Bone.001/Bone.004/Bone.005
+        weight: 1
+      - path: hands/righthand/Bone.001/Bone.004/Bone.005/Bone.006
+        weight: 1
+      - path: hands/righthand/Bone.001/Bone.004/Bone.005/Bone.006/Bone.007
+        weight: 1
+      - path: hands/righthand/Bone.001/Bone.004/Bone.005/Bone.006/Bone.007/Bone.007_end
+        weight: 1
+      - path: hands/righthand/Bone.002
+        weight: 1
+      - path: hands/righthand/Bone.002/Bone.008
+        weight: 1
+      - path: hands/righthand/Bone.002/Bone.008/Bone.009
+        weight: 1
+      - path: hands/righthand/Bone.002/Bone.008/Bone.009/Bone.010
+        weight: 1
+      - path: hands/righthand/Bone.002/Bone.008/Bone.009/Bone.010/Bone.011
+        weight: 1
+      - path: hands/righthand/Bone.002/Bone.008/Bone.009/Bone.010/Bone.011/Bone.011_end
+        weight: 1
+      - path: hands/righthand/Bone.003
+        weight: 1
+      - path: hands/righthand/Bone.003/Bone.012
+        weight: 1
+      - path: hands/righthand/Bone.003/Bone.012/Bone.013
+        weight: 1
+      - path: hands/righthand/Bone.003/Bone.012/Bone.013/Bone.014
+        weight: 1
+      - path: hands/righthand/Bone.003/Bone.012/Bone.013/Bone.014/Bone.015
+        weight: 1
+      - path: hands/righthand/Bone.003/Bone.012/Bone.013/Bone.014/Bone.015/Bone.015_end
+        weight: 1
+      - path: hands/righthand/Bone.016
+        weight: 1
+      - path: hands/righthand/Bone.016/Bone.017
+        weight: 1
+      - path: hands/righthand/Bone.016/Bone.017/Bone.018
+        weight: 1
+      - path: hands/righthand/Bone.016/Bone.017/Bone.018/Bone.019
+        weight: 1
+      - path: hands/righthand/Bone.016/Bone.017/Bone.018/Bone.019/Bone.020
+        weight: 1
+      - path: hands/righthand/Bone.016/Bone.017/Bone.018/Bone.019/Bone.020/Bone.020_end
+        weight: 1
+      - path: hands/righthand/Bone.021
+        weight: 1
+      - path: hands/righthand/Bone.021/Bone.022
+        weight: 1
+      - path: hands/righthand/Bone.021/Bone.022/Bone.023
+        weight: 1
+      - path: hands/righthand/Bone.021/Bone.022/Bone.023/Bone.024
+        weight: 1
+      - path: hands/righthand/Bone.021/Bone.022/Bone.023/Bone.024/Bone.024_end
+        weight: 1
+      - path: hands/Stock
+        weight: 0
+      - path: hands/Stock/Stock_end
+        weight: 1
+      - path: handsmodel
+        weight: 1
+      maskType: 0
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|EquipPistol
+      takeName: hands|EquipPistol
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 103
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|EquipRifle
+      takeName: hands|EquipRifle
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 45
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|Fire
+      takeName: hands|Fire
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 57
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|Idle
+      takeName: hands|Idle
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 1
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|PistolFire
+      takeName: hands|PistolFire
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 11
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|PistolIdle
+      takeName: hands|PistolIdle
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 1
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|Reload
+      takeName: hands|Reload
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 50
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: hands|Reload.001
+      takeName: hands|Reload.001
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 121
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
     isReadable: 0
   meshes:
     lODScreenPercentages: []
@@ -82,11 +544,13 @@ ModelImporter:
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    fileIdsGeneration: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
     skinWeightsMode: 0
     maxBonesPerVertex: 4
@@ -96,6 +560,9 @@ ModelImporter:
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
   tangentSpace:

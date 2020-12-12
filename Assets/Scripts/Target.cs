@@ -7,7 +7,6 @@ public class Target : MonoBehaviour
 {
 
     public GameObject core;
-    public Ability ability;
 
     private const int abilityCooldown = 1000;
 
@@ -27,7 +26,7 @@ public class Target : MonoBehaviour
     {
         if (_activated)
         {
-            if (core.activeSelf && ability == Ability.GRAPPLE && !Game.Player.GrappleHooked) core.SetActive(false);
+            //if (core.activeSelf && ability == Ability.GRAPPLE && !Game.Player.GrappleHooked) core.SetActive(false);
             if (!core.activeSelf) _activatedTicks++;
             if (_activatedTicks > abilityCooldown)
             {
@@ -43,10 +42,7 @@ public class Target : MonoBehaviour
         Game.Canvas.hitmarker.Display();
         _activatedTicks = 0;
         _activated = true;
-        if (ability == Ability.GRAPPLE)
-        {
-            Game.Player.AttachGrapple(transform.position);
-        }
+        Game.Player.AttachGrapple(transform.position);
     }
 
     private static Vector3 Flatten(Vector3 vec)

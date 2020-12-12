@@ -22,7 +22,7 @@ public class LightProjectile : MonoBehaviour
     private bool _finished;
 
     private float _radius = 1;
-    private float _animTime = 0.9f;
+    public float AnimTime = 0.9f;
 
 
     private void Start()
@@ -35,7 +35,7 @@ public class LightProjectile : MonoBehaviour
         _rotations = Random.Range(0.5f, 4) * (Random.Range(1, 3) > 1 ? 1 : -1);
         _startingLocation = transform.position;
         _originalStartingLocation = transform.position;
-        _startingDistance = (_startingLocation - Target.position).magnitude;
+        _startingDistance = Mathf.Max((_startingLocation - Target.position).magnitude, 20);
     }
 
     private void LateUpdate()
@@ -47,7 +47,7 @@ public class LightProjectile : MonoBehaviour
         _progress += Time.deltaTime;
         //_trail.startWidth = Mathf.Min((transform.position - Target.position).magnitude / 100f + 0.05f, _max);
 
-        float factor = Mathf.Min(_progress / _animTime, 1);
+        float factor = Mathf.Min(_progress / AnimTime, 1);
 
         _startingLocation = Vector3.Lerp(_originalStartingLocation, Target.position + Target.forward * _startingDistance, factor);
 

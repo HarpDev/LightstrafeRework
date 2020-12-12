@@ -32,26 +32,29 @@ public class Gun : MonoBehaviour
     public AudioClip fireSound;
 
     private List<ModelInView> _models;
+    public ModelInView leftHand;
 
     public Animator animator;
-
-    private bool _canFire;
 
     private LineRenderer _lineRenderer;
 
     private float _chargeTarget;
     private float _charge;
 
+    private const float FIRE_RATE = 1.5f;
+    private float _fireDelay;
+
+    private bool _shootingPistol;
+
     public void ChargeHands()
     {
         _chargeTarget = 3;
+        player.DashAvailable = true;
     }
 
     private void Start()
     {
         player = Game.Player;
-
-        _canFire = true;
 
         _models = new List<ModelInView>(GetComponentsInChildren<ModelInView>());
         _lineRenderer = barrel.gameObject.GetComponent<LineRenderer>();
@@ -60,22 +63,42 @@ public class Gun : MonoBehaviour
         handMesh.material.SetColor("_EmissionColor", Color.black);
     }
 
+    private bool _doingAbilityCatch;
+
     private void FixedUpdate()
     {
         if (animator == null) return;
-        _currentInfo = animator.GetCurrentAnimatorStateInfo(0);
-
-        if (_currentInfo.IsName("Fire"))
-        {
-            animator.SetBool("Fire", false);
-            _canFire = true;
-        }
+        _layer0Info = animator.GetCurrentAnimatorStateInfo(0);
+        _layer1Info = animator.GetCurrentAnimatorStateInfo(1);
     }
 
-    private AnimatorStateInfo _currentInfo;
+    private AnimatorStateInfo _layer0Info;
+    private AnimatorStateInfo _layer1Info;
+
+    private float _catchWeight;
 
     private void Update()
     {
+        if (_fireDelay > 0) _fireDelay -= Mathf.Min(_fireDelay, Time.deltaTime);
+
+        if (_layer1Info.IsName("AbilityCatch") && _layer1Info.normalizedTime < 1)
+        {
+            animator.SetLayerWeight(1, _catchWeight);
+            _doingAbilityCatch = true;
+
+            var f = 1 - _layer1Info.normalizedTime;
+            f -= 0.1f;
+            f *= 3;
+            f = Mathf.Max(0, f);
+            f = Mathf.Min(1, f);
+            _catchWeight = Mathf.Lerp(_catchWeight, f, Time.deltaTime * 10);
+        }
+        else
+        {
+            animator.SetLayerWeight(1, 0);
+            _doingAbilityCatch = false;
+        }
+
         handMesh.material.SetColor("_EmissionColor", Color.white * _charge);
         handMesh.material.EnableKeyword("_EMISSION");
         _charge = Mathf.Lerp(_charge, _chargeTarget, Time.deltaTime * 2);
@@ -89,15 +112,11 @@ public class Gun : MonoBehaviour
             if (color.a > 0) color.a -= Time.deltaTime * 4;
             _lineRenderer.material.color = color;
         }
-        if (!Input.GetKey(PlayerInput.PrimaryInteract) && !_canFire)
-        {
-            _canFire = true;
-        }
-        if (_canFire && _currentInfo.IsName("Idle")) _uncrouchUntilCanFire = false;
 
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Idle") && _canFire)
+        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _fireDelay == 0)
         {
             bool doCatch = false;
+            _fireDelay = FIRE_RATE;
 
             var lineEnd = player.camera.transform.position + player.CrosshairDirection * 300;
             if (Physics.Raycast(player.camera.transform.position, player.CrosshairDirection, out var hit, 300, 1, QueryTriggerInteraction.Collide))
@@ -105,6 +124,7 @@ public class Gun : MonoBehaviour
                 if (!hit.collider.CompareTag("Player"))
                 {
                     lineEnd = hit.point;
+                    //player.Teleport(hit.point - (player.CrosshairDirection * 0.5f));
                     ShotEvent(hit, ref doCatch);
                 }
             }
@@ -120,15 +140,35 @@ public class Gun : MonoBehaviour
 
             if (animator != null)
             {
-                animator.SetBool("Fire", true);
                 animator.SetBool("Hit", doCatch);
-                if (doCatch) _uncrouchUntilCanFire = true;
+                if (_shootingPistol)
+                {
+                    animator.Play("PistolFire", -1, 0f);
+                    _shootingPistol = false;
+                }
+                else
+                {
+                    animator.Play("Fire", -1, 0f);
+                    _shootingPistol = true;
+                }
+                UncrouchDuring(0.4f, 2f);
             }
-            _canFire = false;
         }
     }
 
-    private bool _uncrouchUntilCanFire;
+    public void CatchAbility()
+    {
+        animator.Play("AbilityCatch", 1, 0f);
+    }
+
+    private float _uncrouchTimer;
+    private float _uncrouchTimerDelay;
+
+    private void UncrouchDuring(float from, float to)
+    {
+        _uncrouchTimer = to - from;
+        _uncrouchTimerDelay = from;
+    }
 
     private float _upChange;
     private float _upSoften;
@@ -142,7 +182,8 @@ public class Gun : MonoBehaviour
         {
             if (!player.jumpKitEnabled) return false;
             if (player.ApproachingWall) return false;
-            if (_uncrouchUntilCanFire) return false;
+            if (_uncrouchTimer > 0 && _uncrouchTimerDelay == 0) return false;
+            if (_shootingPistol) return false;
 
             if (player.IsDashing) return true;
             if (Flatten(player.velocity).magnitude > PlayerMovement.BASE_SPEED + 1) return true;
@@ -155,6 +196,14 @@ public class Gun : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (_uncrouchTimerDelay == 0)
+        {
+            _uncrouchTimer = Mathf.Max(0, _uncrouchTimer - Time.deltaTime);
+        }
+        else
+        {
+            _uncrouchTimerDelay = Mathf.Max(0, _uncrouchTimerDelay - Time.deltaTime);
+        }
         var yawMovement = player.YawIncrease;
 
         var velocityChange = player.velocity - _prevVelocity;
@@ -182,7 +231,7 @@ public class Gun : MonoBehaviour
         _upChange = Mathf.Lerp(_upChange, 0, Time.deltaTime * 8);
 
         _rightSoften = Mathf.Lerp(_rightSoften, _rightChange, Time.deltaTime * 20);
-        
+
         if (_upSoften > _upChange)
         {
             _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 20);
@@ -212,7 +261,7 @@ public class Gun : MonoBehaviour
         var swingAxis = rifle.right;
         var tiltAxis = rifle.forward;
 
-        if (_currentInfo.IsTag("Reload"))
+        if (_layer0Info.IsTag("Reload"))
             _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, crouchAmt, Time.deltaTime * 4);
         else
             _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, 0, Time.deltaTime * 2);
@@ -223,16 +272,15 @@ public class Gun : MonoBehaviour
 
         roll += player.CameraRoll / 2;
 
-        if (Application.isPlaying)
+        foreach (var model in _models)
         {
-            foreach (var model in _models)
-            {
-                model.transform.localPosition += new Vector3(forward, right, up);
+            if (model == leftHand && _doingAbilityCatch)
+                continue;
+            model.transform.localPosition += new Vector3(forward, right, up);
 
-                model.gameObject.transform.RotateAround(barrelPosition, rollAxis, roll);
-                model.gameObject.transform.RotateAround(riflePosition, swingAxis, swing);
-                model.gameObject.transform.RotateAround(stockPosition, tiltAxis, tilt);
-            }
+            model.gameObject.transform.RotateAround(barrelPosition, rollAxis, roll);
+            model.gameObject.transform.RotateAround(riflePosition, swingAxis, swing);
+            model.gameObject.transform.RotateAround(stockPosition, tiltAxis, tilt);
         }
     }
 
