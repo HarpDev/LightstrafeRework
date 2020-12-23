@@ -1,26 +1,29 @@
 fileFormatVersion: 2
-guid: 490f8b0324aa631408b1aea0efc90d93
+guid: ff52d406ac16dc54c8eba1594734832e
 ModelImporter:
   serializedVersion: 20101
   internalIDToNameTable:
   - first:
-      74: -6227836170806008573
-    second: Rifle|RifleFire
+      74: 5180743597508234511
+    second: hands|EquipPistol
   - first:
-      74: 1538542680204402641
-    second: hands|EquipRifle
+      74: 2232961689851019460
+    second: hands|PistolAction
   - first:
-      74: -3036430953664076837
-    second: hands|Reload
+      74: -5918312211683683714
+    second: hands|PistolFire
   - first:
-      74: -4266825383762337542
-    second: hands|RifleFire
+      74: -7573045527961762510
+    second: hands|PistolIdle
   - first:
-      74: -1578418925091973818
-    second: hands|UnequipRifle
+      74: -2636518823190853199
+    second: hands|UnequipPistol
   - first:
-      74: 6380942203048198306
-    second: hands|Idle
+      74: -4026112507643788827
+    second: Pistol|EquipPistol
+  - first:
+      74: 4207733051917077817
+    second: Pistol|PistolAction
   - first:
       74: 381480385454479262
     second: hands|AbilityCatch
@@ -53,11 +56,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: hands|EquipRifle
-      takeName: hands|EquipRifle
+      name: hands|EquipPistol
+      takeName: hands|EquipPistol
       internalID: 0
       firstFrame: 0
-      lastFrame: 38
+      lastFrame: 79
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -82,48 +85,11 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: hands|Reload
-      takeName: hands|Reload
+      name: hands|PistolFire
+      takeName: hands|PistolFire
       internalID: 0
       firstFrame: 0
-      lastFrame: 84
-      wrapMode: 0
-      orientationOffsetY: 0
-      level: 0
-      cycleOffset: 0
-      loop: 0
-      hasAdditiveReferencePose: 0
-      loopTime: 0
-      loopBlend: 0
-      loopBlendOrientation: 0
-      loopBlendPositionY: 0
-      loopBlendPositionXZ: 0
-      keepOriginalOrientation: 0
-      keepOriginalPositionY: 1
-      keepOriginalPositionXZ: 0
-      heightFromFeet: 0
-      mirror: 0
-      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
-      curves: []
-      events:
-      - time: 0.83479166
-        functionName: ReloadComplete
-        data: 
-        objectReferenceParameter: {fileID: 11500000, guid: a87c8b4e98cc7a74688d52f6cbd0684b,
-          type: 3}
-        floatParameter: 0
-        intParameter: 0
-        messageOptions: 0
-      transformMask: []
-      maskType: 3
-      maskSource: {instanceID: 0}
-      additiveReferencePoseFrame: 0
-    - serializedVersion: 16
-      name: hands|RifleFire
-      takeName: hands|RifleFire
-      internalID: 0
-      firstFrame: 0
-      lastFrame: 49
+      lastFrame: 23
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -148,11 +114,11 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: hands|UnequipRifle
-      takeName: hands|UnequipRifle
+      name: hands|UnequipPistol
+      takeName: hands|UnequipPistol
       internalID: 0
       firstFrame: 0
-      lastFrame: 30
+      lastFrame: 16
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -172,10 +138,10 @@ ModelImporter:
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
       events:
-      - time: 0.9951691
+      - time: 0.9920244
         functionName: UnequipFinished
         data: 
-        objectReferenceParameter: {fileID: 11500000, guid: a87c8b4e98cc7a74688d52f6cbd0684b,
+        objectReferenceParameter: {fileID: 11500000, guid: 0cde733e5d414664a85f09a72f2a8867,
           type: 3}
         floatParameter: 0
         intParameter: 0
@@ -185,8 +151,8 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: hands|Idle
-      takeName: hands|Idle
+      name: hands|PistolIdle
+      takeName: hands|PistolIdle
       internalID: 0
       firstFrame: 0
       lastFrame: 1
@@ -218,7 +184,7 @@ ModelImporter:
       takeName: hands|AbilityCatch
       internalID: 0
       firstFrame: 0
-      lastFrame: 78
+      lastFrame: 70
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -244,14 +210,6 @@ ModelImporter:
       - path: Camera
         weight: 0
       - path: hands
-        weight: 1
-      - path: hands/Barrel
-        weight: 0
-      - path: hands/Barrel/Barrel_end
-        weight: 1
-      - path: hands/Bolt
-        weight: 0
-      - path: hands/Bolt/Bolt_end
         weight: 1
       - path: hands/Bone.025
         weight: 1
@@ -317,9 +275,15 @@ ModelImporter:
         weight: 0
       - path: hands/Camera 1/Camera_end
         weight: 1
-      - path: hands/Rifle 1
+      - path: hands/Pistol 1
         weight: 0
-      - path: hands/Rifle 1/Rifle_end
+      - path: hands/Pistol 1/PistolMag
+        weight: 1
+      - path: hands/Pistol 1/PistolMag/PistolMag_end
+        weight: 1
+      - path: hands/Pistol 1/PistolSlide
+        weight: 1
+      - path: hands/Pistol 1/PistolSlide/PistolSlide_end
         weight: 1
       - path: hands/righthand
         weight: 0
@@ -381,13 +345,9 @@ ModelImporter:
         weight: 1
       - path: hands/righthand/Bone.021/Bone.022/Bone.023/Bone.024/Bone.024_end
         weight: 1
-      - path: hands/Stock
-        weight: 0
-      - path: hands/Stock/Stock_end
-        weight: 1
       - path: Hands
         weight: 0
-      - path: Rifle
+      - path: Pistol
         weight: 0
       maskType: 0
       maskSource: {instanceID: 0}

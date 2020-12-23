@@ -87,6 +87,13 @@ public class Game : MonoBehaviour
         private set { postProcessVolume = value; }
     }
 
+    private static bool _inputAlreadyTaken;
+
+    private void LateUpdate()
+    {
+        _inputAlreadyTaken = false;
+    }
+
     private void Awake()
     {
         TotalPlatforms = 0;
@@ -107,6 +114,8 @@ public class Game : MonoBehaviour
 
     public static void CloseMenu()
     {
+        if (_inputAlreadyTaken) return;
+        _inputAlreadyTaken = true;
         if (UiTree.Count > 0)
         {
             if (UiTree.Count == 1 && player != null && player.IsPaused() && player.LevelCompleted) return;
@@ -126,6 +135,8 @@ public class Game : MonoBehaviour
 
     public static void OpenPauseMenu()
     {
+        if (_inputAlreadyTaken) return;
+        _inputAlreadyTaken = true;
         foreach (var canvas in UiTree)
         {
             canvas.gameObject.SetActive(false);
@@ -136,6 +147,8 @@ public class Game : MonoBehaviour
 
     public static void OpenChapter1Select()
     {
+        if (_inputAlreadyTaken) return;
+        _inputAlreadyTaken = true;
         foreach (var canvas in UiTree)
         {
             canvas.gameObject.SetActive(false);
@@ -146,6 +159,8 @@ public class Game : MonoBehaviour
 
     public static void OpenOptionsMenu()
     {
+        if (_inputAlreadyTaken) return;
+        _inputAlreadyTaken = true;
         foreach (var canvas in UiTree)
         {
             canvas.gameObject.SetActive(false);

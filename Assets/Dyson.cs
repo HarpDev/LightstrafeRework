@@ -5,20 +5,19 @@ using UnityEngine;
 public class Dyson : MonoBehaviour
 {
 
-    private Gun _gun;
+    private WeaponManager _weaponManager;
 
     private Mesh _mesh;
 
-    public Transform targetTransform;
     public GameObject lightProjectile;
 
     private float _chargeTimer;
 
     private void Start()
     {
-
-        _gun = Game.Player.gameObject.GetComponentInChildren<Gun>();
-        _gun.ShotEvent += GunShotEvent;
+        _weaponManager = Game.Player.GetComponent<WeaponManager>();
+        //_weaponManager.ShotEvent += GunShotEvent;
+        //_gun.ShotEvent += GunShotEvent;
         //Game.Player.TriggerEvent += PlayerTriggerEvent;
 
         var meshes = GetComponentsInChildren<MeshFilter>();
@@ -48,7 +47,7 @@ public class Dyson : MonoBehaviour
             if (_chargeTimer <= 0)
             {
                 _chargeTimer = 0;
-                _gun.ChargeHands();
+                //_gun.ChargeHands();
             }
         }
     }
@@ -62,7 +61,7 @@ public class Dyson : MonoBehaviour
         _playerTriggerCooldown = 2f;
 
         Game.Canvas.hitmarker.Display();
-        _gun.CatchAbility();
+        //_gun.CatchAbility();
 
         int density = 8;
 
@@ -75,22 +74,22 @@ public class Dyson : MonoBehaviour
 
             var script = Instantiate(lightProjectile).GetComponent<LightProjectile>();
             script.gameObject.transform.position = transform.position + vertex;
-            script.Target = targetTransform;
+            script.Target = _weaponManager.EquippedGun.leftHandCenter;
             script.AnimTime = _chargeTimer;
         }
     }
 
-    public void GunShotEvent(RaycastHit hit, ref bool doCatch)
+    public void GunShotEvent(RaycastHit hit)
     {
         if (hit.collider.gameObject != gameObject) return;
 
         Game.Canvas.hitmarker.Display();
-        doCatch = true;
 
         int density = 8;
 
         _chargeTimer = 0.3f;
-        _gun.CatchAbility();
+        //_gun.CatchAbility();
+        _weaponManager.EquippedGun.DoAbilityCatch();
 
         for (int i = 0; i < _mesh.vertexCount; i++)
         {
@@ -99,7 +98,7 @@ public class Dyson : MonoBehaviour
 
             var script = Instantiate(lightProjectile).GetComponent<LightProjectile>();
             script.gameObject.transform.position = transform.position + vertex;
-            script.Target = targetTransform;
+            script.Target = _weaponManager.EquippedGun.leftHandCenter;
             script.AnimTime = _chargeTimer;
         }
     }
