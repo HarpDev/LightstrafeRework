@@ -10,18 +10,22 @@ public class WeaponManager : MonoBehaviour
 
     public List<Gun> guns;
 
+    public Material tracerMaterial;
+
     private Dictionary<GunType, Dictionary<string, object>> parameters = new Dictionary<GunType, Dictionary<string, object>>();
 
     public Gun EquippedGun { get; set; }
     private Quaternion _startRotation;
     private GunType? gunToEquip;
 
+    public int PistolShots { get; set; }
+
     public enum GunType
     {
         Rifle, Pistol
     }
 
-    public void EquipGun(GunType type)
+    public void EquipGun(GunType? type)
     {
         if (EquippedGun != null)
         {
@@ -40,6 +44,17 @@ public class WeaponManager : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (EquippedGun == null && PistolShots > 0)
+        {
+            //EquipGun(GunType.Pistol);
+        }
+        if (EquippedGun != null && EquippedGun.GetGunType() == GunType.Pistol && PistolShots <= 0)
+        {
+            PistolShots = 1;
+            //EquippedGun.Unequip();
+            //EquipGun(null);
+        }
+
         if ((EquippedGun == null && gunToEquip != null) || cycleOnNextTimestep)
         {
             cycleOnNextTimestep = false;
@@ -93,9 +108,11 @@ public class WeaponManager : MonoBehaviour
 
         public WeaponManager WeaponManager { get; set; }
 
+        public Camera viewModel;
         public Transform cameraBone;
         public GameObject rightHand;
         public GameObject leftHand;
+        public Transform tracerStart;
 
         public Transform leftHandCenter;
 
@@ -103,12 +120,29 @@ public class WeaponManager : MonoBehaviour
 
         public abstract GunType GetGunType();
 
+        public Vector3 GetTracerStartWorldPosition()
+        {
+            var screen = viewModel.WorldToViewportPoint(tracerStart.position);
+            var world = Game.Player.camera.ViewportToWorldPoint(screen);
+            return world;
+        }
+
         public void Fire(QueryTriggerInteraction triggerInteraction)
         {
             if (Physics.Raycast(Game.Player.camera.transform.position, Game.Player.CrosshairDirection, out var hit, 300, 1, triggerInteraction))
             {
                 if (!hit.collider.CompareTag("Player"))
                 {
+                    var obj = new GameObject("Tracer");
+                    obj.AddComponent<TracerDecay>();
+                    var line = obj.AddComponent<LineRenderer>();
+                    var positions = new Vector3[2];
+                    positions[0] = GetTracerStartWorldPosition();
+                    positions[1] = hit.point;
+                    line.material = WeaponManager.tracerMaterial;
+                    line.endWidth = 0.1f;
+                    line.startWidth = 0.1f;
+                    line.SetPositions(positions);
                     WeaponManager.ShotEvent(hit);
                 }
             }

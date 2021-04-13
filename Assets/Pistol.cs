@@ -16,8 +16,6 @@ public class Pistol : WeaponManager.Gun
 
     private const float crouchPositionSpeed = 4;
 
-    public int shotsRemaining = 3;
-
     private float _upChange;
     private float _upSoften;
     private float _rightChange;
@@ -83,7 +81,7 @@ public class Pistol : WeaponManager.Gun
         }
 
         if (_fireInputConsumed && !Input.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _fireDelay == 0 && shotsRemaining > 0 && !_fireInputConsumed)
+        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _fireDelay == 0 && WeaponManager.PistolShots > 0 && !_fireInputConsumed)
         {
             _fireDelay = FIRE_RATE;
 
@@ -95,7 +93,7 @@ public class Pistol : WeaponManager.Gun
             if (animator != null)
             {
                 animator.Play("Fire", -1, 0f);
-                if (--shotsRemaining <= 0) WeaponManager.EquipGun(WeaponManager.GunType.Rifle);
+                WeaponManager.PistolShots--;
             }
         }
     }

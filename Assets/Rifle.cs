@@ -35,11 +35,7 @@ public class Rifle : WeaponManager.Gun
             if (Game.Player.ApproachingWall) return false;
             if (_layer0Info.IsName("Unequip")) return false;
 
-            if (Game.Player.IsDashing) return true;
-            if (Flatten(Game.Player.velocity).magnitude > PlayerMovement.BASE_SPEED + 1) return true;
-            if (!Game.Player.IsOnGround) return true;
-            if (Game.Player.IsOnRail) return true;
-            if (Game.Player.GrappleHooked) return true;
+            if (Game.Player.IS_SLIDING) return true;
             return false;
         }
     }
@@ -90,7 +86,7 @@ public class Rifle : WeaponManager.Gun
                 animator.Play("Fire", -1, 0f);
                 animator.SetBool("Reload", true);
 
-                WeaponManager.EquipGun(WeaponManager.GunType.Pistol);
+                //WeaponManager.EquipGun(WeaponManager.GunType.Pistol);
             }
         }
     }
@@ -111,7 +107,7 @@ public class Rifle : WeaponManager.Gun
         var crouchAmt = -(Mathf.Cos(Mathf.PI * _crouchFactor) - 1) / 2;
 
         _upChange -= velocityChange.y * Time.deltaTime * 70;
-        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(20, 10, crouchAmt);
+        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
         else
         {
             _upChange -= velocityChange.y * Time.deltaTime * Mathf.Lerp(120, 60, crouchAmt);
