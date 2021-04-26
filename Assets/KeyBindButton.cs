@@ -25,12 +25,15 @@ public class KeyBindButton : MonoBehaviour
             {
                 if (Input.GetKeyDown(kcode))
                 {
-                    typeof(PlayerInput).GetProperty(bindName).SetValue(null, kcode);
+                    PlayerInput.SetBind(bindName, kcode);
                     text.text = kcode.ToString();
                     rebinding = false;
                     break;
                 }
             }
+        } else
+        {
+            text.text = PlayerInput.GetBindByName(bindName).ToString();
         }
     }
 

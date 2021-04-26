@@ -37,9 +37,7 @@ public class Platform : MonoBehaviour
 
     private void Start()
     {
-        Game.I.TotalPlatforms++;
-        if (bouncePad) Game.Player.PlayerJumpEvent += new PlayerMovement.Jump(BouncePadJump);
-        if (grapplePlatform) Game.Player.TriggerEvent += new PlayerMovement.PlayerTrigger(ContactTrigger);
+        //Game.I.TotalPlatforms++;
         if (startGlowing)
         {
             _queued = true;
@@ -73,21 +71,6 @@ public class Platform : MonoBehaviour
             }
         }
     }
-    private void ContactTrigger(Vector3 normal, Collider collider)
-    {
-        if (collider.gameObject == gameObject)
-        {
-            Game.Player.AttachGrapple(grapplePoint.position);
-        }
-    }
-
-    private void BouncePadJump(ref PlayerMovement.JumpEvent jumpEvent)
-    {
-        if (jumpEvent.currentGround == gameObject && jumpEvent.type == PlayerMovement.JumpType.GROUND)
-        {
-            jumpEvent.jumpHeight = bouncePadStrength;
-        }
-    }
 
     private void Update()
     {
@@ -102,7 +85,7 @@ public class Platform : MonoBehaviour
                 _glowing = true;
                 glowParticle.Play();
                 _projectile.GetComponent<MeshRenderer>().enabled = false;
-                Game.I.LitPlatforms++;
+                //Game.I.LitPlatforms++;
                 //Destroy(_projectile);
             }
         }

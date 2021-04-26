@@ -85,8 +85,6 @@ public class Rifle : WeaponManager.Gun
             {
                 animator.Play("Fire", -1, 0f);
                 animator.SetBool("Reload", true);
-
-                //WeaponManager.EquipGun(WeaponManager.GunType.Pistol);
             }
         }
     }
@@ -106,11 +104,11 @@ public class Rifle : WeaponManager.Gun
 
         var crouchAmt = -(Mathf.Cos(Mathf.PI * _crouchFactor) - 1) / 2;
 
-        _upChange -= velocityChange.y * Time.deltaTime * 70;
+        _upChange -= velocityChange.y / 15;
         if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
         else
         {
-            _upChange -= velocityChange.y * Time.deltaTime * Mathf.Lerp(120, 60, crouchAmt);
+            _upChange -= velocityChange.y / Mathf.Lerp(25, 50, crouchAmt);
         }
 
         _rightChange -= yawMovement / 3;
@@ -122,24 +120,24 @@ public class Rifle : WeaponManager.Gun
 
         if (_upSoften > _upChange)
         {
-            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 20);
+            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 10);
         }
         else
         {
-            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 10);
+            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 5);
         }
-        if (_upSoften > 5) _upSoften = 5;
-        if (_upSoften < -5) _upSoften = -5;
+        _upSoften = Mathf.Clamp(_upSoften, -1.3f, 1.3f);
 
         _prevVelocity = Game.Player.velocity;
 
-        var forward = 0;
-        var right = -0.02f * crouchAmt;
-        var up = Mathf.Lerp(0, 0.02f, crouchAmt);
+        var localforward = 0;
+        var localright = -0.02f * crouchAmt;
+        var localup = Mathf.Lerp(0, 0.02f, crouchAmt);
+        var globalup = _upSoften / 15;
 
         var roll = Mathf.Lerp(_rightSoften, 60, crouchAmt);
         var swing = _rightSoften / Mathf.Lerp(10, 5, crouchAmt);
-        var tilt = _upSoften;
+        var tilt = _upSoften < 0 ? _upSoften * 10 : _upSoften;
 
         var rollAxis = center.up;
         var swingAxis = center.right;
@@ -151,8 +149,8 @@ public class Rifle : WeaponManager.Gun
             _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, 0, Time.deltaTime * 2);*/
 
         tilt += 5 * _crouchReloadMod;
-        up -= 0.02f * _crouchReloadMod;
-        right -= 0.005f * _crouchReloadMod;
+        localup -= 0.02f * _crouchReloadMod;
+        localright -= 0.005f * _crouchReloadMod;
         roll -= 5 * _crouchReloadMod;
 
         roll += Game.Player.CameraRoll / 2;
@@ -162,26 +160,29 @@ public class Rifle : WeaponManager.Gun
         var stockPosition = stock.position;
         foreach (var model in parts)
         {
-            model.transform.localPosition += new Vector3(forward, right, up);
+            model.transform.localPosition += new Vector3(localforward, localright, localup);
 
             model.gameObject.transform.RotateAround(barrelPosition, rollAxis, roll);
-            model.gameObject.transform.RotateAround(centerPosition, swingAxis, swing );
+            model.gameObject.transform.RotateAround(centerPosition, swingAxis, swing);
             model.gameObject.transform.RotateAround(stockPosition, tiltAxis, tilt);
+            model.transform.position += Vector3.up * globalup;
         }
 
-        rightHand.transform.localPosition += new Vector3(forward, right, up);
+        rightHand.transform.localPosition += new Vector3(localforward, localright, localup);
 
         rightHand.gameObject.transform.RotateAround(barrelPosition, rollAxis, roll);
         rightHand.gameObject.transform.RotateAround(centerPosition, swingAxis, swing);
         rightHand.gameObject.transform.RotateAround(stockPosition, tiltAxis, tilt);
+        rightHand.transform.position += Vector3.up * globalup;
 
         var mod = 1 - _catchWeight;
 
-        leftHand.transform.localPosition += new Vector3(forward, right, up * mod);
+        leftHand.transform.localPosition += new Vector3(localforward, localright, localup * mod);
 
         leftHand.gameObject.transform.RotateAround(barrelPosition, rollAxis, roll * mod);
         leftHand.gameObject.transform.RotateAround(centerPosition, swingAxis, swing * mod);
         leftHand.gameObject.transform.RotateAround(stockPosition, tiltAxis, tilt * mod);
+        leftHand.transform.position += Vector3.up * globalup;
     }
 
     private static Vector3 Flatten(Vector3 vec)

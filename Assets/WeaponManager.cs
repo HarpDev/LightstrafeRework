@@ -18,8 +18,6 @@ public class WeaponManager : MonoBehaviour
     private Quaternion _startRotation;
     private GunType? gunToEquip;
 
-    public int PistolShots { get; set; }
-
     public enum GunType
     {
         Rifle, Pistol
@@ -44,17 +42,6 @@ public class WeaponManager : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (EquippedGun == null && PistolShots > 0)
-        {
-            //EquipGun(GunType.Pistol);
-        }
-        if (EquippedGun != null && EquippedGun.GetGunType() == GunType.Pistol && PistolShots <= 0)
-        {
-            PistolShots = 1;
-            //EquippedGun.Unequip();
-            //EquipGun(null);
-        }
-
         if ((EquippedGun == null && gunToEquip != null) || cycleOnNextTimestep)
         {
             cycleOnNextTimestep = false;

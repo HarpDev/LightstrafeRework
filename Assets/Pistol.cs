@@ -30,21 +30,25 @@ public class Pistol : WeaponManager.Gun
     private const float EQUIP_TIME = 1.1f;
     private float _fireDelay = EQUIP_TIME;
 
+    public int Shots { get; set; }
+
     public bool UseSideGun
     {
         get
         {
             if (!Game.Player.jumpKitEnabled) return false;
             if (Game.Player.ApproachingWall) return false;
+            if (_layer0Info.IsName("Unequip")) return false;
             if (_layer0Info.IsName("Equip")) return false;
 
-            if (Game.Player.IsDashing) return true;
-            if (Flatten(Game.Player.velocity).magnitude > PlayerMovement.BASE_SPEED + 1) return true;
-            if (!Game.Player.IsOnGround) return true;
-            if (Game.Player.IsOnRail) return true;
-            if (Game.Player.GrappleHooked) return true;
+            if (Game.Player.IS_SLIDING) return true;
             return false;
         }
+    }
+
+    private void Start()
+    {
+        Shots = 3;
     }
 
     private void FixedUpdate()
@@ -81,7 +85,7 @@ public class Pistol : WeaponManager.Gun
         }
 
         if (_fireInputConsumed && !Input.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _fireDelay == 0 && WeaponManager.PistolShots > 0 && !_fireInputConsumed)
+        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _fireDelay == 0 && Shots > 0 && !_fireInputConsumed)
         {
             _fireDelay = FIRE_RATE;
 
@@ -93,7 +97,10 @@ public class Pistol : WeaponManager.Gun
             if (animator != null)
             {
                 animator.Play("Fire", -1, 0f);
-                WeaponManager.PistolShots--;
+                if (--Shots <= 0)
+                {
+                    WeaponManager.EquipGun(WeaponManager.GunType.Rifle);
+                }
             }
         }
     }
@@ -112,12 +119,11 @@ public class Pistol : WeaponManager.Gun
         _crouchFactor = Mathf.Max(0, Mathf.Min(1, _crouchFactor));
 
         var crouchAmt = -(Mathf.Cos(Mathf.PI * _crouchFactor) - 1) / 2;
-
-        _upChange -= velocityChange.y * Time.deltaTime * 70;
-        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(20, 10, crouchAmt);
+        _upChange -= velocityChange.y / 15;
+        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
         else
         {
-            _upChange -= velocityChange.y * Time.deltaTime * Mathf.Lerp(120, 60, crouchAmt);
+            _upChange -= velocityChange.y / Mathf.Lerp(25, 50, crouchAmt);
         }
 
         _rightChange -= yawMovement / 3;
@@ -129,20 +135,20 @@ public class Pistol : WeaponManager.Gun
 
         if (_upSoften > _upChange)
         {
-            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 20);
+            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 10);
         }
         else
         {
-            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 10);
+            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 5);
         }
-        if (_upSoften > 5) _upSoften = 5;
-        if (_upSoften < -5) _upSoften = -5;
+        _upSoften = Mathf.Clamp(_upSoften, -1.3f, 1.3f);
 
         _prevVelocity = Game.Player.velocity;
 
         var forward = 0;
         var right = -0.02f * crouchAmt;
         var up = Mathf.Lerp(0, 0.02f, crouchAmt);
+        var globalup = _upSoften / 15;
 
         var roll = Mathf.Lerp(_rightSoften, 60, crouchAmt);
         var swing = _rightSoften / Mathf.Lerp(10, 5, crouchAmt);
@@ -169,6 +175,7 @@ public class Pistol : WeaponManager.Gun
             model.gameObject.transform.RotateAround(rollPosition, rollAxis, roll);
             model.gameObject.transform.RotateAround(swingPosition, swingAxis, swing);
             model.gameObject.transform.RotateAround(tiltPosition, tiltAxis, tilt);
+            model.transform.position += Vector3.up * globalup;
         }
 
         rightHand.transform.localPosition += new Vector3(forward, right, up);
@@ -176,6 +183,7 @@ public class Pistol : WeaponManager.Gun
         rightHand.gameObject.transform.RotateAround(rollPosition, rollAxis, roll);
         rightHand.gameObject.transform.RotateAround(swingPosition, swingAxis, swing);
         rightHand.gameObject.transform.RotateAround(tiltPosition, tiltAxis, tilt);
+        rightHand.transform.position += Vector3.up * globalup;
 
         var mod = 1 - _catchWeight;
 
@@ -184,6 +192,7 @@ public class Pistol : WeaponManager.Gun
         leftHand.gameObject.transform.RotateAround(rollPosition, rollAxis, roll * mod);
         leftHand.gameObject.transform.RotateAround(swingPosition, swingAxis, swing * mod);
         leftHand.gameObject.transform.RotateAround(tiltPosition, tiltAxis, tilt * mod);
+        leftHand.transform.position += Vector3.up * globalup;
     }
 
     private static Vector3 Flatten(Vector3 vec)

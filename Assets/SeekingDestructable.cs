@@ -6,7 +6,7 @@ public class SeekingDestructable : MonoBehaviour
 {
 
     private float lethalDistance = 30;
-    private float armDistance = 40;
+    private float armDistance = 100;
 
     private MeshRenderer mesh;
 
@@ -46,8 +46,8 @@ public class SeekingDestructable : MonoBehaviour
         {
             mesh.material.SetFloat("_FlowSpeed", towardPlayer.magnitude);
 
-            speed += Time.deltaTime / 10f;
-            transform.position += towardPlayer.normalized * Mathf.Min(towardPlayer.magnitude, speed);
+            speed += Time.deltaTime * 20f;
+            transform.position += towardPlayer.normalized * Mathf.Min(towardPlayer.magnitude, speed * Time.deltaTime);
 
             var color = mesh.material.GetColor("_RimColor");
             mesh.material.SetColor("_RimColor", Color.Lerp(color, Color.red, Time.deltaTime * 10));

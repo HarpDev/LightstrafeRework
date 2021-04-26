@@ -10,25 +10,8 @@ using UnityEngine.UI;
 public class PlayerMovement : MonoBehaviour
 {
 
-    public delegate void PlayerContact(Vector3 normal, Collider collider);
-    public event PlayerContact ContactEvent;
-
-    public delegate void PlayerTrigger(Vector3 normal, Collider collider);
-    public event PlayerTrigger TriggerEvent;
-
-    public delegate void Jump(ref JumpEvent jumpEvent);
-    public event Jump PlayerJumpEvent;
-
     public Collider hitbox;
     public WeaponManager weaponManager;
-
-    public struct JumpEvent
-    {
-        public bool cancelled;
-        public float jumpHeight;
-        public GameObject currentGround;
-        public JumpType type;
-    }
 
     public new Camera camera;
     public Transform cameraParent;
@@ -117,14 +100,16 @@ public class PlayerMovement : MonoBehaviour
     private int _wallTickCount;
     private float _jumpBuffered;
     private int _jumpTimestamp;
-    private int _cancelLeanTickCount;
     private GameObject _lastWall;
     private GameObject _currentWall;
     private Vector3 _lastWallNormal;
     private float _wallRecovery;
+    private float _wallLeanAmount;
+
+    private const float FINISH_HOVER_DISTANCE = 6;
 
     private const float AIR_SPEED = 2f;
-    private const float SIDE_AIR_ACCELERATION = 50;
+    private const float SIDE_AIR_ACCELERATION = 35;
     private const float FORWARD_AIR_ACCELERATION = 30;
 
     public bool DoubleJumpAvailable { get; set; }
@@ -176,10 +161,8 @@ public class PlayerMovement : MonoBehaviour
     public const float JUMP_STAMINA_RECOVERY_FRICTION = 4;
     public const int COYOTE_TICKS = 20;
 
-    public const bool ENABLE_WALL_JUMP_BUFFERING = false;
-    public const bool ENABLE_GROUND_JUMP_BUFFERING = true;
-    public const int WALL_JUMP_FORGIVENESS_TICKS = ENABLE_WALL_JUMP_BUFFERING ? 6 : 0;
-    public const int GROUND_JUMP_FORGIVENESS_TICKS = ENABLE_GROUND_JUMP_BUFFERING ? 6 : 0;
+    public const int WALL_JUMP_FORGIVENESS_TICKS = 1;
+    public const int GROUND_JUMP_FORGIVENESS_TICKS = 6;
 
     public LineRenderer grappleTether;
     public bool GrappleHooked { get; set; }
@@ -193,13 +176,6 @@ public class PlayerMovement : MonoBehaviour
     public const int GRAPPLE_MAX_TICKS = 150;
     private int _grappleTicks;
     private Vector3 _grappleAttachPosition;
-    public bool TimerRunning { get; private set; }
-
-    public bool LevelCompleted { get; private set; }
-
-    public float CurrentTime { get; set; }
-
-    private bool _wishTimerStart;
 
     /* Audio */
     public AudioSource source;
@@ -219,8 +195,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        ContactEvent += new PlayerContact(ContactCollider);
-        TriggerEvent += new PlayerTrigger(ContactTrigger);
         LookScale = 1;
 
         weaponManager.ShotEvent += GunShotEvent;
@@ -240,17 +214,18 @@ public class PlayerMovement : MonoBehaviour
             transform.position = positionOverride.transform.position;
         }
 
-        if (Game.I.lastCheckpoint.sqrMagnitude > 0.05f && Game.I.checkpointScene == SceneManager.GetActiveScene().name)
+        if (Game.lastCheckpoint.sqrMagnitude > 0.05f && Game.checkpointScene == SceneManager.GetActiveScene().name)
         {
-            transform.position = Game.I.lastCheckpoint;
-            Yaw = Game.I.checkpointYaw;
+            transform.position = Game.lastCheckpoint;
+            Yaw = Game.checkpointYaw;
         }
 
         if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) && Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
         {
-            //transform.position = hit.point + Vector3.up * 0.3f;
-            //IsOnGround = true;
-            //_groundTickCount = 1;
+            transform.position = hit.point + Vector3.up * 0.8f;
+            IsOnGround = true;
+            _currentGround = hit.collider.gameObject;
+            _groundTickCount = GROUND_JUMP_FORGIVENESS_TICKS;
         }
     }
 
@@ -287,56 +262,15 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    public void EndTimer()
-    {
-        if (TimerRunning)
-        {
-            LevelCompleted = true;
-            TimerRunning = false;
-            CurrentTime *= 100;
-            CurrentTime = (int)CurrentTime;
-            CurrentTime /= 100f;
-            var level = SceneManager.GetActiveScene().name;
-            if (CurrentTime < Game.GetBestLevelTime(level) || Game.GetBestLevelTime(level) < 0f)
-            {
-                Game.SetBestLevelTime(level, CurrentTime);
-                TimerDisplay.color = Color.yellow;
-            }
-            else
-            {
-                TimerDisplay.color = Color.green;
-            }
-        }
-    }
-
     private void Update()
     {
-        var x1 = Flatten(velocity).normalized.x;
-        var y1 = Flatten(velocity).normalized.z;
-
-        var xcolor = x1 > 0 ? x1 * Color.red : -x1 * Color.magenta;
-        var ycolor = y1 > 0 ? y1 * Color.green : -y1 * Color.yellow;
-
-        float platformFactor = Game.I.TotalPlatforms == 0 ? 0 : (Game.I.LitPlatforms / (float)Game.I.TotalPlatforms);
-        RenderSettings.fogColor = (xcolor + ycolor) * platformFactor;
-        camera.backgroundColor = RenderSettings.fogColor;
-
         _jumpBuffered = Mathf.Max(_jumpBuffered - Time.deltaTime, 0);
 
-        if (TimerRunning)
-        {
-            CurrentTime += Time.unscaledDeltaTime;
-        }
         if (Input.GetKeyDown(PlayerInput.Pause))
         {
             if (!IsPaused()) Pause();
         }
         if (!IsPaused() && Cursor.visible) Unpause();
-
-        if (Input.GetKeyDown(PlayerInput.PrimaryInteract))
-        {
-            _wishTimerStart = true;
-        }
 
         if (Cursor.visible) return;
 
@@ -366,8 +300,6 @@ public class PlayerMovement : MonoBehaviour
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
         var cam = camera.transform;
 
-        CameraRoll -= Mathf.Sign(CameraRoll - _cameraRotation) * Mathf.Min(_cameraRotationSpeed * Time.deltaTime, Mathf.Abs(CameraRoll - _cameraRotation));
-
         camera.transform.localRotation = Quaternion.Euler(new Vector3(Pitch, 0, CameraRoll));
         CrosshairDirection = cam.forward;
         transform.rotation = Quaternion.Euler(0, Yaw, 0);
@@ -375,7 +307,10 @@ public class PlayerMovement : MonoBehaviour
         // This value is used to calcuate the positions in between each fixedupdate tick
         _motionInterpolationDelta += Time.deltaTime;
 
+        CameraRoll -= Mathf.Sign(CameraRoll - _cameraRotation) * Mathf.Min(_cameraRotationSpeed * Time.deltaTime, Mathf.Abs(CameraRoll - _cameraRotation));
+
         // Check for level restart
+        if (Input.GetKeyDown(PlayerInput.LastCheckpoint)) Game.ReturnToLastCheckpoint();
         if (Input.GetKeyDown(PlayerInput.RestartLevel)) Game.RestartLevel();
 
         var position = cameraPosition;
@@ -383,7 +318,8 @@ public class PlayerMovement : MonoBehaviour
         if (IS_SLIDING)
         {
             _crouchAmount = Mathf.Lerp(_crouchAmount, 1, Time.deltaTime * 5);
-        } else
+        }
+        else
         {
             _crouchAmount = Mathf.Lerp(_crouchAmount, 0, Time.deltaTime * 5);
         }
@@ -436,11 +372,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if ((Flatten(velocity).magnitude > 0.01f || _wishTimerStart) && !TimerRunning && CurrentTime == 0 && !LevelCompleted)
-        {
-            TimerRunning = true;
-        }
-        _wishTimerStart = false;
         _wallRecovery -= Mathf.Min(_wallRecovery, Time.fixedDeltaTime);
 
         // Set Wishdir
@@ -482,16 +413,6 @@ public class PlayerMovement : MonoBehaviour
                 velocity = Flatten(velocity).magnitude * Flatten(tpVector).normalized;
                 transform.position = _teleportToPosition;
                 _tpThisTick = true;
-            }
-        }
-
-        if (ApproachingWall)
-        {
-            _cancelLeanTickCount++;
-            if (_cancelLeanTickCount >= 5 && !IsOnWall)
-            {
-                ApproachingWall = false;
-                SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
             }
         }
 
@@ -557,7 +478,10 @@ public class PlayerMovement : MonoBehaviour
 
                 var movementProjection = Vector3.Dot(movement, -hit.normal);
                 if (movementProjection > 0) movement += hit.normal * movementProjection;
-                if (CanCollide(hit.collider)) ContactEvent(hit.normal, hit.collider);
+                if (CanCollide(hit.collider))
+                {
+                    ContactCollider(hit.normal, hit.collider);
+                }
             }
             else
             {
@@ -579,11 +503,14 @@ public class PlayerMovement : MonoBehaviour
             {
                 if (collider.isTrigger)
                 {
-                    TriggerEvent(direction, collider);
+                    ContactTrigger(direction, collider);
                     continue;
                 }
 
-                if (CanCollide(collider)) ContactEvent(direction, collider);
+                if (CanCollide(collider))
+                {
+                    ContactCollider(direction, collider);
+                }
 
                 transform.position += direction * distance;
             }
@@ -614,7 +541,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (collider.GetComponent<KillCollider>() != null)
         {
-            Game.RestartLevel();
+            Game.ReturnToLastCheckpoint();
         }
 
         var velocityProjection = Vector3.Dot(velocity, -normal);
@@ -671,12 +598,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (other.CompareTag("Kill Block"))
         {
-            Game.RestartLevel();
-        }
-
-        if (other.CompareTag("Finish"))
-        {
-            EndTimer();
+            Game.ReturnToLastCheckpoint();
         }
     }
 
@@ -790,20 +712,20 @@ public class PlayerMovement : MonoBehaviour
         if (IsDashing) StopDash();
         if (rail.railDirection == Rail.RailDirection.BACKWARD)
         {
-            Game.I.lastCheckpoint = rail.smoothedPoints[rail.smoothedPoints.Length - 1];
-            Game.I.checkpointScene = SceneManager.GetActiveScene().name;
-            var direction = rail.smoothedPoints[rail.smoothedPoints.Length - 2] - Game.I.lastCheckpoint;
+            Game.lastCheckpoint = rail.smoothedPoints[rail.smoothedPoints.Length - 1];
+            Game.checkpointScene = SceneManager.GetActiveScene().name;
+            var direction = rail.smoothedPoints[rail.smoothedPoints.Length - 2] - Game.lastCheckpoint;
             var angle = Mathf.Atan2(direction.x, direction.z);
-            Game.I.checkpointYaw = Mathf.Rad2Deg * angle;
+            Game.checkpointYaw = Mathf.Rad2Deg * angle;
             _railDirection = -1;
         }
         else if (rail.railDirection == Rail.RailDirection.FORWARD)
         {
-            Game.I.lastCheckpoint = rail.smoothedPoints[0];
-            Game.I.checkpointScene = SceneManager.GetActiveScene().name;
-            var direction = rail.smoothedPoints[1] - Game.I.lastCheckpoint;
+            Game.lastCheckpoint = rail.smoothedPoints[0];
+            Game.checkpointScene = SceneManager.GetActiveScene().name;
+            var direction = rail.smoothedPoints[1] - Game.lastCheckpoint;
             var angle = Mathf.Atan2(direction.x, direction.z);
-            Game.I.checkpointYaw = Mathf.Rad2Deg * angle;
+            Game.checkpointYaw = Mathf.Rad2Deg * angle;
             _railDirection = 1;
         }
         if (GrappleHooked) DetachGrapple();
@@ -849,6 +771,7 @@ public class PlayerMovement : MonoBehaviour
     public void RailMove(float f)
     {
         if (!IsOnRail) return;
+        DoubleJumpAvailable = true;
 
         var closeIndex = 0;
         var closeDistance = float.MaxValue;
@@ -1074,12 +997,23 @@ public class PlayerMovement : MonoBehaviour
         {
             ApplyFriction(f * JUMP_STAMINA_RECOVERY_FRICTION, BASE_SPEED);
         }
-        Accelerate(Flatten(velocity).normalized, BASE_SPEED, BASE_SPEED, f);
 
         var normal = Flatten(_wallNormal);
         var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
-        SetCameraRoll((WALL_LEAN_DEGREES + 2) * -projection, 100);
 
+        var roll = (WALL_LEAN_DEGREES + 2) * -projection;
+        var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
+        SetCameraRoll(roll, speed);
+
+        if (Flatten(velocity).magnitude < BASE_SPEED / 3)
+        {
+            var alongView = (CrosshairDirection - (Flatten(_wallNormal).normalized * Vector3.Dot(CrosshairDirection, Flatten(_wallNormal).normalized))).normalized;
+            Accelerate(alongView, BASE_SPEED, BASE_SPEED, f);
+        }
+        else
+        {
+            Accelerate(Flatten(velocity).normalized, BASE_SPEED, BASE_SPEED, f);
+        }
         source.pitch = 1;
 
         if (velocity.y < 0)
@@ -1101,12 +1035,21 @@ public class PlayerMovement : MonoBehaviour
 
     public void GroundMove(float f)
     {
+        if (_currentGround.CompareTag("Finish"))
+        {
+            Game.EndTimer();
+        }
         DoubleJumpAvailable = true;
         GravityTick(f);
         _lastWall = null;
-        if (PlayerInput.SincePressed(PlayerInput.Slide) == 1 || _groundTickCount == 1)
+        if ((_crouchAmount < 0.7 && IS_SLIDING) || (_groundTickCount == 0 && IS_SLIDING))
         {
-            if (Flatten(velocity).magnitude > BASE_SPEED / 2) Accelerate(Flatten(velocity).normalized, BASE_SPEED + 5, BASE_SPEED + 5);
+            var speed = Mathf.Lerp(0, BASE_SPEED + 8, Mathf.Clamp01(_crouchAmount * 1.5f));
+            Accelerate(Flatten(velocity).normalized, speed, BASE_SPEED);
+        }
+        if (_groundTickCount == 0 && !IS_SLIDING)
+        {
+            ApplyFriction(GROUND_FRICTION / 50, 0, BASE_SPEED / 2);
         }
 
         if (PlayerJump()) return;
@@ -1118,18 +1061,23 @@ public class PlayerMovement : MonoBehaviour
             source.PlayOneShot(groundLand);
         }
 
-        _slideLeanVector = Vector3.Lerp(_slideLeanVector, Flatten(velocity).normalized, f * 4);
-        var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
-        SetCameraRoll(leanProjection * 15 * _crouchAmount, CAMERA_ROLL_CORRECT_SPEED);
-
         if (_groundTickCount >= GROUND_JUMP_FORGIVENESS_TICKS && !IsDashing)
         {
             if (IS_SLIDING)
             {
                 ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
-            } else
+
+                _slideLeanVector = Vector3.Lerp(_slideLeanVector, Flatten(velocity).normalized, f * 7);
+                var leanProjection = Vector3.Dot(_slideLeanVector, camera.transform.right);
+
+                var roll = leanProjection * 15 * _crouchAmount;
+                var rollspeed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
+                SetCameraRoll(roll, rollspeed);
+            }
+            else
             {
-                GroundAccelerate(f);
+                ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 2);
+                Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
             }
         }
         else
@@ -1138,34 +1086,10 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    public void GroundAccelerate(float f, float frictionMod = 1f)
-    {
-        ApplyFriction(f * GROUND_FRICTION * frictionMod, 0, BASE_SPEED / 2);
-
-        //float projVel = Vector3.Dot(velocity, Wishdir);
-        Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
-
-        /*if (Wishdir.magnitude > 0)
-        {
-            var speed = Flatten(velocity).magnitude;
-            var y = velocity.y;
-
-            var speedcap = BASE_SPEED + ((1 - Vector3.Dot(Flatten(velocity).normalized, Wishdir)) * 10);
-
-            velocity += Wishdir * f * GROUND_ACCELERATION;
-
-            if (Flatten(velocity).magnitude >= speedcap && Vector3.Angle(Wishdir, velocity) < 90)
-            {
-                //velocity = Flatten(velocity).normalized * Mathf.Max(speed, speedcap);
-                //velocity.y = y;
-            }
-        }*/
-    }
-
     public void AirMove(float f)
     {
         GravityTick(f);
-        _slideLeanVector = Flatten(velocity).normalized;
+        _slideLeanVector = Vector3.zero;
         _airTickCount++;
 
         if (!jumpKitEnabled)
@@ -1174,21 +1098,10 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        var leanOut = _wallRecovery / WALL_AIR_ACCEL_RECOVERY;
-        var leanOutProjection = Vector3.Dot(CrosshairDirection, new Vector3(-_lastWallNormal.z, _lastWallNormal.y, _lastWallNormal.x));
-        var easeOut = -(Mathf.Cos(Mathf.PI * leanOut) - 1) / 2;
-
-        if (_airTickCount > 20) SetCameraRoll(WALL_LEAN_DEGREES * easeOut * -leanOutProjection, 200);
-
-        // Lean in
-        var movement = velocity + (_dashVector * _dashTime);
-        var didHit = rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude * WALL_LEAN_PREDICTION_TIME, QueryTriggerInteraction.Ignore);
-
-        var eatJump = false;
-        var currentLean = 0f;
-
         if (PlayerInput.SincePressed(PlayerInput.MoveForward) == 1)
         {
+            var wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() + transform.forward).normalized;
+
             var maxTime = 0.5f;
             var minTime = 0.2f;
             var lurchTimer = Mathf.Clamp01(maxTime - ((PlayerInput.tickCount - _jumpTimestamp) * Time.fixedDeltaTime));
@@ -1197,8 +1110,8 @@ public class PlayerMovement : MonoBehaviour
             var max = BASE_SPEED * 0.7f * amt;
 
             var beforespeed = Flatten(velocity).magnitude;
-            var lurchdirection = Vector3.Lerp(Flatten(velocity).normalized, Wishdir * 1.5f, strength) - Flatten(velocity).normalized;
-            var lurch = Flatten(velocity).normalized * beforespeed + lurchdirection * max;
+            var lurchdirection = Vector3.Lerp(Flatten(velocity).normalized, wishdir * 1.5f, strength) - Flatten(velocity).normalized;
+            var lurch = Flatten(velocity).normalized * beforespeed + lurchdirection.normalized * max;
 
             if (lurch.magnitude > beforespeed)
             {
@@ -1209,24 +1122,45 @@ public class PlayerMovement : MonoBehaviour
             velocity.z = lurch.z;
         }
 
+        if (rigidbody.SweepTest(Vector3.down, out var finish, FINISH_HOVER_DISTANCE, QueryTriggerInteraction.Ignore))
+        {
+            if (finish.collider.CompareTag("Finish"))
+            {
+                Game.EndTimer();
+            }
+        }
+
+        // Lean in
+        var movement = velocity + (_dashVector * _dashTime);
+        var didHit = rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude * WALL_LEAN_PREDICTION_TIME, QueryTriggerInteraction.Ignore);
+
+        var eatJump = false;
+        var fromWall = 0f;
+
         if (didHit
             && Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
             && CanCollide(hit.collider, false)
             && (hit.collider.gameObject != _lastWall || Vector3.Dot(Flatten(hit.normal).normalized, _lastWallNormal) < 0.7 || WALL_ALLOW_SAME_FACING))
         {
-            if (!ApproachingWall) ApproachingWall = true;
+            ApproachingWall = true;
+            fromWall = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
 
-            currentLean = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
+            if (_wallLeanAmount < 1)
+            {
+                _wallLeanAmount = Mathf.Clamp01(_wallLeanAmount + Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
+
+                var easeOutSine = Mathf.Sin(_wallLeanAmount * Mathf.PI / 2);
+
+                var normal = Flatten(hit.normal);
+                var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
+
+                var roll = WALL_LEAN_DEGREES * easeOutSine * -projection;
+                var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
+                SetCameraRoll(roll, speed);
+            }
 
             // Eat jump inputs if you are < jumpForgiveness away from the wall to not eat double jump
-            if (WALL_LEAN_PREDICTION_TIME * (1 - currentLean) / Time.fixedDeltaTime < WALL_JUMP_FORGIVENESS_TICKS) eatJump = true;
-
-            var easeOutSine = Mathf.Sin(currentLean * Mathf.PI / 2);
-
-            var normal = Flatten(hit.normal);
-            var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
-            SetCameraRoll(WALL_LEAN_DEGREES * easeOutSine * -projection, 200);
-            _cancelLeanTickCount = 0;
+            if (WALL_LEAN_PREDICTION_TIME * (1 - fromWall) / Time.fixedDeltaTime < WALL_JUMP_FORGIVENESS_TICKS) eatJump = true;
 
             var fromBottom = 1;
             var upCheck = transform.position + (velocity.normalized * hit.distance) + (-hit.normal * 0.55f) + (Vector3.down * 1);
@@ -1239,13 +1173,29 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = y;
             }
         }
-        else if (didHit && Vector3.Angle(Vector3.up, hit.normal) < GROUND_ANGLE && CanCollide(hit.collider))
+        else
+        {
+            ApproachingWall = false;
+            if (_wallLeanAmount > 0)
+            {
+                _wallLeanAmount = Mathf.Clamp01(_wallLeanAmount - Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
+
+                var leanOutProjection = Vector3.Dot(CrosshairDirection, new Vector3(-_lastWallNormal.z, _lastWallNormal.y, _lastWallNormal.x));
+                var easeOut = -(Mathf.Cos(Mathf.PI * _wallLeanAmount) - 1) / 2;
+
+                var roll = WALL_LEAN_DEGREES * easeOut * -leanOutProjection;
+                var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
+                SetCameraRoll(roll, speed);
+            }
+        }
+
+        if (didHit && Vector3.Angle(Vector3.up, hit.normal) < GROUND_ANGLE && CanCollide(hit.collider))
         {
             // Eat jump inputs if you are < jumpForgiveness away from the ground to not eat double jump
             if (hit.distance / movement.magnitude / Time.fixedDeltaTime < GROUND_JUMP_FORGIVENESS_TICKS) eatJump = true;
         }
 
-        var mod = 1 - Mathf.Min(currentLean * 2, 1);
+        var mod = 1 - Mathf.Min(fromWall * 2, 1);
 
         AirAccelerate(f, mod);
 
@@ -1366,8 +1316,6 @@ public class PlayerMovement : MonoBehaviour
         return accelspeed;
     }
 
-    public enum JumpType { WALL, AIR, GROUND }
-
     public bool PlayerJump()
     {
         int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
@@ -1407,19 +1355,6 @@ public class PlayerMovement : MonoBehaviour
             var jumpStamina = Mathf.Clamp01(Mathf.Max(_groundTickCount, _wallTickCount) / JUMP_STAMINA_RECOVERY_TICKS);
             var jumpHeight = Mathf.Lerp(MIN_JUMP_HEIGHT, MAX_JUMP_HEIGHT, jumpStamina);
 
-            var type = JumpType.AIR;
-            if (groundJump) type = JumpType.GROUND;
-            if (wallJump) type = JumpType.WALL;
-            var jumpEvent = new JumpEvent
-            {
-                jumpHeight = jumpHeight,
-                cancelled = false,
-                currentGround = _currentGround,
-                type = type
-            };
-            PlayerJumpEvent?.Invoke(ref jumpEvent);
-            if (jumpEvent.cancelled) return false;
-
             if (wallJump)
             {
                 // Jumping from wall
@@ -1428,9 +1363,6 @@ public class PlayerMovement : MonoBehaviour
                 source.PlayOneShot(jump);
                 IsOnWall = false;
 
-                //_currentWall.GetComponent<CooldownPlatform>().PutOnCooldown();
-                //_currentWall.SetActive(false);
-
                 _wallTimestamp = -COYOTE_TICKS;
                 _lastWall = _currentWall;
                 _lastWallNormal = _wallNormal;
@@ -1438,7 +1370,7 @@ public class PlayerMovement : MonoBehaviour
                 var y = velocity.y;
                 var angleProjection = Vector3.Dot(Flatten(CrosshairDirection).normalized, _wallNormal);
                 Vector3 jumpDirection;
-                if (angleProjection < -WALL_NEUTRAL_DOT)
+                /*if (angleProjection < -WALL_NEUTRAL_DOT)
                 {
                     jumpDirection = _wallNormal;
                 }
@@ -1447,26 +1379,15 @@ public class PlayerMovement : MonoBehaviour
                     jumpDirection = Flatten(CrosshairDirection).normalized;
                 }
                 else
-                {
-                    jumpDirection = Flatten(Flatten(CrosshairDirection - _wallNormal * Vector3.Dot(CrosshairDirection, _wallNormal)).normalized + _wallNormal * WALL_JUMP_ANGLE).normalized;
-                }
+                {*/
+                var velDirection = Flatten(velocity).normalized;
+                jumpDirection = Flatten(Flatten(velDirection - _wallNormal * Vector3.Dot(velDirection, _wallNormal)).normalized + _wallNormal * WALL_JUMP_ANGLE).normalized;
+                //}
                 velocity = Mathf.Max(velocity.magnitude, BASE_SPEED) * jumpDirection;
-                if (!coyoteJump)
-                {
-                    int timing;
-                    if (_wallTickCount > 0)
-                    {
-                        timing = _wallTickCount;
-                    }
-                    else
-                    {
-                        timing = -sinceJump;
-                    }
-                    velocity += jumpDirection * WALL_JUMP_SPEED;
-                }
+                velocity += jumpDirection * WALL_JUMP_SPEED;
 
                 velocity.y = y;
-                var h = jumpEvent.jumpHeight;
+                var h = jumpHeight;
                 if (IsDashing)
                 {
                     CancelDash(ref h);
