@@ -116,20 +116,20 @@ public class WeaponManager : MonoBehaviour
 
         public void Fire(QueryTriggerInteraction triggerInteraction)
         {
+            var obj = new GameObject("Tracer");
+            obj.AddComponent<TracerDecay>();
+            var line = obj.AddComponent<LineRenderer>();
+            var positions = new Vector3[2];
+            positions[0] = GetTracerStartWorldPosition();
+            positions[1] = Game.Player.camera.transform.position + (Game.Player.CrosshairDirection * 300);
+            line.material = WeaponManager.tracerMaterial;
+            line.endWidth = 0.1f;
+            line.startWidth = 0.1f;
+            line.SetPositions(positions);
             if (Physics.Raycast(Game.Player.camera.transform.position, Game.Player.CrosshairDirection, out var hit, 300, 1, triggerInteraction))
             {
                 if (!hit.collider.CompareTag("Player"))
                 {
-                    var obj = new GameObject("Tracer");
-                    obj.AddComponent<TracerDecay>();
-                    var line = obj.AddComponent<LineRenderer>();
-                    var positions = new Vector3[2];
-                    positions[0] = GetTracerStartWorldPosition();
-                    positions[1] = hit.point;
-                    line.material = WeaponManager.tracerMaterial;
-                    line.endWidth = 0.1f;
-                    line.startWidth = 0.1f;
-                    line.SetPositions(positions);
                     WeaponManager.ShotEvent(hit);
                 }
             }

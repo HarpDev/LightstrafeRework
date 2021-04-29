@@ -11,6 +11,8 @@ public class Rail : MonoBehaviour
     public float gizmoSize = 0.1f;
     public float hitboxSize = 1;
 
+    public float speed = 80f;
+
     public bool hitbox = true;
 
     public Vector3[] smoothedPoints;

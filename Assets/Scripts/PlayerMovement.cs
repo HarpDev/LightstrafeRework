@@ -102,7 +102,6 @@ public class PlayerMovement : MonoBehaviour
     private int _jumpTimestamp;
     private GameObject _lastWall;
     private GameObject _currentWall;
-    private Vector3 _lastWallNormal;
     private float _wallRecovery;
     private float _wallLeanAmount;
 
@@ -117,10 +116,11 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsOnRail { get { return _currentRail != null; } }
     public const int RAIL_COOLDOWN_TICKS = 40;
-    public const float RAIL_SPEED = 80f;
     private int _railTimestamp = -100000;
     private int _railDirection;
+    private float _railSpeed;
     private int _railTickCount;
+    private Vector3 _railVector;
     private Vector3 _railLeanVector;
     private GameObject _lastRail;
     private Rail _currentRail;
@@ -161,7 +161,7 @@ public class PlayerMovement : MonoBehaviour
     public const float JUMP_STAMINA_RECOVERY_FRICTION = 4;
     public const int COYOTE_TICKS = 20;
 
-    public const int WALL_JUMP_FORGIVENESS_TICKS = 1;
+    public const int WALL_JUMP_FORGIVENESS_TICKS = 0;
     public const int GROUND_JUMP_FORGIVENESS_TICKS = 6;
 
     public LineRenderer grappleTether;
@@ -573,7 +573,7 @@ public class PlayerMovement : MonoBehaviour
         if (!collider.CompareTag("Uninteractable")
             && Mathf.Abs(angle - 90) < WALL_VERTICAL_ANGLE_GIVE
             && !IsOnGround && jumpKitEnabled
-            && (collider.gameObject != _lastWall || Vector3.Dot(Flatten(normal).normalized, _lastWallNormal) < 0.7 || WALL_ALLOW_SAME_FACING))
+            && (collider.gameObject != _lastWall || Vector3.Dot(Flatten(normal).normalized, _wallNormal) < 0.7 || WALL_ALLOW_SAME_FACING))
         {
             if (IsOnWall && Vector3.Angle(_wallNormal, Flatten(normal).normalized) > 10)
             {
@@ -710,6 +710,8 @@ public class PlayerMovement : MonoBehaviour
         _railTickCount = 0;
         railSound.volume = 1;
         if (IsDashing) StopDash();
+        _railSpeed = rail.speed;
+        _railLeanVector = Vector3.up;
         if (rail.railDirection == Rail.RailDirection.BACKWARD)
         {
             Game.lastCheckpoint = rail.smoothedPoints[rail.smoothedPoints.Length - 1];
@@ -763,7 +765,7 @@ public class PlayerMovement : MonoBehaviour
         var leanVector = p3 - point;
         leanVector.y = Mathf.Abs(leanVector.y);
 
-        var balance = leanVector + Vector3.up * (Gravity * 3);
+        var balance = leanVector + Vector3.up * 0.4f;
 
         return balance.normalized;
     }
@@ -838,29 +840,59 @@ public class PlayerMovement : MonoBehaviour
             next = _currentRail.smoothedPoints[closeIndex + _railDirection] + _railLeanVector;
         }
 
-        var railVector = -(current - next).normalized;
+        var previousVector = _railVector;
+        _railVector = -(current - next).normalized;
 
-        if ((_railDirection == -1 && closeIndex == 0 || _railDirection == 1 && closeIndex == _currentRail.smoothedPoints.Length - 1) && Vector3.Dot(transform.position - current, railVector) > 0)
+        if ((_railDirection == -1 && closeIndex == 0 || _railDirection == 1 && closeIndex == _currentRail.smoothedPoints.Length - 1) && Vector3.Dot(transform.position - current, _railVector) > 0)
         {
             EndRail();
             return;
         }
 
-        _railLeanVector = Vector3.Lerp(_railLeanVector, GetBalanceVector(closeIndex + _railDirection), f * 20);
+        var balanceVector = GetBalanceVector(closeIndex + _railDirection);
+        _railLeanVector = Vector3.Lerp(_railLeanVector, balanceVector, f);
 
         var correctionVector = -(transform.position - next).normalized;
-        velocity = RAIL_SPEED * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
+        velocity = _railSpeed * Vector3.Lerp(_railVector, correctionVector, f * 20).normalized;
 
         if (velocity.y < 0) GravityTick(f);
 
         var totalAngle = Vector3.Angle(Vector3.up, _railLeanVector) / 2f;
-        var projection = Vector3.Dot(_railLeanVector.normalized * totalAngle, -transform.right);
-        SetCameraRoll(projection, CAMERA_ROLL_CORRECT_SPEED);
+        var roll = Vector3.Dot(_railLeanVector.normalized * totalAngle, -transform.right);
+
+        var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
+        SetCameraRoll(roll, speed);
 
         railSound.pitch = Mathf.Min(Mathf.Max(velocity.magnitude / 10, 1), 2);
 
-        railVector.y /= 3;
-        LookTowardTick(railVector, 15);
+        if (_railTickCount > 0)
+        {
+            VectorToYawPitch(previousVector, out var prevVecYaw, out var prevVecPitch);
+            VectorToYawPitch(_railVector, out var currVecYaw, out var currVecPitch);
+
+            var yawChange = currVecYaw - prevVecYaw;
+            var pitchChange = currVecPitch - prevVecPitch;
+
+            var prevAngle = Vector3.Angle(Flatten(CrosshairDirection), Flatten(previousVector));
+            var currAngle = Vector3.Angle(Flatten(CrosshairDirection), Flatten(_railVector));
+
+            if (prevAngle > currAngle)
+            {
+                yawChange *= Mathf.Pow(1 - (Mathf.Clamp(currAngle, 0, 90) / 90f), 2);
+            } else
+            {
+                yawChange *= Mathf.Clamp01(Mathf.Pow(1 + (Mathf.Clamp(currAngle, 0, 90) / 90f), 2) + 0.5f);
+            }
+
+            var pointsToEndOfRail = _railDirection == 1 ? _currentRail.smoothedPoints.Length - 1 - closeIndex : closeIndex;
+            yawChange *= Mathf.Clamp(pointsToEndOfRail, 0, 5) / 5;
+            yawChange *= Mathf.Clamp(_railTickCount - 1, 0, 10) / 10;
+
+            pitchChange /= 2;
+
+            YawFutureInterpolation += yawChange;
+            PitchFutureInterpolation += pitchChange;
+        }
 
         PlayerJump();
         _railTickCount++;
@@ -1001,7 +1033,8 @@ public class PlayerMovement : MonoBehaviour
         var normal = Flatten(_wallNormal);
         var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
 
-        var roll = (WALL_LEAN_DEGREES + 2) * -projection;
+        _wallLeanAmount = Mathf.Clamp01(_wallLeanAmount + Time.fixedDeltaTime / 0.1f);
+        var roll = WALL_LEAN_DEGREES * -projection * _wallLeanAmount;
         var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
         SetCameraRoll(roll, speed);
 
@@ -1140,7 +1173,7 @@ public class PlayerMovement : MonoBehaviour
         if (didHit
             && Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
             && CanCollide(hit.collider, false)
-            && (hit.collider.gameObject != _lastWall || Vector3.Dot(Flatten(hit.normal).normalized, _lastWallNormal) < 0.7 || WALL_ALLOW_SAME_FACING))
+            && (hit.collider.gameObject != _lastWall || Vector3.Dot(Flatten(hit.normal).normalized, _wallNormal) < 0.7 || WALL_ALLOW_SAME_FACING))
         {
             ApproachingWall = true;
             fromWall = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
@@ -1180,7 +1213,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 _wallLeanAmount = Mathf.Clamp01(_wallLeanAmount - Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
 
-                var leanOutProjection = Vector3.Dot(CrosshairDirection, new Vector3(-_lastWallNormal.z, _lastWallNormal.y, _lastWallNormal.x));
+                var leanOutProjection = Vector3.Dot(CrosshairDirection, new Vector3(-_wallNormal.z, _wallNormal.y, _wallNormal.x));
                 var easeOut = -(Mathf.Cos(Mathf.PI * _wallLeanAmount) - 1) / 2;
 
                 var roll = WALL_LEAN_DEGREES * easeOut * -leanOutProjection;
@@ -1365,7 +1398,6 @@ public class PlayerMovement : MonoBehaviour
 
                 _wallTimestamp = -COYOTE_TICKS;
                 _lastWall = _currentWall;
-                _lastWallNormal = _wallNormal;
 
                 var y = velocity.y;
                 var angleProjection = Vector3.Dot(Flatten(CrosshairDirection).normalized, _wallNormal);

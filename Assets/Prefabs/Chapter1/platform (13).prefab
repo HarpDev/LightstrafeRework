@@ -4951,6 +4951,7 @@ GameObject:
   - component: {fileID: 8426971352715839300}
   - component: {fileID: 8426971352715839301}
   - component: {fileID: 8426971352715839302}
+  - component: {fileID: 8515381855587957689}
   m_Layer: 0
   m_Name: platform (13)
   m_TagString: Untagged
@@ -5010,6 +5011,18 @@ MonoBehaviour:
   bouncePadStrength: 50
   grapplePoint: {fileID: 0}
   grapplePlatform: 0
+--- !u!114 &8515381855587957689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8426971352715839303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf21d64a29f218943a8008d38c983a9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &8426971352910886832
 GameObject:
   m_ObjectHideFlags: 0

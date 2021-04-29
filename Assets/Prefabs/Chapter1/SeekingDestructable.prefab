@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 536857753469656883}
   - component: {fileID: 536857753469656882}
   - component: {fileID: 536857753469656881}
+  - component: {fileID: 6164454287626547438}
   m_Layer: 0
   m_Name: SeekingDestructable
   m_TagString: Kill Block
@@ -106,5 +107,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c7f145b5d99014b49a62f4e825ed9273, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &6164454287626547438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 536857753469656880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf21d64a29f218943a8008d38c983a9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
