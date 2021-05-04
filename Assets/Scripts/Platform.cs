@@ -12,6 +12,7 @@ public class Platform : MonoBehaviour
 
     private bool _glowing = false;
 
+
     private readonly float _projectileSpeed = 100;
 
     private Vector3 _lightProjectileVelocity;
@@ -24,13 +25,6 @@ public class Platform : MonoBehaviour
     private float _range;
     private float _value;
 
-    public bool startGlowing = false;
-    public bool bouncePad = false;
-    public float bouncePadStrength = 50;
-
-    public Transform grapplePoint;
-    public bool grapplePlatform;
-
     private GameObject _projectile;
 
     private bool _queued;
@@ -38,15 +32,6 @@ public class Platform : MonoBehaviour
     private void Start()
     {
         //Game.I.TotalPlatforms++;
-        if (startGlowing)
-        {
-            _queued = true;
-            _glowing = true;
-        }
-        if (bouncePad)
-        {
-            color = Color.yellow;
-        }
     }
 
     private Color color = Color.cyan;

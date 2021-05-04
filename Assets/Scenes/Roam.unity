@@ -744,6 +744,11 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5424216046301743998, guid: c15781a93b5c4004a89aa4c4cbb204e2,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 11
+      objectReference: {fileID: 0}
     - target: {fileID: 6239287990186999725, guid: c15781a93b5c4004a89aa4c4cbb204e2,
         type: 3}
       propertyPath: m_IsActive
@@ -2405,7 +2410,7 @@ PrefabInstance:
     - target: {fileID: 536857753469656893, guid: c394651708d82434c820ce63db3c5829,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 32.03
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 536857753469656893, guid: c394651708d82434c820ce63db3c5829,
         type: 3}
@@ -2619,7 +2624,6 @@ MonoBehaviour:
   abilityDot: {fileID: 2691765926665665699, guid: 04c51a6cd8413a946aae2f53befeebd4,
     type: 3}
   rigidbody: {fileID: 9000535621637737163}
-  speedText: {fileID: 2079379443}
   wallkickText: {fileID: 1996606824}
   cameraPosition: {x: 0, y: 0.4, z: 0}
   velocity: {x: 0, y: 0, z: 0}

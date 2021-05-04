@@ -18,13 +18,14 @@ public class PlayerMovement : MonoBehaviour
     public GameObject abilityDot;
     public new Rigidbody rigidbody;
 
-    public Text speedText;
     public Text wallkickText;
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
     public bool jumpKitEnabled = true;
+
+    private PlayerAudioManager audioManager;
 
     public float Yaw { get; set; }
     public float YawFutureInterpolation { get; set; }
@@ -195,6 +196,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
+        audioManager = GetComponent<PlayerAudioManager>();
         LookScale = 1;
 
         weaponManager.ShotEvent += GunShotEvent;
@@ -517,15 +519,6 @@ public class PlayerMovement : MonoBehaviour
         }
 
         _previousSpeed = Flatten(velocity).magnitude;
-        var measurement = (int)(_previousSpeed - _dashCancelTempSpeed - BASE_SPEED);
-        if (measurement > 0)
-        {
-            speedText.text = "" + measurement;
-        }
-        else
-        {
-            speedText.text = "";
-        }
     }
 
     private bool CanCollide(Collider collider, bool ignoreUninteractable = true)
@@ -578,6 +571,7 @@ public class PlayerMovement : MonoBehaviour
             if (IsOnWall && Vector3.Angle(_wallNormal, Flatten(normal).normalized) > 10)
             {
                 IsOnWall = false;
+                audioManager.StopAudio(groundLand);
             }
             else
             {
@@ -876,12 +870,16 @@ public class PlayerMovement : MonoBehaviour
             var prevAngle = Vector3.Angle(Flatten(CrosshairDirection), Flatten(previousVector));
             var currAngle = Vector3.Angle(Flatten(CrosshairDirection), Flatten(_railVector));
 
+            var change = Vector3.Angle(Flatten(_railVector), Flatten(previousVector));
+
+            if (yawChange < 0) change *= -1;
+
             if (prevAngle > currAngle)
             {
-                yawChange *= Mathf.Pow(1 - (Mathf.Clamp(currAngle, 0, 90) / 90f), 2);
+                yawChange = change * Mathf.Pow(1 - (Mathf.Clamp(currAngle, 0, 90) / 90f), 2);
             } else
             {
-                yawChange *= Mathf.Clamp01(Mathf.Pow(1 + (Mathf.Clamp(currAngle, 0, 90) / 90f), 2) + 0.5f);
+                yawChange = change * Mathf.Clamp01(Mathf.Pow(1 + (Mathf.Clamp(currAngle, 0, 90) / 90f), 2) + 0.5f);
             }
 
             var pointsToEndOfRail = _railDirection == 1 ? _currentRail.smoothedPoints.Length - 1 - closeIndex : closeIndex;
@@ -1021,7 +1019,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (_wallTickCount == WALL_JUMP_FORGIVENESS_TICKS)
         {
-            source.PlayOneShot(groundLand);
+            audioManager.PlayAudio(groundLand, 5, 1, true);
         }
         _wallTickCount++;
 
@@ -1089,12 +1087,12 @@ public class PlayerMovement : MonoBehaviour
 
         _groundTickCount++;
 
-        if (_groundTickCount == GROUND_JUMP_FORGIVENESS_TICKS)
+        if (_groundTickCount == 1)
         {
-            source.PlayOneShot(groundLand);
+            audioManager.PlayAudio(groundLand, 5, 1, true);
         }
 
-        if (_groundTickCount >= GROUND_JUMP_FORGIVENESS_TICKS && !IsDashing)
+        if (!IsDashing)
         {
             if (IS_SLIDING)
             {
@@ -1388,6 +1386,7 @@ public class PlayerMovement : MonoBehaviour
             var jumpStamina = Mathf.Clamp01(Mathf.Max(_groundTickCount, _wallTickCount) / JUMP_STAMINA_RECOVERY_TICKS);
             var jumpHeight = Mathf.Lerp(MIN_JUMP_HEIGHT, MAX_JUMP_HEIGHT, jumpStamina);
 
+            audioManager.StopAudio(groundLand);
             if (wallJump)
             {
                 // Jumping from wall
