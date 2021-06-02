@@ -143,7 +143,7 @@ public class Crossbow : MonoBehaviour
 
         _prevPitch = player.Pitch;
 
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Loaded") && _canFire)
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _currentInfo.IsName("Loaded") && _canFire)
         {
             var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
 
@@ -151,7 +151,7 @@ public class Crossbow : MonoBehaviour
             if (projection < 1) projection = 1;
             proj.Fire(player.CrosshairDirection * projection, player.camera.transform.position, barrel.position);
 
-            player.source.PlayOneShot(fireSound);
+            player.audioManager.PlayOneShot(fireSound);
 
             _fireKick = 3;
 

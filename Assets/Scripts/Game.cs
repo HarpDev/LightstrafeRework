@@ -14,6 +14,8 @@ public class Game : MonoBehaviour
     public Canvas Pause;
     public Canvas LevelCompleted;
 
+    public static float SoundVolume { get { return PlayerPrefs.GetFloat("SoundVolume", 1); } set { PlayerPrefs.SetFloat("SoundVolume", value);} }
+
     public static string checkpointScene;
     public static Vector3 lastCheckpoint;
     public static float checkpointYaw;
@@ -255,12 +257,24 @@ public class Game : MonoBehaviour
             if (SceneManager.GetActiveScene().buildIndex == 0)
             {
                 RestartLevel();
-            } else
+            }
+            else
             {
+                TimerRunning = false;
+                LevelFinished = false;
+                CurrentLevelTickCount = 0;
+                Time.timeScale = 1;
+                lastCheckpoint = new Vector3();
                 SceneManager.LoadScene(0);
             }
-        } else
+        }
+        else
         {
+            TimerRunning = false;
+            LevelFinished = false;
+            CurrentLevelTickCount = 0;
+            Time.timeScale = 1;
+            lastCheckpoint = new Vector3();
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
     }
@@ -270,5 +284,10 @@ public class Game : MonoBehaviour
         SceneManager.LoadScene("LevelSelect");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+    }
+
+    public void ChangeVolume(float f)
+    {
+
     }
 }

@@ -26,6 +26,8 @@ public class Platform : MonoBehaviour
     private float _value;
 
     private GameObject _projectile;
+    
+    public PlayerMovement.AbilityType ability;
 
     private bool _queued;
 

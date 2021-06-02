@@ -60,7 +60,7 @@ public class Rings : MonoBehaviour
     private bool _throttle;
     private void Update()
     {
-        if (Input.GetKey(PlayerInput.PrimaryInteract))
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract))
         {
             if (!_throttle)
             {

@@ -4,11 +4,14 @@ using UnityEngine;
 
 public class SeekingDestructable : MonoBehaviour
 {
+    public AudioClip hitSound;
 
     private float lethalDistance = 30;
     private float armDistance = 100;
 
     private MeshRenderer mesh;
+
+    public GameObject hurtBox;
 
     private bool seeking = false;
     private float speed = 0;
@@ -19,15 +22,16 @@ public class SeekingDestructable : MonoBehaviour
         Game.Player.weaponManager.ShotEvent += Hit;
     }
 
-    public void Hit(RaycastHit hit)
+    public void Hit(RaycastHit hit, ref bool doReload)
     {
-        if (hit.collider.gameObject != gameObject) return;
+        if (hit.collider.gameObject != hurtBox) return;
 
         var playerTarget = Game.Player.camera.transform.position;
         var towardPlayer = playerTarget - transform.position;
         if (towardPlayer.magnitude >= armDistance) return;
         Game.Canvas.hitmarker.Display();
-        Game.Player.source.PlayOneShot(Game.Player.ding);
+        doReload = false;
+        Game.Player.audioManager.PlayOneShot(hitSound);
         Game.Player.weaponManager.ShotEvent -= Hit;
         Destroy(gameObject);
     }

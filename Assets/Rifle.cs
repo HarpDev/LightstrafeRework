@@ -8,6 +8,10 @@ public class Rifle : WeaponManager.Gun
     public override WeaponManager.GunType GetGunType() => WeaponManager.GunType.Rifle;
 
     public AudioClip fireSound;
+    public AudioClip boltUp;
+    public AudioClip boltBack;
+    public AudioClip boltForward;
+    public AudioClip boltDown;
 
     public List<GameObject> parts;
 
@@ -21,6 +25,7 @@ public class Rifle : WeaponManager.Gun
     private float _upSoften;
     private float _rightChange;
     private float _rightSoften;
+    private float _forward;
 
     private Vector3 _prevVelocity;
 
@@ -32,13 +37,41 @@ public class Rifle : WeaponManager.Gun
         get
         {
             if (!Game.Player.jumpKitEnabled) return false;
-            if (Game.Player.ApproachingWall) return false;
+            //if (Game.Player.ApproachingWall) return false;
             if (_layer0Info.IsName("Unequip")) return false;
 
-            if (Game.Player.IS_SLIDING) return true;
+            if (Game.Player.IsSliding) return true;
             return false;
         }
     }
+
+    public void ReloadComplete()
+    {
+        animator.SetBool("Reload", false);
+    }
+
+    public void BoltUp()
+    {
+        Game.Player.audioManager.PlayAudio(boltUp);
+    }
+
+    public void BoltBack()
+    {
+        Game.Player.audioManager.PlayAudio(boltBack);
+    }
+
+    public void BoltForward()
+    {
+        Game.Player.audioManager.PlayAudio(boltForward);
+    }
+
+    public void BoltDown()
+    {
+        Game.Player.audioManager.PlayAudio(boltDown);
+    }
+
+    private AnimatorStateInfo _layer0Info;
+    private AnimatorStateInfo _layer1Info;
 
     private void FixedUpdate()
     {
@@ -47,19 +80,22 @@ public class Rifle : WeaponManager.Gun
         _layer1Info = animator.GetCurrentAnimatorStateInfo(1);
     }
 
-    private AnimatorStateInfo _layer0Info;
-    private AnimatorStateInfo _layer1Info;
-
-    private float _catchWeight;
-
-    public void ReloadComplete()
-    {
-        animator.SetBool("Reload", false);
-    }
+    protected float leftHandFactor;
+    private bool _fireInputConsumed;
 
     private void Update()
     {
-        if (_layer1Info.IsName("AbilityCatch") && _layer1Info.normalizedTime < 1)
+        if (leftHandDetach)
+        {
+            leftHandFactor = Mathf.Lerp(leftHandFactor, 1, Time.deltaTime / 0.05f);
+        }
+        else
+        {
+            leftHandFactor = Mathf.Lerp(leftHandFactor, 0, Time.deltaTime / 0.25f);
+        }
+        animator.SetLayerWeight(1, leftHandFactor);
+
+        /*if (_layer1Info.IsName("AbilityCatch") && _layer1Info.normalizedTime < 1)
         {
             animator.SetLayerWeight(1, _catchWeight);
 
@@ -73,18 +109,21 @@ public class Rifle : WeaponManager.Gun
         else
         {
             animator.SetLayerWeight(1, 0);
-        }
+        }*/
 
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !animator.GetBool("Reload"))
+        if (_fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !animator.GetBool("Reload") && !_fireInputConsumed)
         {
-            Fire(QueryTriggerInteraction.Collide);
+            var doReload = true;
+            Fire(QueryTriggerInteraction.Collide, ref doReload);
+            _fireInputConsumed = true;
 
-            Game.Player.source.PlayOneShot(fireSound);
+            Game.Player.audioManager.PlayOneShot(fireSound);
 
             if (animator != null)
             {
                 animator.Play("Fire", -1, 0f);
-                animator.SetBool("Reload", true);
+                animator.SetBool("Reload", doReload);
             }
         }
     }
@@ -130,7 +169,10 @@ public class Rifle : WeaponManager.Gun
 
         _prevVelocity = Game.Player.velocity;
 
-        var localforward = 0;
+        if (Game.Player.IsDashing) _forward += Time.deltaTime / 1.2f;
+        _forward = Mathf.Lerp(_forward, 0, Time.deltaTime * 8);
+
+        var localforward = _forward;
         var localright = -0.02f * crouchAmt;
         var localup = Mathf.Lerp(0, 0.02f, crouchAmt);
         var globalup = _upSoften / 15;
@@ -175,7 +217,7 @@ public class Rifle : WeaponManager.Gun
         rightHand.gameObject.transform.RotateAround(stockPosition, tiltAxis, tilt);
         rightHand.transform.position += Vector3.up * globalup;
 
-        var mod = 1 - _catchWeight;
+        var mod = 1 - leftHandFactor;
 
         leftHand.transform.localPosition += new Vector3(localforward, localright, localup * mod);
 

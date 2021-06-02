@@ -41,7 +41,7 @@ public class Pistol : WeaponManager.Gun
             if (_layer0Info.IsName("Unequip")) return false;
             if (_layer0Info.IsName("Equip")) return false;
 
-            if (Game.Player.IS_SLIDING) return true;
+            if (Game.Player.IsSliding) return true;
             return false;
         }
     }
@@ -84,14 +84,15 @@ public class Pistol : WeaponManager.Gun
             animator.SetLayerWeight(1, 0);
         }
 
-        if (_fireInputConsumed && !Input.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
-        if (Input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _fireDelay == 0 && Shots > 0 && !_fireInputConsumed)
+        if (_fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && _fireDelay == 0 && Shots > 0 && !_fireInputConsumed)
         {
             _fireDelay = FIRE_RATE;
 
-            Fire(QueryTriggerInteraction.Collide);
+            var doReload = false;
+            Fire(QueryTriggerInteraction.Collide, ref doReload);
 
-            Game.Player.source.PlayOneShot(fireSound);
+            Game.Player.audioManager.PlayOneShot(fireSound);
             _fireInputConsumed = true;
 
             if (animator != null)

@@ -112,7 +112,7 @@ public class Bow : MonoBehaviour
         //if (player.GroundLevel > 0) finalPosition += CameraBobbing.BobbingVector;
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, finalPosition, Time.deltaTime * lerpSpeed);
-        if (Input.GetKey(PlayerInput.PrimaryInteract))
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract))
         {
             if (Drawback < 1)
             {

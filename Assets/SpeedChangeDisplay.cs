@@ -20,7 +20,7 @@ public class SpeedChangeDisplay : MonoBehaviour
         gain.fillAmount = Mathf.Clamp01(interpolation / 10);
         loss.fillAmount = Mathf.Clamp01(-interpolation / 10);
 
-        interpolation = Mathf.Lerp(interpolation, 0, Time.deltaTime);
+        interpolation = Mathf.Lerp(interpolation, 0, Time.deltaTime * 3);
 
         prevSpeed = speed;
     }

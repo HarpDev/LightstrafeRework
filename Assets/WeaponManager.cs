@@ -5,7 +5,7 @@ using UnityEngine;
 public class WeaponManager : MonoBehaviour
 {
 
-    public delegate void GunShot(RaycastHit hit);
+    public delegate void GunShot(RaycastHit hit, ref bool doReload);
     public event GunShot ShotEvent;
 
     public List<Gun> guns;
@@ -110,11 +110,12 @@ public class WeaponManager : MonoBehaviour
         public Vector3 GetTracerStartWorldPosition()
         {
             var screen = viewModel.WorldToViewportPoint(tracerStart.position);
+            screen.z = 1.2f;
             var world = Game.Player.camera.ViewportToWorldPoint(screen);
             return world;
         }
 
-        public void Fire(QueryTriggerInteraction triggerInteraction)
+        public void Fire(QueryTriggerInteraction triggerInteraction, ref bool doReload)
         {
             var obj = new GameObject("Tracer");
             obj.AddComponent<TracerDecay>();
@@ -126,18 +127,45 @@ public class WeaponManager : MonoBehaviour
             line.endWidth = 0.1f;
             line.startWidth = 0.1f;
             line.SetPositions(positions);
-            if (Physics.Raycast(Game.Player.camera.transform.position, Game.Player.CrosshairDirection, out var hit, 300, 1, triggerInteraction))
+            foreach (var hit in Physics.RaycastAll(Game.Player.camera.transform.position, Game.Player.CrosshairDirection, 300, 1, triggerInteraction))
             {
-                if (!hit.collider.CompareTag("Player"))
+                if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
                 {
-                    WeaponManager.ShotEvent(hit);
+                    WeaponManager.ShotEvent(hit, ref doReload);
                 }
             }
         }
 
+        protected bool leftHandDetach;
+
         public void DoAbilityCatch()
         {
             animator.Play("AbilityCatch", 1, 0f);
+        }
+
+        public void LeftWallStart()
+        {
+            animator.Play("LeftWallTouch", 1, 0f);
+            leftHandDetach = true;
+        }
+
+        public void RightWallStart()
+        {
+            animator.Play("RightWallTouch", 1, 0f);
+            leftHandDetach = true;
+        }
+
+        public void WallStop()
+        {
+            leftHandDetach = false;
+            if (animator.GetCurrentAnimatorStateInfo(1).IsName("RightWallTouch"))
+            {
+                animator.Play("RightWallTouchReverse", 1, 0f);
+            }
+            if (animator.GetCurrentAnimatorStateInfo(1).IsName("LeftWallTouch"))
+            {
+                animator.Play("LeftWallTouchReverse", 1, 0f);
+            }
         }
 
         public void Unequip()

@@ -14,7 +14,9 @@ public class TracerDecay : MonoBehaviour
     private void Update()
     {
         if (a < 0) Destroy(gameObject);
-        line.material.color = Color.white * a;
+        var color = Color.white;
+        color.a = Mathf.Clamp01(a);
+        line.material.color = color;
         a -= Time.deltaTime;
     }
 }

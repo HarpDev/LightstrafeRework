@@ -23,9 +23,21 @@ public class KeyBindButton : MonoBehaviour
         {
             foreach (KeyCode kcode in Enum.GetValues(typeof(KeyCode)))
             {
-                if (Input.GetKeyDown(kcode))
+                if (PlayerInput.GetKeyDown(kcode))
                 {
                     PlayerInput.SetBind(bindName, kcode);
+                    PlayerInput.ConsumeBuffer((int)kcode);
+                    text.text = kcode.ToString();
+                    rebinding = false;
+                    break;
+                }
+            }
+            foreach (PlayerInput.AlternateCode kcode in Enum.GetValues(typeof(PlayerInput.AlternateCode)))
+            {
+                if (PlayerInput.GetKeyDown(kcode))
+                {
+                    PlayerInput.SetBind(bindName, kcode);
+                    PlayerInput.ConsumeBuffer((int)kcode);
                     text.text = kcode.ToString();
                     rebinding = false;
                     break;
@@ -33,7 +45,7 @@ public class KeyBindButton : MonoBehaviour
             }
         } else
         {
-            text.text = PlayerInput.GetBindByName(bindName).ToString();
+            text.text = PlayerInput.GetBindName(PlayerInput.GetBindByName(bindName));
         }
     }
 
