@@ -15,6 +15,7 @@ public class PlayerInput : MonoBehaviour
     public static int RestartLevel { get { return PlayerPrefs.GetInt("RestartLevel", (int)KeyCode.None); } private set { PlayerPrefs.SetInt("RestartLevel", (int)value); } }
     public static int PrimaryInteract { get { return PlayerPrefs.GetInt("PrimaryInteract", (int)KeyCode.Mouse0); } private set { PlayerPrefs.SetInt("PrimaryInteract", (int)value); } }
     public static int SecondaryInteract { get { return PlayerPrefs.GetInt("SecondaryInteract", (int)KeyCode.Mouse1); } private set { PlayerPrefs.SetInt("SecondaryInteract", (int)value); } }
+    public static int TertiaryInteract { get { return PlayerPrefs.GetInt("TertiaryInteract", (int)KeyCode.Q); } private set { PlayerPrefs.SetInt("TertiaryInteract", (int)value); } }
     public static int Jump { get { return PlayerPrefs.GetInt("Jump", (int)KeyCode.Space); } private set { PlayerPrefs.SetInt("Jump", value); } }
     public static int Pause { get { return PlayerPrefs.GetInt("Pause", (int)KeyCode.Escape); } private set { PlayerPrefs.SetInt("Pause", (int)value); } }
     public static int Slide { get { return PlayerPrefs.GetInt("Slide", (int)KeyCode.LeftControl); } private set { PlayerPrefs.SetInt("Slide", (int)value); } }
@@ -72,6 +73,13 @@ public class PlayerInput : MonoBehaviour
         {
             return Input.mouseScrollDelta.y == -1;
         }
+        return false;
+    }
+
+    public static bool GetKeyUp(int key)
+    {
+        if (key > 0) return Input.GetKeyUp((KeyCode)key);
+
         return false;
     }
 

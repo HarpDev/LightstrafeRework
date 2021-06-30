@@ -19,10 +19,9 @@ public class SeekingDestructable : MonoBehaviour
     private void Start()
     {
         mesh = GetComponent<MeshRenderer>();
-        Game.Player.weaponManager.ShotEvent += Hit;
     }
 
-    public void Hit(RaycastHit hit, ref bool doReload)
+    public void Hit(RaycastHit hit)
     {
         if (hit.collider.gameObject != hurtBox) return;
 
@@ -30,9 +29,14 @@ public class SeekingDestructable : MonoBehaviour
         var towardPlayer = playerTarget - transform.position;
         if (towardPlayer.magnitude >= armDistance) return;
         Game.Canvas.hitmarker.Display();
-        doReload = false;
         Game.Player.audioManager.PlayOneShot(hitSound);
-        Game.Player.weaponManager.ShotEvent -= Hit;
+        Destroy(gameObject);
+    }
+
+    public void HitArbitrary()
+    {
+        Game.Canvas.hitmarker.Display();
+        Game.Player.audioManager.PlayOneShot(hitSound);
         Destroy(gameObject);
     }
 

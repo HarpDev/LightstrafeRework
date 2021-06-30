@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Rifle : WeaponManager.Gun
 {
@@ -14,6 +15,9 @@ public class Rifle : WeaponManager.Gun
     public AudioClip boltDown;
 
     public List<GameObject> parts;
+    public GameObject animatedBoomerang;
+    public GameObject projectileBoomerang;
+    public Transform boomerangBone;
 
     public Transform barrel;
     public Transform center;
@@ -48,6 +52,22 @@ public class Rifle : WeaponManager.Gun
     public void ReloadComplete()
     {
         animator.SetBool("Reload", false);
+    }
+
+    public void BoomerangThrow()
+    {
+        boomerangVisible = false;
+        var proj = Instantiate(projectileBoomerang).GetComponent<BoomerangProjectile>();
+
+        var screen = viewModel.WorldToViewportPoint(boomerangBone.position);
+        screen.z = 1.8f;
+        proj.transform.position = Game.Player.camera.ViewportToWorldPoint(screen);
+        proj.transform.rotation = boomerangBone.rotation;
+        proj.transform.Rotate(new Vector3(0, 90, 0), Space.Self);
+
+        var vel = (Game.Player.CrosshairDirection * 20) + Game.Player.velocity;
+        proj.velocity = vel.magnitude;
+        proj.direction = vel.normalized;
     }
 
     public void BoltUp()
@@ -85,9 +105,10 @@ public class Rifle : WeaponManager.Gun
 
     private void Update()
     {
-        if (leftHandDetach)
+        if ((_layer1Info.normalizedTime <= 1 || _layer1Info.IsTag("Hold")) && _layer1Info.speed > 0)
         {
             leftHandFactor = Mathf.Lerp(leftHandFactor, 1, Time.deltaTime / 0.05f);
+            if (_layer1Info.IsTag("Instant")) leftHandFactor = 1;
         }
         else
         {
@@ -110,13 +131,58 @@ public class Rifle : WeaponManager.Gun
         {
             animator.SetLayerWeight(1, 0);
         }*/
+        animatedBoomerang.GetComponent<SkinnedMeshRenderer>().enabled = boomerangVisible;
 
         if (_fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
         if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !animator.GetBool("Reload") && !_fireInputConsumed)
         {
-            var doReload = true;
-            Fire(QueryTriggerInteraction.Collide, ref doReload);
+            Fire(QueryTriggerInteraction.Collide);
             _fireInputConsumed = true;
+
+            Game.Player.audioManager.PlayOneShot(fireSound);
+
+            if (animator != null)
+            {
+                animator.Play("Fire", -1, 0f);
+                animator.SetBool("Reload", true);
+            }
+        }
+
+        if (PlayerInput.GetKeyDown(PlayerInput.TertiaryInteract) && Time.timeScale > 0 && boomerangAvailable)
+        {
+            if (animator != null)
+            {
+                animator.Play("BoomerangThrow", 1, 0f);
+                boomerangVisible = true;
+                boomerangAvailable = false;
+            }
+        }
+
+        /*if (PlayerInput.GetKeyDown(PlayerInput.PrimaryInteract))
+        {
+            startTrace = Game.Player.CrosshairDirection;
+        }
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract))
+        {
+            var img = Game.Canvas.crosshair;
+
+            var start = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + startTrace);
+            var end = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + Game.Player.CrosshairDirection);
+
+            img.transform.position = Vector3.LerpUnclamped(start, end, 2f);
+
+        }
+        if (PlayerInput.GetKeyUp(PlayerInput.PrimaryInteract))
+        {
+            var start = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + startTrace);
+            var end = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + Game.Player.CrosshairDirection);
+
+            var check = Vector3.LerpUnclamped(start, end, 2f);
+
+            var rayDir = Game.Player.camera.ScreenToWorldPoint(check) - Game.Player.camera.transform.position;
+
+            var doReload = true;
+            Fire(QueryTriggerInteraction.Collide, ref doReload, rayDir);
 
             Game.Player.audioManager.PlayOneShot(fireSound);
 
@@ -125,8 +191,12 @@ public class Rifle : WeaponManager.Gun
                 animator.Play("Fire", -1, 0f);
                 animator.SetBool("Reload", doReload);
             }
-        }
+
+            Game.Canvas.crosshair.gameObject.transform.localPosition = Vector3.zero;
+        }*/
     }
+
+    private Vector3 startTrace;
 
     private void LateUpdate()
     {

@@ -1,12 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class WeaponManager : MonoBehaviour
 {
-
-    public delegate void GunShot(RaycastHit hit, ref bool doReload);
-    public event GunShot ShotEvent;
 
     public List<Gun> guns;
 
@@ -115,7 +113,7 @@ public class WeaponManager : MonoBehaviour
             return world;
         }
 
-        public void Fire(QueryTriggerInteraction triggerInteraction, ref bool doReload)
+        public void Fire(QueryTriggerInteraction triggerInteraction)
         {
             var obj = new GameObject("Tracer");
             obj.AddComponent<TracerDecay>();
@@ -131,12 +129,21 @@ public class WeaponManager : MonoBehaviour
             {
                 if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
                 {
-                    WeaponManager.ShotEvent(hit, ref doReload);
+                    var seeking = hit.collider.gameObject.GetComponent<SeekingDestructable>();
+                    try
+                    {
+                        if (seeking == null) seeking = hit.collider.gameObject.transform.parent.gameObject.GetComponent<SeekingDestructable>();
+                    }
+                    catch (NullReferenceException)
+                    {
+                    }
+                    if (seeking != null)
+                    {
+                        seeking.Hit(hit);
+                    }
                 }
             }
         }
-
-        protected bool leftHandDetach;
 
         public void DoAbilityCatch()
         {
@@ -145,19 +152,39 @@ public class WeaponManager : MonoBehaviour
 
         public void LeftWallStart()
         {
-            animator.Play("LeftWallTouch", 1, 0f);
-            leftHandDetach = true;
+            if (animator.GetCurrentAnimatorStateInfo(1).normalizedTime > 1)
+                animator.Play("LeftWallTouch", 1, 0f);
         }
 
         public void RightWallStart()
         {
-            animator.Play("RightWallTouch", 1, 0f);
-            leftHandDetach = true;
+            if (animator.GetCurrentAnimatorStateInfo(1).normalizedTime > 1)
+                animator.Play("RightWallTouch", 1, 0f);
+        }
+
+        public bool boomerangVisible = true;
+        public bool boomerangAvailable = true;
+
+        public void BoomerangCatch(int direction)
+        {
+            if (direction == 0)
+            {
+                animator.Play("BoomerangCatchRight", 1, 0f);
+            }
+            else if (direction == 1)
+            {
+                animator.Play("BoomerangCatchLeft", 1, 0f);
+            }
+            else
+            {
+                animator.Play("BoomerangCatchForward", 1, 0f);
+            }
+            boomerangVisible = true;
+            boomerangAvailable = true;
         }
 
         public void WallStop()
         {
-            leftHandDetach = false;
             if (animator.GetCurrentAnimatorStateInfo(1).IsName("RightWallTouch"))
             {
                 animator.Play("RightWallTouchReverse", 1, 0f);

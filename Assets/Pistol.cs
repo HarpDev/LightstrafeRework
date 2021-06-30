@@ -89,8 +89,7 @@ public class Pistol : WeaponManager.Gun
         {
             _fireDelay = FIRE_RATE;
 
-            var doReload = false;
-            Fire(QueryTriggerInteraction.Collide, ref doReload);
+            Fire(QueryTriggerInteraction.Collide);
 
             Game.Player.audioManager.PlayOneShot(fireSound);
             _fireInputConsumed = true;
