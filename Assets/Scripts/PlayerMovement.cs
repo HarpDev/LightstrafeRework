@@ -194,7 +194,6 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip railLand;
     public AudioClip railDuring;
     public AudioClip railEnd;
-    public AudioClip viz;
 
     private void Awake()
     {
@@ -1483,11 +1482,6 @@ public class PlayerMovement : MonoBehaviour
                     CancelDash(ref h);
                 }
                 velocity.y = Mathf.Max(IsSliding ? h / 3 : h, velocity.y);
-
-                if (_wallTickCount < WALL_JUMP_FORGIVENESS_TICKS)
-                {
-                    audioManager.PlayOneShot(viz);
-                }
             }
             else
             {

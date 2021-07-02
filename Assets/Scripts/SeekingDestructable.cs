@@ -19,7 +19,6 @@ public class SeekingDestructable : MonoBehaviour
     private void Start()
     {
         mesh = GetComponent<MeshRenderer>();
-        source = GetComponent<AudioSource>();
     }
 
     public void Hit(RaycastHit hit)
@@ -41,10 +40,6 @@ public class SeekingDestructable : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private float fartTimer = 0;
-
-    private AudioSource source;
-
     private void Update()
     {
         var playerTarget = Game.Player.camera.transform.position;
@@ -57,13 +52,6 @@ public class SeekingDestructable : MonoBehaviour
         }
         if (seeking)
         {
-            fartTimer -= Time.deltaTime;
-            //source.volume = Mathf.Clamp01(speed / 40f) / 10f;
-            if (fartTimer <= 0)
-            {
-                fartTimer = 0.1f + (1 - Mathf.Clamp01(speed / 50f));
-                //source.PlayOneShot(source.clip);
-            }
             mesh.material.SetFloat("_FlowSpeed", towardPlayer.magnitude);
 
             speed += Time.deltaTime * 20f;

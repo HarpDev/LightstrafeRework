@@ -28,6 +28,14 @@ public class TimerDisplay : MonoBehaviour
         var ticks = bestTime
             ? Game.GetBestLevelTime(currentLevel ? SceneManager.GetActiveScene().name : level)
             : Game.CurrentLevelTickCount;
+
+        // stop rendering best time timer if player has not set a pb yet
+        if (ticks == -1f)
+        {
+            timerText.text = "";
+            return;
+        }
+
         var seconds = (ticks % 6000) * Time.fixedDeltaTime;
         var minutes = Mathf.Floor(ticks / 6000);
 
@@ -38,12 +46,6 @@ public class TimerDisplay : MonoBehaviour
         } else
         {
             timerText.text = prefix + seconds.ToString(secondformat);
-        }
-
-        // stop rendering best time timer if player has not set a pb yet
-        if(ticks == -1f)
-        {
-            timerText.text = "";
         }
     }
 }
