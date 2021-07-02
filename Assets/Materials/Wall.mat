@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Wall
-  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
+  m_Shader: {fileID: 4800000, guid: 1fe8cefbb0066914f8f323f408d6b201, type: 3}
   m_ShaderKeywords: _NORMALMAP
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -43,6 +43,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 3}
         m_Offset: {x: 0, y: 0}
+    - _EmmisTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _FlowMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -61,6 +65,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _NormalMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalTex:
+        m_Texture: {fileID: 2800000, guid: ee099018bf247864d86e849befd7ffe8, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
@@ -95,22 +103,32 @@ Material:
     - _FlowSpeed: 1
     - _FlowStrength: 1
     - _Frequency: 10
+    - _FresnelBrightness: 0
+    - _FresnelPower: 0
+    - _FresnelShadowDropoff: 0
     - _GlossAmount: 1
     - _GlossMapScale: 1
     - _Glossiness: 0.3
     - _GlossyReflections: 1
+    - _HighIntensity: 1.5
     - _ImpactSpeed: 0.5
+    - _LightScalar: 1
+    - _LowIntensity: 1
     - _MaxWaveDistortion: 1
     - _Metallic: 0
     - _MinuteDetailIntensity: 1
     - _MinuteDetailScrollSpeed: 0
     - _Mode: 0
     - _OcclusionStrength: 1
+    - _OutlineSize: 0
     - _Parallax: 0.02
     - _Power: 5
+    - _RampLevels: 2
     - _RefractionIntensity: 0
     - _RefractionSpeed: 0
-    - _RimPower: 2
+    - _RimAlpha: 0
+    - _RimDropOff: 0
+    - _RimPower: 0
     - _Scale: 1
     - _ScrollXSpeed: 0.1
     - _ScrollYSpeed: 0.1
@@ -134,8 +152,12 @@ Material:
     - _DiffuseColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     - _Emission: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FresnelColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HighColor: {r: 1, g: 1, b: 1, a: 1}
     - _ImpactOrigin: {r: -5, g: 0, b: 0, a: 0}
+    - _LowColor: {r: 1, g: 1, b: 1, a: 1}
     - _ModelOrigin: {r: 0, g: 0, b: 0, a: 0}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
     - _ShadowTint: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     - _Specular: {r: 1, g: 1, b: 1, a: 1}
