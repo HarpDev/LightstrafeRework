@@ -8,5 +8,6 @@ public class CanvasContainer : MonoBehaviour
 
     public Hitmarker hitmarker;
     public Image crosshair;
+    public SpeedChangeDisplay speedChangeDisplay;
 
 }

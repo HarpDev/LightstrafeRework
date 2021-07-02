@@ -185,13 +185,14 @@ public class WeaponManager : MonoBehaviour
 
         public void WallStop()
         {
-            if (animator.GetCurrentAnimatorStateInfo(1).IsName("RightWallTouch"))
+            var info = animator.GetCurrentAnimatorStateInfo(1);
+            if (info.IsName("RightWallTouch"))
             {
-                animator.Play("RightWallTouchReverse", 1, 0f);
+                animator.Play("RightWallTouchReverse", 1, 1 - Mathf.Clamp01(info.normalizedTime));
             }
-            if (animator.GetCurrentAnimatorStateInfo(1).IsName("LeftWallTouch"))
+            if (info.IsName("LeftWallTouch"))
             {
-                animator.Play("LeftWallTouchReverse", 1, 0f);
+                animator.Play("LeftWallTouchReverse", 1, 1 - Mathf.Clamp01(info.normalizedTime));
             }
         }
 

@@ -9,7 +9,7 @@ public class SpeedChangeDisplay : MonoBehaviour
     public Image loss;
 
     private float prevSpeed;
-    private float interpolation;
+    public float interpolation { get; set; }
 
     private void Update()
     {

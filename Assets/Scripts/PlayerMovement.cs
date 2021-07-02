@@ -106,6 +106,7 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_JUMP_SPEED = 4;
     public const bool WALL_ALLOW_SAME_FACING = false;
     private Vector3 _wallNormal;
+    private bool _wallLeanCancelled;
     private int _wallTimestamp = -100000;
     private int _wallTickCount;
     private float _jumpBuffered;
@@ -121,6 +122,7 @@ public class PlayerMovement : MonoBehaviour
     private const float AIR_SPEED = 2f;
     private const float SIDE_AIR_ACCELERATION = 45;
     private const float FORWARD_AIR_ACCELERATION = 100;
+    private const float BACKWARD_AIR_ACCELERATION = 35;
 
     public bool DoubleJumpAvailable { get; set; }
     public bool DashAvailable { get; set; }
@@ -192,6 +194,7 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip railLand;
     public AudioClip railDuring;
     public AudioClip railEnd;
+    public AudioClip viz;
 
     private void Awake()
     {
@@ -369,6 +372,8 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnWall) _wallTimestamp = PlayerInput.tickCount;
         if (IsOnRail) _railTimestamp = PlayerInput.tickCount;
 
+        if (bonusGravityCooldownTicks > 0) bonusGravityCooldownTicks--;
+
         // Movement happens here
         var factor = Time.fixedDeltaTime;
         if (GrappleHooked)
@@ -425,6 +430,7 @@ public class PlayerMovement : MonoBehaviour
         {
             var loss = factor * DASH_CANCEL_TEMP_SPEED_DECAY;
             velocity -= Flatten(velocity).normalized * loss;
+            Game.Canvas.speedChangeDisplay.interpolation += loss;
             _dashCancelTempSpeed -= loss;
         }
         if (Game.PostProcessVolume != null && Game.PostProcessVolume.profile.TryGetSettings(out MotionBlur motion))
@@ -658,7 +664,8 @@ public class PlayerMovement : MonoBehaviour
         if (_dashVector.y <= 0)
         {
             _dashTime = DASH_TIME;
-        } else
+        }
+        else
         {
             var maxUpDistance = 25 / Mathf.Abs(_dashVector.y);
             _dashTime = Mathf.Min(DASH_TIME, maxUpDistance);
@@ -694,6 +701,7 @@ public class PlayerMovement : MonoBehaviour
                 jumpHeight /= divide;
                 velocity += Flatten(velocity).normalized * (gain + overflow);
                 _dashCancelTempSpeed += gain;
+                Game.Canvas.speedChangeDisplay.interpolation -= gain;
             }
             velocity.y = _dashVector.y;
 
@@ -1073,9 +1081,14 @@ public class PlayerMovement : MonoBehaviour
         Accelerate(-_wallNormal, 1, Gravity, f);
     }
 
+    private int bonusGravityCooldownTicks;
+
     public void GravityTick(float f)
     {
-        velocity.y -= Gravity * f;
+        if (bonusGravityCooldownTicks == 0 && rigidbody.SweepTest(Vector3.down, out var hit, 20, QueryTriggerInteraction.Ignore) && !hit.collider.CompareTag("Uninteractable"))
+            velocity.y -= Gravity * f * 2;
+        else
+            velocity.y -= Gravity * f;
     }
 
     private GameObject _lastRefreshGround;
@@ -1207,6 +1220,8 @@ public class PlayerMovement : MonoBehaviour
         {
             fromWall = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
 
+            _wallNormal = Flatten(hit.normal).normalized;
+
             if (_wallLeanAmount < 1)
             {
                 _wallLeanAmount = Mathf.Clamp01(_wallLeanAmount + Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
@@ -1230,7 +1245,6 @@ public class PlayerMovement : MonoBehaviour
                 {
                     weaponManager.EquippedGun.RightWallStart();
                 }
-                //Time.timeScale = 0.2f;
             }
             ApproachingWall = true;
 
@@ -1257,11 +1271,16 @@ public class PlayerMovement : MonoBehaviour
                 _wallLeanAmount = Mathf.Clamp01(_wallLeanAmount - Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
 
                 var leanOutProjection = Vector3.Dot(CrosshairDirection, new Vector3(-_wallNormal.z, _wallNormal.y, _wallNormal.x));
-                var easeOut = -(Mathf.Cos(Mathf.PI * _wallLeanAmount) - 1) / 2;
+
+                var easeOut = _wallLeanCancelled ? Mathf.Sin(_wallLeanAmount * Mathf.PI / 2) : -(Mathf.Cos(Mathf.PI * _wallLeanAmount) - 1) / 2;
 
                 var roll = WALL_LEAN_DEGREES * easeOut * -leanOutProjection;
                 var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
                 SetCameraRoll(roll, speed);
+            }
+            else
+            {
+                _wallLeanCancelled = true;
             }
         }
 
@@ -1291,10 +1310,14 @@ public class PlayerMovement : MonoBehaviour
 
         var airStrafeGains = 0f;
 
-        var forwardaccel = FORWARD_AIR_ACCELERATION * accelMod;
         var forward = transform.forward * PlayerInput.GetAxisStrafeForward();
+        var accel = FORWARD_AIR_ACCELERATION * accelMod;
+        if (Vector3.Dot(Flatten(velocity), forward) < 0)
+        {
+            accel = BACKWARD_AIR_ACCELERATION * accelMod;
+        }
         var speed = Flatten(velocity).magnitude;
-        velocity += forward * forwardaccel * f;
+        velocity += forward * accel * f;
         if (speed < Flatten(velocity).magnitude)
         {
             var y = velocity.y;
@@ -1441,6 +1464,7 @@ public class PlayerMovement : MonoBehaviour
                 audioManager.PlayOneShot(jump);
                 IsOnWall = false;
                 IsSliding = false;
+                _wallLeanCancelled = false;
 
                 _wallTimestamp = -COYOTE_TICKS;
                 _lastWall = _currentWall;
@@ -1459,6 +1483,11 @@ public class PlayerMovement : MonoBehaviour
                     CancelDash(ref h);
                 }
                 velocity.y = Mathf.Max(IsSliding ? h / 3 : h, velocity.y);
+
+                if (_wallTickCount < WALL_JUMP_FORGIVENESS_TICKS)
+                {
+                    audioManager.PlayOneShot(viz);
+                }
             }
             else
             {
@@ -1470,11 +1499,13 @@ public class PlayerMovement : MonoBehaviour
                     velocity.y = Mathf.Max(MAX_JUMP_HEIGHT, velocity.y);
                     StopDash();
                     audioManager.PlayOneShot(jumpair);
+                    bonusGravityCooldownTicks = 10;
                     IsSliding = false;
                 }
                 else
                 {
                     audioManager.PlayOneShot(jump);
+                    bonusGravityCooldownTicks = 100;
                     IsOnGround = false;
                     var height = jumpHeight;
                     if (IsDashing)
