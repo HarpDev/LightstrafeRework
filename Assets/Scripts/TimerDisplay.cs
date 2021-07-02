@@ -21,13 +21,29 @@ public class TimerDisplay : MonoBehaviour
 
     private void Update()
     {
-        var format = "0.00";
+        var secondformat = "0.00";
+        var secondformat2 = "00.00";
+        var minuteformat = "0";
         if (!bestTime) timerText.color = color;
         var ticks = bestTime
             ? Game.GetBestLevelTime(currentLevel ? SceneManager.GetActiveScene().name : level)
             : Game.CurrentLevelTickCount;
-        var seconds = ticks * Time.fixedDeltaTime;
+        var seconds = (ticks % 6000) * Time.fixedDeltaTime;
+        var minutes = Mathf.Floor(ticks / 6000);
 
-        timerText.text = prefix + seconds.ToString(format);
+        // this is probably bad and could be done in like 3 lines but it's the best i could figure out atm lmao
+        if (minutes > 0)
+        {
+            timerText.text = prefix + minutes.ToString(minuteformat) + ":" + seconds.ToString(secondformat2);
+        } else
+        {
+            timerText.text = prefix + seconds.ToString(secondformat);
+        }
+
+        // stop rendering best time timer if player has not set a pb yet
+        if(ticks == -1f)
+        {
+            timerText.text = "";
+        }
     }
 }
