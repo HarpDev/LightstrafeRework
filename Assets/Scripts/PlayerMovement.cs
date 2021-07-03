@@ -297,6 +297,14 @@ public class PlayerMovement : MonoBehaviour
             Pitch = Mathf.Min(Pitch, 90);
         }
 
+        if (DashAvailable)
+        {
+            Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0, Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 45, Time.deltaTime * 20));
+        } else
+        {
+            Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0, Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 0, Time.deltaTime * 20));
+        }
+
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
         var cam = camera.transform;
 
