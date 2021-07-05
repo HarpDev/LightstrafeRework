@@ -113,33 +113,33 @@ public class WeaponManager : MonoBehaviour
             return world;
         }
 
-        public void Fire(QueryTriggerInteraction triggerInteraction)
+        public void Fire(QueryTriggerInteraction triggerInteraction, Vector3 direction)
         {
             var obj = new GameObject("Tracer");
             obj.AddComponent<TracerDecay>();
             var line = obj.AddComponent<LineRenderer>();
             var positions = new Vector3[2];
             positions[0] = GetTracerStartWorldPosition();
-            positions[1] = Game.Player.camera.transform.position + (Game.Player.CrosshairDirection * 300);
+            positions[1] = Game.Player.camera.transform.position + (direction * 300);
             line.material = WeaponManager.tracerMaterial;
             line.endWidth = 0.1f;
             line.startWidth = 0.1f;
             line.SetPositions(positions);
-            foreach (var hit in Physics.RaycastAll(Game.Player.camera.transform.position, Game.Player.CrosshairDirection, 300, 1, triggerInteraction))
+            foreach (var hit in Physics.RaycastAll(Game.Player.camera.transform.position, direction, 300, 1, triggerInteraction))
             {
                 if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
                 {
-                    var seeking = hit.collider.gameObject.GetComponent<SeekingDestructable>();
+                    var seeking = hit.collider.gameObject.GetComponent<Target>();
                     try
                     {
-                        if (seeking == null) seeking = hit.collider.gameObject.transform.parent.gameObject.GetComponent<SeekingDestructable>();
+                        if (seeking == null) seeking = hit.collider.gameObject.transform.parent.gameObject.GetComponent<Target>();
                     }
                     catch (NullReferenceException)
                     {
                     }
                     if (seeking != null)
                     {
-                        seeking.Hit(hit);
+                        seeking.Hit();
                     }
                 }
             }

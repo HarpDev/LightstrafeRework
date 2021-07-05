@@ -35,13 +35,13 @@ public class Rifle : WeaponManager.Gun
 
     private float _crouchFactor;
     private float _crouchReloadMod;
+    private Target closest;
 
     public bool UseSideGun
     {
         get
         {
             if (!Game.Player.jumpKitEnabled) return false;
-            //if (Game.Player.ApproachingWall) return false;
             if (_layer0Info.IsName("Unequip")) return false;
 
             if (Game.Player.IsSliding) return true;
@@ -103,6 +103,13 @@ public class Rifle : WeaponManager.Gun
     protected float leftHandFactor;
     private bool _fireInputConsumed;
 
+    private Target[] targets;
+
+    private void Start()
+    {
+        targets = FindObjectsOfType<Target>();
+    }
+
     private void Update()
     {
         if ((_layer1Info.normalizedTime <= 1 || _layer1Info.IsTag("Hold")) && _layer1Info.speed > 0)
@@ -116,27 +123,37 @@ public class Rifle : WeaponManager.Gun
         }
         animator.SetLayerWeight(1, leftHandFactor);
 
-        /*if (_layer1Info.IsName("AbilityCatch") && _layer1Info.normalizedTime < 1)
-        {
-            animator.SetLayerWeight(1, _catchWeight);
-
-            var f = 1 - _layer1Info.normalizedTime;
-            f -= 0.5f;
-            f *= 5;
-            f = Mathf.Max(0, f);
-            f = Mathf.Min(1, f);
-            _catchWeight = Mathf.Lerp(_catchWeight, f, Time.deltaTime * 20);
-        }
-        else
-        {
-            animator.SetLayerWeight(1, 0);
-        }*/
         animatedBoomerang.GetComponent<SkinnedMeshRenderer>().enabled = boomerangVisible;
+
+        var minAngleDiff = float.MaxValue;
+        closest = null;
+        foreach (var t in targets)
+        {
+            if (t == null) continue;
+            var d = t.transform.position - Game.Player.camera.transform.position;
+            if (d.magnitude > 100) continue;
+            var angleDiff = Vector3.Angle(Game.Player.CrosshairDirection, d);
+            if (angleDiff > 60) continue;
+            if (angleDiff < minAngleDiff)
+            {
+                minAngleDiff = angleDiff;
+                closest = t;
+            }
+        }
+
+        if (closest != null)
+        {
+            var crosshairpos = Game.Player.camera.WorldToScreenPoint(closest.transform.position);
+            Game.Canvas.crosshair.transform.position = crosshairpos;
+        } else
+        {
+            Game.Canvas.crosshair.transform.localPosition = Vector3.zero;
+        }
 
         if (_fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
         if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !animator.GetBool("Reload") && !_fireInputConsumed)
         {
-            Fire(QueryTriggerInteraction.Collide);
+            Fire(QueryTriggerInteraction.Collide, closest == null ? Game.Player.CrosshairDirection : toTargetVector);
             _fireInputConsumed = true;
 
             Game.Player.audioManager.PlayOneShot(fireSound);
@@ -148,7 +165,7 @@ public class Rifle : WeaponManager.Gun
             }
         }
 
-        if (PlayerInput.GetKeyDown(PlayerInput.TertiaryInteract) && Time.timeScale > 0 && boomerangAvailable)
+        /*if (PlayerInput.GetKeyDown(PlayerInput.TertiaryInteract) && Time.timeScale > 0 && boomerangAvailable)
         {
             if (animator != null)
             {
@@ -156,47 +173,11 @@ public class Rifle : WeaponManager.Gun
                 boomerangVisible = true;
                 boomerangAvailable = false;
             }
-        }
-
-        /*if (PlayerInput.GetKeyDown(PlayerInput.PrimaryInteract))
-        {
-            startTrace = Game.Player.CrosshairDirection;
-        }
-        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract))
-        {
-            var img = Game.Canvas.crosshair;
-
-            var start = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + startTrace);
-            var end = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + Game.Player.CrosshairDirection);
-
-            img.transform.position = Vector3.LerpUnclamped(start, end, 2f);
-
-        }
-        if (PlayerInput.GetKeyUp(PlayerInput.PrimaryInteract))
-        {
-            var start = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + startTrace);
-            var end = Game.Player.camera.WorldToScreenPoint(Game.Player.camera.transform.position + Game.Player.CrosshairDirection);
-
-            var check = Vector3.LerpUnclamped(start, end, 2f);
-
-            var rayDir = Game.Player.camera.ScreenToWorldPoint(check) - Game.Player.camera.transform.position;
-
-            var doReload = true;
-            Fire(QueryTriggerInteraction.Collide, ref doReload, rayDir);
-
-            Game.Player.audioManager.PlayOneShot(fireSound);
-
-            if (animator != null)
-            {
-                animator.Play("Fire", -1, 0f);
-                animator.SetBool("Reload", doReload);
-            }
-
-            Game.Canvas.crosshair.gameObject.transform.localPosition = Vector3.zero;
         }*/
     }
 
-    private Vector3 startTrace;
+    private float aimFactor;
+    private Vector3 toTargetVector;
 
     private void LateUpdate()
     {
@@ -255,17 +236,33 @@ public class Rifle : WeaponManager.Gun
         var swingAxis = center.right;
         var tiltAxis = center.forward;
 
-        /*if (_layer0Info.IsTag("Reload"))
-            _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, crouchAmt, Time.deltaTime * 4);
-        else
-            _crouchReloadMod = Mathf.Lerp(_crouchReloadMod, 0, Time.deltaTime * 2);*/
-
         tilt += 5 * _crouchReloadMod;
         localup -= 0.02f * _crouchReloadMod;
         localright -= 0.005f * _crouchReloadMod;
         roll -= 5 * _crouchReloadMod;
 
         roll += Game.Player.CameraRoll / 2;
+
+        if (closest != null)
+        {
+            aimFactor = Mathf.Lerp(aimFactor, 1, Time.deltaTime * 10);
+            toTargetVector = closest.transform.position - Game.Player.camera.transform.position;
+        } else
+        {
+            aimFactor = Mathf.Lerp(aimFactor, 0, Time.deltaTime * 10);
+        }
+
+        if (toTargetVector.magnitude > 0)
+        {
+            var aimT = Mathf.Atan2(Game.Player.CrosshairDirection.z, Game.Player.CrosshairDirection.x);
+            var targetT = Mathf.Atan2(toTargetVector.z, toTargetVector.x);
+            swing += Mathf.Rad2Deg * ((targetT - aimT) / 3.5f) * aimFactor;
+
+            var aimP = Mathf.Acos(Game.Player.CrosshairDirection.y / Game.Player.CrosshairDirection.magnitude);
+            var targetP = Mathf.Acos(toTargetVector.y / toTargetVector.magnitude);
+            tilt += Mathf.Rad2Deg * ((aimP - targetP) / 3.5f) * aimFactor;
+            tilt += 1 * aimFactor;
+        }
 
         var barrelPosition = barrel.position;
         var centerPosition = center.position;

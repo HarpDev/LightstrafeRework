@@ -13,13 +13,13 @@ public class BoomerangProjectile : MonoBehaviour
 
     private float curve = 5f;
 
-    private SeekingDestructable nearest;
+    private Target nearest;
 
     private Vector3[] path;
 
     private void Start()
     {
-        var targets = FindObjectsOfType<SeekingDestructable>();
+        var targets = FindObjectsOfType<Target>();
 
         foreach (var obj in targets)
         {
@@ -114,7 +114,7 @@ public class BoomerangProjectile : MonoBehaviour
             else
             {
                 if (nearest != null)
-                    nearest.HitArbitrary();
+                    nearest.Hit();
                 hitTarget = true;
             }
         }

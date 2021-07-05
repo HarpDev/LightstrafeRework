@@ -63,12 +63,6 @@ public class Arrow : MonoBehaviour
         if (!Fired || Hit) return;
         if (collision.collider.isTrigger) return;
 
-        var goo = collision.collider.gameObject.GetComponent<Goo>();
-        if (goo != null)
-        {
-            goo.Hit(rigidbody.velocity, collision.GetContact(0).point);
-        }
-
         transform.position = collision.GetContact(0).point;
         Hit = true;
         _hitTransform = collision.transform;

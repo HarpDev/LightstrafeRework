@@ -26,13 +26,13 @@ public class Rings : MonoBehaviour
 
     private bool _shootRight = true;
 
-    public List<Platform> ThrowQueue { get; set; }
+    //public List<Platform> ThrowQueue { get; set; }
 
     public static bool Fire { get; set; }
 
     private void Start()
     {
-        ThrowQueue = new List<Platform>();
+        //ThrowQueue = new List<Platform>();
         _rightAvailable = true;
         _leftAvailable = true;
         //Time.timeScale = 0.1f;
@@ -72,8 +72,8 @@ public class Rings : MonoBehaviour
         {
             _throttle = false;
         }
-        if (ThrowQueue != null && ThrowQueue.Count > 0 && Time.timeScale > 0 && ((_rightInfo.IsName("Idle") && _rightAvailable) && (_leftInfo.IsName("Idle") && _leftAvailable)))
-        {
+        //if (ThrowQueue != null && ThrowQueue.Count > 0 && Time.timeScale > 0 && ((_rightInfo.IsName("Idle") && _rightAvailable) && (_leftInfo.IsName("Idle") && _leftAvailable)))
+        //{
             //var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
 
             //var projection = Vector3.Dot(player.velocity, player.CrosshairDirection);
@@ -97,12 +97,12 @@ public class Rings : MonoBehaviour
             }
 
             _shootRight = !_shootRight;
-        }
+        //}
     }
 
     public void Throw(float angle, Transform sphereTransform, Camera viewModel, bool flip)
     {
-        var target = ThrowQueue[0];
+        GameObject target = null;//ThrowQueue[0];
         var screen = viewModel.WorldToViewportPoint(sphereTransform.position);
 
         if (flip) angle = -angle;
@@ -115,11 +115,11 @@ public class Rings : MonoBehaviour
 
         var vector = (up * x) + (right * y);
 
-        target.BeginLight(Game.Player.camera.ViewportToWorldPoint(screen), vector);
+        //target.BeginLight(Game.Player.camera.ViewportToWorldPoint(screen), vector);
 
         rightSphere.enabled = false;
         leftSphere.enabled = false;
-        ThrowQueue.RemoveAt(0);
+        //ThrowQueue.RemoveAt(0);
     }
 
     private static Vector3 Flatten(Vector3 vec)
