@@ -103,6 +103,8 @@ MonoBehaviour:
   barrel: {fileID: 8058426446976983602}
   center: {fileID: 3924391528463423810}
   stock: {fileID: 2448774521916332651}
+  rifleMesh: {fileID: 1281424776885309247}
+  poweredUpMaterial: {fileID: 2100000, guid: bb6bda89e9f252245911d9b50557ceb9, type: 2}
 --- !u!114 &1047145821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -815,6 +817,12 @@ GameObject:
 --- !u!4 &2448774521916332651 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -7125017642877373588, guid: 490f8b0324aa631408b1aea0efc90d93,
+    type: 3}
+  m_PrefabInstance: {fileID: 4387932379327408391}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &1281424776885309247 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -5967946480477231560, guid: 490f8b0324aa631408b1aea0efc90d93,
     type: 3}
   m_PrefabInstance: {fileID: 4387932379327408391}
   m_PrefabAsset: {fileID: 0}

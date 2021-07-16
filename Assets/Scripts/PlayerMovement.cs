@@ -1160,6 +1160,24 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // Returns speed gain
+    public float Accelerate(Vector3 wishdir, float speed, float acceleration, float f = 1)
+    {
+        var currentspeed = Vector3.Dot(velocity, wishdir.normalized);
+        var addspeed = Mathf.Abs(speed) - currentspeed;
+
+        if (addspeed <= 0)
+            return 0f;
+
+        var accelspeed = acceleration * f * speed;
+        if (accelspeed > addspeed)
+            accelspeed = addspeed;
+
+        velocity += accelspeed * wishdir;
+
+        return accelspeed;
+    }
+
     /*
 ░█████╗░██╗██████╗░███╗░░░███╗░█████╗░██╗░░░██╗███████╗
 ██╔══██╗██║██╔══██╗████╗░████║██╔══██╗██║░░░██║██╔════╝
@@ -1395,24 +1413,6 @@ public class PlayerMovement : MonoBehaviour
         var y = velocity.y;
         velocity = Flatten(velocity).normalized * newspeed;
         velocity.y = y;
-    }
-
-    // Returns speed gain
-    public float Accelerate(Vector3 wishdir, float speed, float acceleration, float f = 1)
-    {
-        var currentspeed = Vector3.Dot(velocity, wishdir.normalized);
-        var addspeed = Mathf.Abs(speed) - currentspeed;
-
-        if (addspeed <= 0)
-            return 0f;
-
-        var accelspeed = acceleration * f * speed;
-        if (accelspeed > addspeed)
-            accelspeed = addspeed;
-
-        velocity += accelspeed * wishdir;
-
-        return accelspeed;
     }
 
     /*

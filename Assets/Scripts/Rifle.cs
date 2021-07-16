@@ -23,6 +23,8 @@ public class Rifle : WeaponManager.Gun
     public Transform center;
     public Transform stock;
 
+    public SkinnedMeshRenderer rifleMesh;
+
     private const float crouchPositionSpeed = 4;
 
     private float _upChange;
@@ -110,6 +112,9 @@ public class Rifle : WeaponManager.Gun
         targets = FindObjectsOfType<Target>();
     }
 
+    private float powered;
+    private float poweredEffect;
+
     private void Update()
     {
         if ((_layer1Info.normalizedTime <= 1 || _layer1Info.IsTag("Hold")) && _layer1Info.speed > 0)
@@ -133,7 +138,7 @@ public class Rifle : WeaponManager.Gun
             var d = t.transform.position - Game.Player.camera.transform.position;
             if (d.magnitude > 100) continue;
             var angleDiff = Vector3.Angle(Game.Player.CrosshairDirection, d);
-            if (angleDiff > 60) continue;
+            if (angleDiff > 20) continue;
             if (angleDiff < minAngleDiff)
             {
                 minAngleDiff = angleDiff;
@@ -143,29 +148,51 @@ public class Rifle : WeaponManager.Gun
 
         if (closest != null)
         {
-            var crosshairpos = Game.Player.camera.WorldToScreenPoint(closest.transform.position);
-            Game.Canvas.crosshair.transform.position = crosshairpos;
+            //var crosshairpos = Game.Player.camera.WorldToScreenPoint(closest.transform.position);
+            //Game.Canvas.crosshair.transform.position = crosshairpos;
         } else
         {
-            Game.Canvas.crosshair.transform.localPosition = Vector3.zero;
+            //Game.Canvas.crosshair.transform.localPosition = Vector3.zero;
+        }
+
+        if (powered > 0)
+        {
+            powered -= Time.deltaTime;
+            if (powered <= 0)
+            {
+                animator.SetBool("Reload", true);
+            }
+            poweredEffect = Mathf.Lerp(poweredEffect, 1, Time.deltaTime * 20);
+        } else
+        {
+            poweredEffect = Mathf.Lerp(poweredEffect, 0, Time.deltaTime * 10);
+        }
+
+        rifleMesh.material.SetColor("_EmissionColor", Color.cyan * poweredEffect);
+        if (poweredEffect > 0)
+        {
+            rifleMesh.material.EnableKeyword("_EMISSION");
+        } else
+        {
+            rifleMesh.material.DisableKeyword("_EMISSION");
         }
 
         if (_fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
         if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !animator.GetBool("Reload") && !_fireInputConsumed)
         {
-            Fire(QueryTriggerInteraction.Collide, closest == null ? Game.Player.CrosshairDirection : toTargetVector);
+            Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
             _fireInputConsumed = true;
 
             Game.Player.audioManager.PlayOneShot(fireSound);
+            powered = 2f;
 
             if (animator != null)
             {
                 animator.Play("Fire", -1, 0f);
-                animator.SetBool("Reload", true);
             }
         }
 
-        /*if (PlayerInput.GetKeyDown(PlayerInput.TertiaryInteract) && Time.timeScale > 0 && boomerangAvailable)
+        if (PlayerInput.GetKeyDown(PlayerInput.TertiaryInteract) && Time.timeScale > 0 && boomerangAvailable)
         {
             if (animator != null)
             {
@@ -173,7 +200,7 @@ public class Rifle : WeaponManager.Gun
                 boomerangVisible = true;
                 boomerangAvailable = false;
             }
-        }*/
+        }
     }
 
     private float aimFactor;
@@ -243,7 +270,7 @@ public class Rifle : WeaponManager.Gun
 
         roll += Game.Player.CameraRoll / 2;
 
-        if (closest != null)
+        /*if (closest != null)
         {
             aimFactor = Mathf.Lerp(aimFactor, 1, Time.deltaTime * 10);
             toTargetVector = closest.transform.position - Game.Player.camera.transform.position;
@@ -262,7 +289,7 @@ public class Rifle : WeaponManager.Gun
             var targetP = Mathf.Acos(toTargetVector.y / toTargetVector.magnitude);
             tilt += Mathf.Rad2Deg * ((aimP - targetP) / 3.5f) * aimFactor;
             tilt += 1 * aimFactor;
-        }
+        }*/
 
         var barrelPosition = barrel.position;
         var centerPosition = center.position;

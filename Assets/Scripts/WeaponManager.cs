@@ -113,7 +113,7 @@ public class WeaponManager : MonoBehaviour
             return world;
         }
 
-        public void Fire(QueryTriggerInteraction triggerInteraction, Vector3 direction)
+        public bool Fire(QueryTriggerInteraction triggerInteraction, Vector3 direction)
         {
             var obj = new GameObject("Tracer");
             obj.AddComponent<TracerDecay>();
@@ -125,24 +125,27 @@ public class WeaponManager : MonoBehaviour
             line.endWidth = 0.1f;
             line.startWidth = 0.1f;
             line.SetPositions(positions);
+            var didhit = false;
             foreach (var hit in Physics.RaycastAll(Game.Player.camera.transform.position, direction, 300, 1, triggerInteraction))
             {
                 if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
                 {
-                    var seeking = hit.collider.gameObject.GetComponent<Target>();
+                    var target = hit.collider.gameObject.GetComponent<Target>();
                     try
                     {
-                        if (seeking == null) seeking = hit.collider.gameObject.transform.parent.gameObject.GetComponent<Target>();
+                        if (target == null) target = hit.collider.gameObject.transform.parent.gameObject.GetComponent<Target>();
                     }
                     catch (NullReferenceException)
                     {
                     }
-                    if (seeking != null)
+                    if (target != null)
                     {
-                        seeking.Hit();
+                        target.Hit();
+                        didhit = true;
                     }
                 }
             }
+            return didhit;
         }
 
         public void DoAbilityCatch()
