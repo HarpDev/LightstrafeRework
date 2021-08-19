@@ -61,6 +61,8 @@ public class PlayerMovement : MonoBehaviour
     public bool DoubleJumpAvailable { get; set; }
     public bool DashAvailable { get; set; }
 
+    byte crosshairColor = 255;
+
     /* Audio */
     public AudioClip jump;
     public AudioClip jumpair;
@@ -194,13 +196,18 @@ public class PlayerMovement : MonoBehaviour
             Pitch = Mathf.Min(Pitch, 90);
         }
 
+        // change rotation and color of the crosshair when dash is used
+        Game.Canvas.crosshair.color = new Color32(crosshairColor, crosshairColor, crosshairColor, 255);
+
         if (DashAvailable)
         {
             Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0, Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 45, Time.deltaTime * 20));
+            crosshairColor = (byte)Mathf.Lerp(crosshairColor, 255, Time.deltaTime * 20);
         }
         else
         {
             Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0, Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 0, Time.deltaTime * 20));
+            crosshairColor = (byte)Mathf.Lerp(crosshairColor, 100, Time.deltaTime * 20);
         }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
