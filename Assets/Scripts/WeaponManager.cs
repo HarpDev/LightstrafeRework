@@ -12,13 +12,15 @@ public class WeaponManager : MonoBehaviour
 
     private Dictionary<GunType, Dictionary<string, object>> parameters = new Dictionary<GunType, Dictionary<string, object>>();
 
+    public GunType StartGun = GunType.Rifle;
+
     public Gun EquippedGun { get; set; }
     private Quaternion _startRotation;
     private GunType? gunToEquip;
 
     public enum GunType
     {
-        Rifle, Pistol
+        Rifle, Pistol, Cannon
     }
 
     public void EquipGun(GunType? type)
@@ -33,7 +35,8 @@ public class WeaponManager : MonoBehaviour
 
     private void Start()
     {
-        EquipGun(GunType.Rifle);
+        EquipGun(StartGun);
+        //EquipGun(GunType.Cannon);
     }
 
     private bool cycleOnNextTimestep;
