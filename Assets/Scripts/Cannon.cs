@@ -15,50 +15,55 @@ public class Cannon : WeaponManager.Gun
     public Transform center;
     public Transform stock;
 
-    private const float crouchPositionSpeed = 4;
+    private const float CROUCH_POSITION_SPEED = 4;
 
-    private float _upChange;
-    private float _upSoften;
-    private float _rightChange;
-    private float _rightSoften;
-    private float _forward;
+    private float upChange;
+    private float upSoften;
+    private float rightChange;
+    private float rightSoften;
+    private float forward;
 
-    private Vector3 _prevVelocity;
+    private Vector3 prevVelocity;
 
-    private float _crouchFactor;
-    private float _crouchReloadMod;
+    private float crouchFactor;
+    private float crouchReloadMod;
 
     public bool UseSideGun
     {
         get
         {
             if (!Game.Player.jumpKitEnabled) return false;
-            if (_layer0Info.IsName("Unequip")) return false;
+            if (layer0Info.IsName("Unequip")) return false;
 
             if (Game.Player.IsSliding) return true;
             return false;
         }
     }
 
-    private AnimatorStateInfo _layer0Info;
-    private AnimatorStateInfo _layer1Info;
+    private AnimatorStateInfo layer0Info;
+    private AnimatorStateInfo layer1Info;
 
     private void FixedUpdate()
     {
         if (animator == null) return;
-        _layer0Info = animator.GetCurrentAnimatorStateInfo(0);
-        _layer1Info = animator.GetCurrentAnimatorStateInfo(1);
+        layer0Info = animator.GetCurrentAnimatorStateInfo(0);
+        layer1Info = animator.GetCurrentAnimatorStateInfo(1);
     }
 
-    protected float leftHandFactor;
-    private bool _fireInputConsumed;
+    private float leftHandFactor;
+    private bool fireInputConsumed;
+
+    public Cannon(float crouchReloadMod)
+    {
+        this.crouchReloadMod = crouchReloadMod;
+    }
 
     private void Update()
     {
-        if ((_layer1Info.normalizedTime <= 1 || _layer1Info.IsTag("Hold")) && _layer1Info.speed > 0)
+        if ((layer1Info.normalizedTime <= 1 || layer1Info.IsTag("Hold")) && layer1Info.speed > 0)
         {
             leftHandFactor = Mathf.Lerp(leftHandFactor, 1, Time.deltaTime / 0.05f);
-            if (_layer1Info.IsTag("Instant")) leftHandFactor = 1;
+            if (layer1Info.IsTag("Instant")) leftHandFactor = 1;
         }
         else
         {
@@ -66,11 +71,11 @@ public class Cannon : WeaponManager.Gun
         }
         animator.SetLayerWeight(1, leftHandFactor);
 
-        if (_fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
-        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !_fireInputConsumed)
+        if (fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !fireInputConsumed)
         {
             Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
-            _fireInputConsumed = true;
+            fireInputConsumed = true;
 
             Game.Player.AudioManager.PlayOneShot(fireSound);
 
@@ -85,63 +90,63 @@ public class Cannon : WeaponManager.Gun
     {
         var yawMovement = Game.Player.YawIncrease;
 
-        var velocityChange = Game.Player.velocity - _prevVelocity;
+        var velocityChange = Game.Player.velocity - prevVelocity;
 
         if (UseSideGun)
         {
-            if (_crouchFactor < 1) _crouchFactor += Time.deltaTime * crouchPositionSpeed;
+            if (crouchFactor < 1) crouchFactor += Time.deltaTime * CROUCH_POSITION_SPEED;
         }
-        else if (_crouchFactor > 0) _crouchFactor -= Time.deltaTime * crouchPositionSpeed;
-        _crouchFactor = Mathf.Max(0, Mathf.Min(1, _crouchFactor));
+        else if (crouchFactor > 0) crouchFactor -= Time.deltaTime * CROUCH_POSITION_SPEED;
+        crouchFactor = Mathf.Max(0, Mathf.Min(1, crouchFactor));
 
-        var crouchAmt = -(Mathf.Cos(Mathf.PI * _crouchFactor) - 1) / 2;
+        var crouchAmt = -(Mathf.Cos(Mathf.PI * crouchFactor) - 1) / 2;
 
-        _upChange -= velocityChange.y / 15;
-        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
+        upChange -= velocityChange.y / 15;
+        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
         else
         {
-            _upChange -= velocityChange.y / Mathf.Lerp(25, 50, crouchAmt);
+            upChange -= velocityChange.y / Mathf.Lerp(25, 50, crouchAmt);
         }
 
-        _rightChange -= yawMovement / 3;
+        rightChange -= yawMovement / 3;
 
-        _rightChange = Mathf.Lerp(_rightChange, 0, Time.deltaTime * 20);
-        _upChange = Mathf.Lerp(_upChange, 0, Time.deltaTime * 8);
+        rightChange = Mathf.Lerp(rightChange, 0, Time.deltaTime * 20);
+        upChange = Mathf.Lerp(upChange, 0, Time.deltaTime * 8);
 
-        _rightSoften = Mathf.Lerp(_rightSoften, _rightChange, Time.deltaTime * 20);
+        rightSoften = Mathf.Lerp(rightSoften, rightChange, Time.deltaTime * 20);
 
-        if (_upSoften > _upChange)
+        if (upSoften > upChange)
         {
-            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 10);
+            upSoften = Mathf.Lerp(upSoften, upChange, Time.deltaTime * 10);
         }
         else
         {
-            _upSoften = Mathf.Lerp(_upSoften, _upChange, Time.deltaTime * 5);
+            upSoften = Mathf.Lerp(upSoften, upChange, Time.deltaTime * 5);
         }
-        _upSoften = Mathf.Clamp(_upSoften, -1.3f, 1.3f);
+        upSoften = Mathf.Clamp(upSoften, -1.3f, 1.3f);
 
-        _prevVelocity = Game.Player.velocity;
+        prevVelocity = Game.Player.velocity;
 
-        if (Game.Player.IsDashing) _forward += Time.deltaTime / 1.2f;
-        _forward = Mathf.Lerp(_forward, 0, Time.deltaTime * 8);
+        if (Game.Player.IsDashing) forward += Time.deltaTime / 1.2f;
+        forward = Mathf.Lerp(forward, 0, Time.deltaTime * 8);
 
-        var localforward = _forward;
+        var localforward = forward;
         var localright = -0.02f * crouchAmt;
         var localup = Mathf.Lerp(0, 0.02f, crouchAmt);
-        var globalup = _upSoften / 15;
+        var globalup = upSoften / 15;
 
-        var roll = Mathf.Lerp(_rightSoften, 60, crouchAmt);
-        var swing = _rightSoften / Mathf.Lerp(10, 5, crouchAmt);
-        var tilt = _upSoften < 0 ? _upSoften * 10 : _upSoften;
+        var roll = Mathf.Lerp(rightSoften, 60, crouchAmt);
+        var swing = rightSoften / Mathf.Lerp(10, 5, crouchAmt);
+        var tilt = upSoften < 0 ? upSoften * 10 : upSoften;
 
         var rollAxis = center.up;
         var swingAxis = center.right;
         var tiltAxis = center.forward;
 
-        tilt += 5 * _crouchReloadMod;
-        localup -= 0.02f * _crouchReloadMod;
-        localright -= 0.005f * _crouchReloadMod;
-        roll -= 5 * _crouchReloadMod;
+        tilt += 5 * crouchReloadMod;
+        localup -= 0.02f * crouchReloadMod;
+        localright -= 0.005f * crouchReloadMod;
+        roll -= 5 * crouchReloadMod;
 
         roll += Game.Player.CameraRoll / 2;
 

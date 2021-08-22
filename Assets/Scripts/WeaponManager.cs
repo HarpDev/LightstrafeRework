@@ -13,15 +13,15 @@ public class WeaponManager : MonoBehaviour
 
     private Dictionary<GunType, Dictionary<string, object>> parameters = new Dictionary<GunType, Dictionary<string, object>>();
 
-    [FormerlySerializedAs("StartGun")] public GunType startGun = GunType.Rifle;
+    public GunType startGun = GunType.Rifle;
 
-    public Gun EquippedGun { get; set; }
+    public Gun EquippedGun { get; private set; }
     private Quaternion startRotation;
     private GunType? gunToEquip;
 
     public enum GunType
     {
-        Rifle, Pistol, Cannon
+        Rifle, Pistol, Cannon, None
     }
 
     public void EquipGun(GunType? type)
@@ -32,6 +32,21 @@ public class WeaponManager : MonoBehaviour
             EquippedGun.Unequip();
         }
         gunToEquip = type;
+    }
+
+    public void WallStop()
+    {
+        if (EquippedGun != null) EquippedGun.WallStop();
+    }
+
+    public void LeftWallStart()
+    {
+        if (EquippedGun != null) EquippedGun.LeftWallStart();
+    }
+
+    public void RightWallStart()
+    {
+        if (EquippedGun != null) EquippedGun.RightWallStart();
     }
 
     private void Start()

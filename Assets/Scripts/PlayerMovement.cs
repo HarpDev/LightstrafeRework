@@ -1354,11 +1354,11 @@ public class PlayerMovement : MonoBehaviour
             {
                 if (cameraRotation < 0)
                 {
-                    weaponManager.EquippedGun.LeftWallStart();
+                    weaponManager.LeftWallStart();
                 }
                 else
                 {
-                    weaponManager.EquippedGun.RightWallStart();
+                    weaponManager.RightWallStart();
                 }
             }
 
@@ -1382,7 +1382,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            weaponManager.EquippedGun.WallStop();
+            weaponManager.WallStop();
             ApproachingWall = false;
             if (wallLeanAmount > 0)
             {
