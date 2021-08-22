@@ -1474,11 +1474,11 @@ public class PlayerMovement : MonoBehaviour
 
     public void GravityTick(float f)
     {
-        if (bonusGravityCooldownTicks == 0 &&
+        /*if (bonusGravityCooldownTicks == 0 &&
             rigidbody.SweepTest(Vector3.down, out var hit, 20, QueryTriggerInteraction.Ignore) &&
             !hit.collider.CompareTag("Uninteractable"))
             velocity.y -= Gravity * f * 2;
-        else
+        else*/
             velocity.y -= Gravity * f;
     }
 
