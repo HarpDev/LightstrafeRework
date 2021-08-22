@@ -104,7 +104,6 @@ MonoBehaviour:
   center: {fileID: 3924391528463423810}
   stock: {fileID: 2448774521916332651}
   rifleMesh: {fileID: 1281424776885309247}
-  poweredUpMaterial: {fileID: 2100000, guid: bb6bda89e9f252245911d9b50557ceb9, type: 2}
 --- !u!114 &1047145821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -117,7 +116,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 948f4100a11a5c24981795d21301da5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volumeTrigger: {fileID: 0}
+  volumeTrigger: {fileID: 6851740816718508366}
   volumeLayer:
     serializedVersion: 2
     m_Bits: 1024
@@ -739,6 +738,12 @@ GameObject:
 --- !u!1 &4326971133238525803 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 65702495048144492, guid: 490f8b0324aa631408b1aea0efc90d93,
+    type: 3}
+  m_PrefabInstance: {fileID: 4387932379327408391}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6851740816718508366 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2021178655527167927, guid: 490f8b0324aa631408b1aea0efc90d93,
     type: 3}
   m_PrefabInstance: {fileID: 4387932379327408391}
   m_PrefabAsset: {fileID: 0}

@@ -27,7 +27,7 @@ public class Target : MonoBehaviour
         var towardPlayer = playerTarget - transform.position;
         if (towardPlayer.magnitude >= armDistance) return;
         Game.Canvas.hitmarker.Display();
-        Game.Player.audioManager.PlayOneShot(hitSound);
+        Game.Player.AudioManager.PlayOneShot(hitSound);
         Destroy(gameObject);
     }
 

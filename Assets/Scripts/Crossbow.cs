@@ -151,7 +151,7 @@ public class Crossbow : MonoBehaviour
             if (projection < 1) projection = 1;
             proj.Fire(player.CrosshairDirection * projection, player.camera.transform.position, barrel.position);
 
-            player.audioManager.PlayOneShot(fireSound);
+            player.AudioManager.PlayOneShot(fireSound);
 
             _fireKick = 3;
 

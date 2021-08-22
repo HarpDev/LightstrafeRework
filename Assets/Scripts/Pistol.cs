@@ -91,7 +91,7 @@ public class Pistol : WeaponManager.Gun
 
             Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
 
-            Game.Player.audioManager.PlayOneShot(fireSound);
+            Game.Player.AudioManager.PlayOneShot(fireSound);
             _fireInputConsumed = true;
 
             if (animator != null)

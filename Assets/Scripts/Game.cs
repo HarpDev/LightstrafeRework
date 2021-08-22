@@ -188,7 +188,7 @@ public class Game : MonoBehaviour
         _inputAlreadyTaken = true;
         if (UiTree.Count > 0)
         {
-            if (UiTree.Count == 1 && player != null && player.IsPaused() && LevelFinished) return;
+            if (UiTree.Count == 1 && player != null && PlayerMovement.IsPaused() && LevelFinished) return;
             var obj = UiTree[UiTree.Count - 1];
             UiTree.RemoveAt(UiTree.Count - 1);
             Destroy(obj.gameObject);

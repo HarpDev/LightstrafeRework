@@ -11,7 +11,7 @@ public class PistolOrb : MonoBehaviour
         if (hit.collider.gameObject != gameObject) return;
 
         Game.Canvas.hitmarker.Display();
-        Game.Player.audioManager.PlayOneShot(hitSound);
+        Game.Player.AudioManager.PlayOneShot(hitSound);
         Game.Player.weaponManager.EquipGun(WeaponManager.GunType.Pistol);
         doReload = false;
         Destroy(gameObject);

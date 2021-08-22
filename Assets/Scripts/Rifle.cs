@@ -74,22 +74,22 @@ public class Rifle : WeaponManager.Gun
 
     public void BoltUp()
     {
-        Game.Player.audioManager.PlayAudio(boltUp);
+        Game.Player.AudioManager.PlayAudio(boltUp);
     }
 
     public void BoltBack()
     {
-        Game.Player.audioManager.PlayAudio(boltBack);
+        Game.Player.AudioManager.PlayAudio(boltBack);
     }
 
     public void BoltForward()
     {
-        Game.Player.audioManager.PlayAudio(boltForward);
+        Game.Player.AudioManager.PlayAudio(boltForward);
     }
 
     public void BoltDown()
     {
-        Game.Player.audioManager.PlayAudio(boltDown);
+        Game.Player.AudioManager.PlayAudio(boltDown);
     }
 
     private AnimatorStateInfo _layer0Info;
@@ -183,7 +183,7 @@ public class Rifle : WeaponManager.Gun
             Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
             _fireInputConsumed = true;
 
-            Game.Player.audioManager.PlayOneShot(fireSound);
+            Game.Player.AudioManager.PlayOneShot(fireSound);
             powered = 2f;
 
             if (animator != null)

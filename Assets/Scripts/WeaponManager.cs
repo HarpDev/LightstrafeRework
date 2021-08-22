@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class WeaponManager : MonoBehaviour
 {
@@ -12,10 +13,10 @@ public class WeaponManager : MonoBehaviour
 
     private Dictionary<GunType, Dictionary<string, object>> parameters = new Dictionary<GunType, Dictionary<string, object>>();
 
-    public GunType StartGun = GunType.Rifle;
+    [FormerlySerializedAs("StartGun")] public GunType startGun = GunType.Rifle;
 
     public Gun EquippedGun { get; set; }
-    private Quaternion _startRotation;
+    private Quaternion startRotation;
     private GunType? gunToEquip;
 
     public enum GunType
@@ -35,7 +36,7 @@ public class WeaponManager : MonoBehaviour
 
     private void Start()
     {
-        EquipGun(StartGun);
+        EquipGun(startGun);
         //EquipGun(GunType.Cannon);
     }
 
@@ -74,7 +75,7 @@ public class WeaponManager : MonoBehaviour
                     }
                     EquippedGun.animator.Update(0);
                     EquippedGun.WeaponManager = this;
-                    _startRotation = EquippedGun.cameraBone.localRotation;
+                    startRotation = EquippedGun.cameraBone.localRotation;
                     break;
                 }
             }
@@ -85,7 +86,7 @@ public class WeaponManager : MonoBehaviour
     {
         if (EquippedGun != null)
         {
-            var rot = EquippedGun.cameraBone.localRotation * Quaternion.Inverse(_startRotation);
+            var rot = EquippedGun.cameraBone.localRotation * Quaternion.Inverse(startRotation);
             var euler = rot.eulerAngles;
             Game.Player.cameraParent.localRotation = Quaternion.Euler(euler.y, euler.z, euler.x);
         }

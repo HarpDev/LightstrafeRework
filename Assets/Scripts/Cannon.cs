@@ -72,7 +72,7 @@ public class Cannon : WeaponManager.Gun
             Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
             _fireInputConsumed = true;
 
-            Game.Player.audioManager.PlayOneShot(fireSound);
+            Game.Player.AudioManager.PlayOneShot(fireSound);
 
             if (animator != null)
             {
