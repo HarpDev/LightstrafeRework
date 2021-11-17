@@ -132,41 +132,6 @@ public class WeaponManager : MonoBehaviour
             return world;
         }
 
-        public bool Fire(QueryTriggerInteraction triggerInteraction, Vector3 direction)
-        {
-            var obj = new GameObject("Tracer");
-            obj.AddComponent<TracerDecay>();
-            var line = obj.AddComponent<LineRenderer>();
-            var positions = new Vector3[2];
-            positions[0] = GetTracerStartWorldPosition();
-            positions[1] = Game.Player.camera.transform.position + (direction * 300);
-            line.material = WeaponManager.tracerMaterial;
-            line.endWidth = 0.1f;
-            line.startWidth = 0.1f;
-            line.SetPositions(positions);
-            var didhit = false;
-            foreach (var hit in Physics.RaycastAll(Game.Player.camera.transform.position, direction, 300, 1, triggerInteraction))
-            {
-                if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
-                {
-                    var target = hit.collider.gameObject.GetComponent<Target>();
-                    try
-                    {
-                        if (target == null) target = hit.collider.gameObject.transform.parent.gameObject.GetComponent<Target>();
-                    }
-                    catch (NullReferenceException)
-                    {
-                    }
-                    if (target != null)
-                    {
-                        target.Hit();
-                        didhit = true;
-                    }
-                }
-            }
-            return didhit;
-        }
-
         public void DoAbilityCatch()
         {
             animator.Play("AbilityCatch", 1, 0f);

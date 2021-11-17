@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -103,7 +104,7 @@ public class Rifle : WeaponManager.Gun
     }
 
     protected float leftHandFactor;
-    private bool _fireInputConsumed;
+    private bool fireInputConsumed;
 
     private Target[] targets;
 
@@ -112,8 +113,7 @@ public class Rifle : WeaponManager.Gun
         targets = FindObjectsOfType<Target>();
     }
 
-    private float powered;
-    private float poweredEffect;
+    private bool shotAvailable;
 
     private void Update()
     {
@@ -155,40 +155,49 @@ public class Rifle : WeaponManager.Gun
             //Game.Canvas.crosshair.transform.localPosition = Vector3.zero;
         }
 
-        if (powered > 0)
+        if (Game.Player.IsOnGround)
         {
-            powered -= Time.deltaTime;
-            if (powered <= 0)
+            shotAvailable = true;
+        }
+
+        shotAvailable = true;
+
+        if (fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") 
+            && !animator.GetBool("Reload") && !fireInputConsumed && shotAvailable)
+            //&& (Game.Player.IsOnGround || Game.Player.IsOnWall || Game.Player.ApproachingGround || Game.Player.ApproachingWall || Game.Player.IsInCoyoteTime()))
+        {
+            shotAvailable = false;
+            //Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
+            var direction = Game.Player.CrosshairDirection;
+            var triggerInteraction = QueryTriggerInteraction.Ignore;
+            var obj = new GameObject("Tracer");
+            obj.AddComponent<TracerDecay>();
+            var line = obj.AddComponent<LineRenderer>();
+            var positions = new Vector3[2];
+            positions[0] = GetTracerStartWorldPosition();
+            
+            if (Physics.Raycast(Game.Player.camera.transform.position, direction, out var hit, 200, 1, triggerInteraction))
             {
-                animator.SetBool("Reload", true);
-            }
-            poweredEffect = Mathf.Lerp(poweredEffect, 1, Time.deltaTime * 20);
-        } else
-        {
-            poweredEffect = Mathf.Lerp(poweredEffect, 0, Time.deltaTime * 10);
-        }
-
-        rifleMesh.material.SetColor("_EmissionColor", Color.cyan * poweredEffect);
-        if (poweredEffect > 0)
-        {
-            rifleMesh.material.EnableKeyword("_EMISSION");
-        } else
-        {
-            rifleMesh.material.DisableKeyword("_EMISSION");
-        }
-
-        if (_fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) _fireInputConsumed = false;
-        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !animator.GetBool("Reload") && !_fireInputConsumed)
-        {
-            Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
-            _fireInputConsumed = true;
+                positions[1] = hit.point;
+                if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
+                {
+                    Game.Player.Teleport(hit.point);
+                }
+            } else positions[1] = Game.Player.camera.transform.position + (direction * 300);
+            line.material = WeaponManager.tracerMaterial;
+            line.endWidth = 0.1f;
+            line.startWidth = 0.1f;
+            line.SetPositions(positions);
+            fireInputConsumed = true;
 
             Game.Player.AudioManager.PlayOneShot(fireSound);
-            powered = 2f;
+            Game.Player.weaponManager.EquipGun(WeaponManager.GunType.None);
 
             if (animator != null)
             {
                 animator.Play("Fire", -1, 0f);
+                //animator.SetBool("Reload", true);
             }
         }
 

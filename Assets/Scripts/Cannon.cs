@@ -7,6 +7,8 @@ public class Cannon : WeaponManager.Gun
 
     public override WeaponManager.GunType GetGunType() => WeaponManager.GunType.Cannon;
 
+    public Projectile projectile;
+
     public AudioClip fireSound;
 
     public List<GameObject> parts;
@@ -58,6 +60,7 @@ public class Cannon : WeaponManager.Gun
         this.crouchReloadMod = crouchReloadMod;
     }
 
+    private bool shotAvailable;
     private void Update()
     {
         if ((layer1Info.normalizedTime <= 1 || layer1Info.IsTag("Hold")) && layer1Info.speed > 0)
@@ -71,10 +74,22 @@ public class Cannon : WeaponManager.Gun
         }
         animator.SetLayerWeight(1, leftHandFactor);
 
-        if (fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
-        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !fireInputConsumed)
+        if (Game.Player.IsOnGround)
         {
-            Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
+            shotAvailable = true;
+        }
+
+        if (fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
+        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !fireInputConsumed && shotAvailable)
+        {
+            shotAvailable = false;
+            //Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
+            var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
+            var screen = viewModel.WorldToViewportPoint(barrel.transform.position);
+            screen.z = 1.2f;
+            var world = Game.Player.camera.ViewportToWorldPoint(screen);
+            proj.Fire(Game.Player.CrosshairDirection * 100, Game.Player.camera.transform.position, world, 0);
+
             fireInputConsumed = true;
 
             Game.Player.AudioManager.PlayOneShot(fireSound);

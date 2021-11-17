@@ -1,15 +1,10 @@
 ﻿
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class Projectile : MonoBehaviour
 {
-
-    public delegate void ProjectileHit(RaycastHit hit);
-    //public event ProjectileHit ProjectileHitEvent;
-
     public Vector3 velocity;
-
-    private const float basespeed = 50;
 
     public ParticleSystem explodeParticle;
     public AudioSource explodeSound;
@@ -18,22 +13,23 @@ public class Projectile : MonoBehaviour
 
     public Radial radial;
 
-    private const float drop = 5f;
+    public float d = 5f;
+    private float fuse = 0.35f;
 
-    private bool _hit;
+    private bool hit;
 
-    public void Fire(Vector3 vel, Vector3 realPosition, Vector3 visualPosition)
+    public void Fire(Vector3 vel, Vector3 realPosition, Vector3 visualPosition, float drop = 5f)
     {
         transform.position = realPosition;
         visual.transform.position = visualPosition;
         velocity = vel;
-        velocity += velocity.normalized * basespeed;
+        d = drop;
         visual.transform.rotation = Quaternion.LookRotation(-velocity);
     }
 
     private void Update()
     {
-        if (_hit) return;
+        if (hit) return;
 
         visual.transform.rotation = Quaternion.Lerp(visual.transform.rotation, Quaternion.LookRotation(-velocity), Time.deltaTime * 10);
         visual.transform.position = Vector3.Lerp(visual.transform.position, transform.position, Time.deltaTime * 8);
@@ -41,14 +37,34 @@ public class Projectile : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (_hit) return;
+        if (this.hit)
+        {
+            if (fuse > 0)
+            {
+                fuse -= Time.fixedDeltaTime;
+                if (fuse <= 0)
+                {
+                    if (explodeSound != null) explodeSound.Play();
+                    
+                    var boostVector = Game.Player.transform.position - transform.position;
+                    Game.Player.velocity += Flatten(boostVector).normalized * 10;
+                    
+                    var r = Instantiate(radial.gameObject, Game.Canvas.transform).GetComponent<Radial>();
+
+                    var flatBoost = Flatten(boostVector).normalized;
+                    r.position = -(Mathf.Rad2Deg * Mathf.Atan2(flatBoost.x, flatBoost.z) - Game.Player.Yaw + 180);
+                    
+                    Destroy(this, 3f);
+                }
+            }
+            return;
+        }
 
         if (Physics.Raycast(transform.position, velocity.normalized, out var hit, velocity.magnitude * Time.fixedDeltaTime, 1, QueryTriggerInteraction.Ignore))
         {
             if (hit.collider.CompareTag("Player")) return;
-            //ProjectileHitEvent(hit);
             transform.position = hit.point;
-            _hit = true;
+            this.hit = true;
 
             visual.transform.localPosition = new Vector3();
 
@@ -57,6 +73,11 @@ public class Projectile : MonoBehaviour
             transform.position += velocity * Time.fixedDeltaTime;
         }
 
-        velocity += Vector3.down * Time.fixedDeltaTime * drop;
+        velocity += Vector3.down * Time.fixedDeltaTime * d;
+    }
+
+    private static Vector3 Flatten(Vector3 vec)
+    {
+        return new Vector3(vec.x, 0, vec.z);
     }
 }
