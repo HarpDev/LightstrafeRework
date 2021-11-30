@@ -455,6 +455,7 @@ public class PlayerMovement : MonoBehaviour
 ░╚════╝░░╚════╝░╚══════╝╚══════╝╚═╝╚═════╝░╚══════╝
     */
     private float surfAccelTime;
+
     private bool CanCollide(Component other, bool ignoreUninteractable = true)
     {
         if (other.gameObject == gameObject) return false;
@@ -1119,7 +1120,7 @@ public class PlayerMovement : MonoBehaviour
         if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) < -0.6f)
         {
             var alongView = (Wishdir - (Flatten(wallNormal).normalized *
-                                                   Vector3.Dot(Wishdir, Flatten(wallNormal).normalized)))
+                                        Vector3.Dot(Wishdir, Flatten(wallNormal).normalized)))
                 .normalized;
             Accelerate(alongView, WALL_SPEED, WALL_ACCELERATION, f);
             ApplyFriction(f * JUMP_STAMINA_RECOVERY_FRICTION);
@@ -1289,8 +1290,9 @@ public class PlayerMovement : MonoBehaviour
     */
     public bool ApproachingGround { get; set; }
     private const float AIR_SPEED = 1f;
-    private const float SIDE_AIR_ACCELERATION = 70;
+    private const float SIDE_AIR_ACCELERATION = 50;
     private const float FORWARD_AIR_ACCELERATION = 50;
+    private const float DIAGONAL_AIR_ACCEL_BONUS = 100;
     private const float BACKWARD_AIR_ACCELERATION = 35;
     private const float FINISH_HOVER_DISTANCE = 6;
     private int airTickCount;
@@ -1333,7 +1335,8 @@ public class PlayerMovement : MonoBehaviour
         if (didHit
             && Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
             && CanCollide(hit.collider, false)
-            && (hit.collider.gameObject != lastWall || Vector3.Dot(Flatten(hit.normal).normalized, lastWallNormal) < 0.7 ||
+            && (hit.collider.gameObject != lastWall ||
+                Vector3.Dot(Flatten(hit.normal).normalized, lastWallNormal) < 0.7 ||
                 WALL_ALLOW_SAME_FACING))
         {
             fromWall = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
@@ -1440,10 +1443,17 @@ public class PlayerMovement : MonoBehaviour
     public void AirAccelerate(ref Vector3 vel, float f, float accelMod = 1)
     {
         var forward = transform.forward * PlayerInput.GetAxisStrafeForward();
+        var right = transform.right * PlayerInput.GetAxisStrafeRight();
+
         var accel = FORWARD_AIR_ACCELERATION * accelMod;
         if (Vector3.Dot(Flatten(vel), forward) < 0)
         {
             accel = BACKWARD_AIR_ACCELERATION * accelMod;
+        }
+
+        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0)
+        {
+            if (Vector3.Dot(right, Flatten(vel)) < 0) accel += DIAGONAL_AIR_ACCEL_BONUS;
         }
 
         var speed = Flatten(vel).magnitude;
@@ -1455,14 +1465,14 @@ public class PlayerMovement : MonoBehaviour
             vel.y = y;
         }
 
-        if (PlayerInput.GetAxisStrafeRight() != 0)
+        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() <= 0)
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
             if (surfAccelTime > 0)
             {
                 sideaccel *= 50;
             }
-            var right = transform.right * PlayerInput.GetAxisStrafeRight();
+
             var offset = vel + right * AIR_SPEED;
             var angle = Mathf.Atan2(offset.z, offset.x) - Mathf.Atan2(vel.z, vel.x);
 
@@ -1491,7 +1501,8 @@ public class PlayerMovement : MonoBehaviour
         var lurchdirection = Flatten(velocity) + wishdir * max;
         var strengthdirection = Vector3.Lerp(Flatten(velocity), lurchdirection, strength);
 
-        var resultspeed = Mathf.Min(Vector3.Dot(strengthdirection.normalized, Flatten(velocity)), lurchdirection.magnitude);
+        var resultspeed = Mathf.Min(Vector3.Dot(strengthdirection.normalized, Flatten(velocity)),
+            lurchdirection.magnitude);
 
         var lurch = strengthdirection.normalized * resultspeed;
         velocity.x = lurch.x;
@@ -1637,12 +1648,13 @@ public class PlayerMovement : MonoBehaviour
                     AudioManager.PlayOneShot(jumpair);
                     bonusGravityCooldownTicks = 10;
                     var speed = Flatten(velocity).magnitude;
-                    
+
                     var strength = Mathf.Clamp01((1 - speed / BASE_SPEED) * 4);
                     Lurch(Wishdir, strength);
 
                     var doubleJumpSpeed = BASE_SPEED / 1.5f;
-                    if (Flatten(velocity).magnitude < doubleJumpSpeed) velocity += Wishdir * (doubleJumpSpeed - Flatten(velocity).magnitude);
+                    if (Flatten(velocity).magnitude < doubleJumpSpeed)
+                        velocity += Wishdir * (doubleJumpSpeed - Flatten(velocity).magnitude);
                 }
                 else
                 {
