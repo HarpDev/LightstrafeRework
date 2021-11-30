@@ -388,7 +388,7 @@ public class PlayerMovement : MonoBehaviour
             movement -= wallNormal * hold;
         }
 
-        againstSurface = false;
+        if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
 
         while (movement.magnitude > 0f && iterations < 5)
         {
@@ -454,7 +454,7 @@ public class PlayerMovement : MonoBehaviour
 ╚█████╔╝╚█████╔╝███████╗███████╗██║██████╔╝███████╗
 ░╚════╝░░╚════╝░╚══════╝╚══════╝╚═╝╚═════╝░╚══════╝
     */
-    private bool againstSurface;
+    private float surfAccelTime;
     private bool CanCollide(Component other, bool ignoreUninteractable = true)
     {
         if (other.gameObject == gameObject) return false;
@@ -507,7 +507,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (angle >= GROUND_ANGLE && Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
         {
-            againstSurface = true;
+            surfAccelTime = 1;
         }
 
         if (!collider.CompareTag("Uninteractable")
@@ -1458,7 +1458,7 @@ public class PlayerMovement : MonoBehaviour
         if (PlayerInput.GetAxisStrafeRight() != 0)
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
-            if (againstSurface)
+            if (surfAccelTime > 0)
             {
                 sideaccel *= 50;
             }
