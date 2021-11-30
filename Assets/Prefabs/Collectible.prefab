@@ -94,7 +94,7 @@ SphereCollider:
   m_IsTrigger: 1
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 2
+  m_Radius: 1.3
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &7997405125147528568
 MonoBehaviour:
@@ -108,3 +108,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceea513fd621e8a459a9bef6e32ad190, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  NoSprite: {fileID: 6312164794942155536, guid: 53110f92c4a1cea49874e0bca8ef544b,
+    type: 3}
+  GemSprite: {fileID: 4630737494160860582, guid: c7459f0ed384c9a4d9ac3c6f2ea83601,
+    type: 3}
+  Requires: []

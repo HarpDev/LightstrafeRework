@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Unity.UNetWeaver;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.SceneManagement;
@@ -57,7 +56,7 @@ public class PlayerMovement : MonoBehaviour
         cameraRotationSpeed = speed;
     }
 
-    public const float BASE_SPEED = 18;
+    public const float BASE_SPEED = 10;
 
     public bool DoubleJumpAvailable { get; set; }
     public bool DashAvailable { get; set; }
@@ -389,6 +388,8 @@ public class PlayerMovement : MonoBehaviour
             movement -= wallNormal * hold;
         }
 
+        againstSurface = false;
+
         while (movement.magnitude > 0f && iterations < 5)
         {
             iterations++;
@@ -453,6 +454,7 @@ public class PlayerMovement : MonoBehaviour
 ╚█████╔╝╚█████╔╝███████╗███████╗██║██████╔╝███████╗
 ░╚════╝░░╚════╝░╚══════╝╚══════╝╚═╝╚═════╝░╚══════╝
     */
+    private bool againstSurface;
     private bool CanCollide(Component other, bool ignoreUninteractable = true)
     {
         if (other.gameObject == gameObject) return false;
@@ -503,10 +505,15 @@ public class PlayerMovement : MonoBehaviour
             currentGround = collider.gameObject;
         }
 
+        if (angle >= GROUND_ANGLE && Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
+        {
+            againstSurface = true;
+        }
+
         if (!collider.CompareTag("Uninteractable")
             && Mathf.Abs(angle - 90) < WALL_VERTICAL_ANGLE_GIVE
             && !IsOnGround && jumpKitEnabled
-            && (collider.gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, wallNormal) < 0.7 ||
+            && (collider.gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.7 ||
                 WALL_ALLOW_SAME_FACING))
         {
             if (IsOnWall && Vector3.Angle(wallNormal, Flatten(normal).normalized) > 10)
@@ -1062,13 +1069,14 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_END_BOOST_SPEED = 2;
     public const float WALL_NEUTRAL_DOT = 0.9f;
     public const float WALL_LEAN_DEGREES = 15f;
-    public const float WALL_SPEED = 25;
+    public const float WALL_SPEED = 13;
     public const float WALL_ACCELERATION = 2f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 4;
     public const int WALL_FRICTION_TICKS = 20;
     public const bool WALL_ALLOW_SAME_FACING = false;
     private Vector3 wallNormal;
+    private Vector3 lastWallNormal;
     private bool wallLeanCancelled;
     private int wallTimestamp = -100000;
     private int wallTickCount;
@@ -1131,16 +1139,8 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (velocity.y < 0)
-        {
-            velocity.y = Mathf.Lerp(velocity.y, 0, f * WALL_CATCH_FRICTION);
-        }
-        else
-        {
-            GravityTick(f);
-        }
+        velocity.y = Mathf.Lerp(velocity.y, 0, f * WALL_CATCH_FRICTION);
 
-        //Time.timeScale = 0.1f;
         Accelerate(-wallNormal, 1, Gravity, f);
     }
 
@@ -1190,6 +1190,7 @@ public class PlayerMovement : MonoBehaviour
         DoubleJumpAvailable = true;
         GravityTick(f);
         lastWall = null;
+        lastWallNormal = Vector3.zero;
 
         if (!DashAvailable && lastRefreshGround != currentGround)
         {
@@ -1287,9 +1288,9 @@ public class PlayerMovement : MonoBehaviour
 ╚═╝░░╚═╝╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝░╚════╝░░░░╚═╝░░░╚══════╝
     */
     public bool ApproachingGround { get; set; }
-    private const float AIR_SPEED = 2f;
+    private const float AIR_SPEED = 1f;
     private const float SIDE_AIR_ACCELERATION = 70;
-    private const float FORWARD_AIR_ACCELERATION = 100;
+    private const float FORWARD_AIR_ACCELERATION = 50;
     private const float BACKWARD_AIR_ACCELERATION = 35;
     private const float FINISH_HOVER_DISTANCE = 6;
     private int airTickCount;
@@ -1332,7 +1333,7 @@ public class PlayerMovement : MonoBehaviour
         if (didHit
             && Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
             && CanCollide(hit.collider, false)
-            && (hit.collider.gameObject != lastWall || Vector3.Dot(Flatten(hit.normal).normalized, wallNormal) < 0.7 ||
+            && (hit.collider.gameObject != lastWall || Vector3.Dot(Flatten(hit.normal).normalized, lastWallNormal) < 0.7 ||
                 WALL_ALLOW_SAME_FACING))
         {
             fromWall = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
@@ -1457,6 +1458,10 @@ public class PlayerMovement : MonoBehaviour
         if (PlayerInput.GetAxisStrafeRight() != 0)
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
+            if (againstSurface)
+            {
+                sideaccel *= 50;
+            }
             var right = transform.right * PlayerInput.GetAxisStrafeRight();
             var offset = vel + right * AIR_SPEED;
             var angle = Mathf.Atan2(offset.z, offset.x) - Mathf.Atan2(vel.z, vel.x);
@@ -1537,8 +1542,8 @@ public class PlayerMovement : MonoBehaviour
 ╚█████╔╝╚██████╔╝██║░╚═╝░██║██║░░░░░
 ░╚════╝░░╚═════╝░╚═╝░░░░░╚═╝╚═╝░░░░░
     */
-    public const float MAX_JUMP_HEIGHT = 18f;
-    public const float MIN_JUMP_HEIGHT = 16f;
+    public const float MAX_JUMP_HEIGHT = 16f;
+    public const float MIN_JUMP_HEIGHT = 14f;
     public const int JUMP_STAMINA_RECOVERY_TICKS = 5;
     public const float JUMP_STAMINA_RECOVERY_FRICTION = 3;
     public const int COYOTE_TICKS = 20;
@@ -1600,6 +1605,7 @@ public class PlayerMovement : MonoBehaviour
                 wallLeanCancelled = false;
 
                 lastWall = currentWall;
+                lastWallNormal = wallNormal;
 
                 var y = velocity.y;
                 var velDirection = Flatten(velocity).normalized;
