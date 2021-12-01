@@ -71,6 +71,8 @@ public class Collectible : MonoBehaviour
             Game.EndTimer();
         }
         
+        Game.Player.AudioManager.PlayOneShot(Game.Player.wow);
+        
         Destroy(gameObject);
     }
 }

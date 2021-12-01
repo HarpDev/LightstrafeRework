@@ -13,11 +13,13 @@ public class PlayerAudioManager : MonoBehaviour
             this.obj = obj;
             this.volume = volume;
         }
+
         public GameObject obj;
         public float volume;
     }
 
     int i = 0;
+
     public void PlayOneShot(AudioClip clip, bool looping = false, float volume = 1)
     {
         var name = clip.name + i++;
@@ -44,6 +46,7 @@ public class PlayerAudioManager : MonoBehaviour
         {
             StopAudio(clip);
         }
+
         var obj = new GameObject("Audio-" + clip.name);
         obj.transform.parent = gameObject.transform;
         obj.transform.localPosition = Vector3.zero;
@@ -56,6 +59,34 @@ public class PlayerAudioManager : MonoBehaviour
         audio.Play();
 
         var playing = new PlayingAudio(obj, volume);
+
+        playingAudio[clip.name] = playing;
+    }
+
+    private GameObject music;
+    private AudioClip musicLoop;
+
+    public void PlayMusic(AudioClip clip, AudioClip loop)
+    {
+        if (music != null)
+        {
+            Destroy(music);
+        }
+
+        music = new GameObject("Music-" + clip.name);
+        music.transform.parent = gameObject.transform;
+        music.transform.localPosition = Vector3.zero;
+
+        musicLoop = loop;
+
+        var audio = music.AddComponent<AudioSource>();
+        audio.clip = clip;
+        audio.volume = Game.SoundVolume;
+        audio.pitch = Time.timeScale;
+        audio.loop = false;
+        audio.Play();
+
+        var playing = new PlayingAudio(music, Game.MusicVolume);
 
         playingAudio[clip.name] = playing;
     }
@@ -84,11 +115,26 @@ public class PlayerAudioManager : MonoBehaviour
 
     private void Update()
     {
+        if (music != null)
+        {
+            var m = music.GetComponent<AudioSource>();
+            if (!m.isPlaying)
+            {
+                m.clip = musicLoop;
+                m.loop = true;
+                m.Play();
+            }
+        }
+
         foreach (KeyValuePair<string, PlayingAudio> e in playingAudio)
         {
             var playing = e.Value;
             var source = playing.obj.GetComponent<AudioSource>();
             source.pitch = Time.timeScale;
+            if (e.Value.obj == music)
+            {
+                playing.volume = Game.MusicVolume;
+            }
             source.volume = Game.SoundVolume * playing.volume;
         }
     }
@@ -99,12 +145,14 @@ public class PlayerAudioManager : MonoBehaviour
         var toRemove = new List<string>();
         while (e.MoveNext())
         {
+            if (e.Current.Value.obj == music) continue;
             if (!e.Current.Value.obj.GetComponent<AudioSource>().isPlaying)
             {
                 toRemove.Add(e.Current.Key);
                 Destroy(e.Current.Value.obj);
             }
         }
+
         foreach (var remove in toRemove)
         {
             playingAudio.Remove(remove);

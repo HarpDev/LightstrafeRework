@@ -76,6 +76,10 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip railLand;
     public AudioClip railDuring;
     public AudioClip railEnd;
+    public AudioClip wow;
+
+    public AudioClip music1;
+    public AudioClip music2;
 
     public static bool IsPaused()
     {
@@ -127,6 +131,7 @@ public class PlayerMovement : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        Game.Player.AudioManager.PlayMusic(music1, music2);
 
         grappleTether.useWorldSpace = false;
         grappleTether.enabled = false;
@@ -508,7 +513,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (angle >= GROUND_ANGLE && Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
         {
-            surfAccelTime = 0.1f;
+            surfAccelTime = 0.5f;
+            DoubleJumpAvailable = true;
         }
 
         if (!collider.CompareTag("Uninteractable")
@@ -1626,7 +1632,7 @@ public class PlayerMovement : MonoBehaviour
                 var jumpDirection =
                     Flatten(Flatten(velDirection - normal * Vector3.Dot(velDirection, normal)).normalized +
                             normal * WALL_JUMP_ANGLE).normalized;
-                velocity = Mathf.Max(velocity.magnitude, BASE_SPEED) * jumpDirection;
+                velocity = Mathf.Max(Flatten(velocity).magnitude, BASE_SPEED) * jumpDirection;
                 velocity += jumpDirection * WALL_JUMP_SPEED;
 
                 velocity.y = y;

@@ -14,7 +14,8 @@ public class Game : MonoBehaviour
     public Canvas Pause;
     public Canvas LevelCompleted;
 
-    public static float SoundVolume { get { return PlayerPrefs.GetFloat("SoundVolume", 1); } set { PlayerPrefs.SetFloat("SoundVolume", value);} }
+    public static float SoundVolume { get => PlayerPrefs.GetFloat("SoundVolume", 1); set => PlayerPrefs.SetFloat("SoundVolume", value); }
+    public static float MusicVolume { get => PlayerPrefs.GetFloat("MusicVolume", 1); set => PlayerPrefs.SetFloat("MusicVolume", value); }
 
     public static string checkpointScene;
     public static Vector3 lastCheckpoint;
@@ -284,10 +285,5 @@ public class Game : MonoBehaviour
         SceneManager.LoadScene("LevelSelect");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-    }
-
-    public void ChangeVolume(float f)
-    {
-
     }
 }

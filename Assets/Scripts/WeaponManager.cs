@@ -52,7 +52,7 @@ public class WeaponManager : MonoBehaviour
     private void Start()
     {
         EquipGun(startGun);
-        //EquipGun(GunType.Cannon);
+        //EquipGun(GunType.Rifle);
     }
 
     private bool cycleOnNextTimestep;

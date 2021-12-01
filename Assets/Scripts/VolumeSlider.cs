@@ -5,17 +5,21 @@ using UnityEngine.UI;
 
 public class VolumeSlider : MonoBehaviour
 {
-
     private Slider slider;
+
+    public bool music;
 
     private void Start()
     {
         slider = GetComponent<Slider>();
-        slider.value = Game.SoundVolume;
+        slider.value = music ? Game.MusicVolume : Game.SoundVolume;
     }
 
     public void VolumeChanged()
     {
-        Game.SoundVolume = slider.value;
+        if (music)
+            Game.MusicVolume = slider.value;
+        else
+            Game.SoundVolume = slider.value;
     }
 }

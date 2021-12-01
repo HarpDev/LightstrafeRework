@@ -182,7 +182,7 @@ public class Rifle : WeaponManager.Gun
                 positions[1] = hit.point;
                 if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
                 {
-                    Game.Player.Teleport(hit.point);
+                    Game.Player.Teleport(hit.point - direction.normalized / 2);
                 }
             } else positions[1] = Game.Player.camera.transform.position + (direction * 300);
             line.material = WeaponManager.tracerMaterial;
@@ -192,12 +192,12 @@ public class Rifle : WeaponManager.Gun
             fireInputConsumed = true;
 
             Game.Player.AudioManager.PlayOneShot(fireSound);
-            Game.Player.weaponManager.EquipGun(WeaponManager.GunType.None);
+            //Game.Player.weaponManager.EquipGun(WeaponManager.GunType.None);
 
             if (animator != null)
             {
                 animator.Play("Fire", -1, 0f);
-                //animator.SetBool("Reload", true);
+                animator.SetBool("Reload", true);
             }
         }
 
