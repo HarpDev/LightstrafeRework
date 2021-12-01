@@ -65,6 +65,12 @@ public class Collectible : MonoBehaviour
         if (!RequirementsMet()) return;
         if (gemsprite != null) Destroy(gemsprite);
         if (nosprite != null) Destroy(nosprite);
+        var objects = FindObjectsOfType<Collectible>();
+        if (objects.Length == 1)
+        {
+            Game.EndTimer();
+        }
+        
         Destroy(gameObject);
     }
 }

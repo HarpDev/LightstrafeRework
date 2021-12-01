@@ -508,7 +508,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (angle >= GROUND_ANGLE && Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
         {
-            surfAccelTime = 1;
+            surfAccelTime = 0.1f;
         }
 
         if (!collider.CompareTag("Uninteractable")
@@ -1468,19 +1468,21 @@ public class PlayerMovement : MonoBehaviour
         if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() <= 0)
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
+            var airspeed = AIR_SPEED;
             if (surfAccelTime > 0)
             {
+                airspeed *= 3;
                 sideaccel *= 50;
             }
 
-            var offset = vel + right * AIR_SPEED;
+            var offset = vel + right * airspeed;
             var angle = Mathf.Atan2(offset.z, offset.x) - Mathf.Atan2(vel.z, vel.x);
 
             var offsetAngle = Mathf.Atan2(right.z, right.x) - angle;
             right = new Vector3(Mathf.Cos(offsetAngle), 0, Mathf.Sin(offsetAngle));
 
             var rightspeed = Vector3.Dot(vel, right);
-            var rightaddspeed = Mathf.Abs(AIR_SPEED) - rightspeed;
+            var rightaddspeed = Mathf.Abs(airspeed) - rightspeed;
             if (rightaddspeed > 0)
             {
                 if (sideaccel * f > rightaddspeed)
