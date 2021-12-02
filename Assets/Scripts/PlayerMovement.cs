@@ -38,8 +38,8 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsSliding
     {
-        //get => PlayerInput.GetKey(PlayerInput.Slide);
-        get => sliding;
+        // Give player a little control over sliding by allowing them to hold back to stand
+        get => !(Vector3.Dot(Wishdir, Flatten(velocity).normalized) < -0.2f) && sliding;
         private set => sliding = value;
     }
 
@@ -148,6 +148,7 @@ public class PlayerMovement : MonoBehaviour
             Yaw = Game.checkpointYaw;
         }
 
+        // Try to start the player on ground so it doesnt play the stupid ground land sound frame 1
         if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, 1, QueryTriggerInteraction.Ignore) &&
             Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
         {
@@ -182,7 +183,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (Cursor.visible) return;
 
-        // Mouse motion
+        // Mouse aim / Controller aim
         if (Time.timeScale > 0)
         {
             YawIncrease = Input.GetAxis("Mouse X") * (Game.Sensitivity / 10) * LookScale;
@@ -252,17 +253,17 @@ public class PlayerMovement : MonoBehaviour
         var ease = 1 - Mathf.Pow(1 - crouchAmount, 2);
         position.y -= 0.7f * ease;
 
+        // Camera position is interpolated between ticks
         camera.transform.position = InterpolatedPosition + position;
 
+        // FOV increases with speed
         var targetFOV = Flatten(velocity).magnitude + (100 - BASE_SPEED);
         targetFOV = Mathf.Max(targetFOV, 100);
         targetFOV = Mathf.Min(targetFOV, 120);
-
         if (teleportTime > 0)
         {
             targetFOV += 50;
         }
-
         camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, targetFOV, Time.deltaTime * 5);
 
         if (PlayerInput.SincePressed(PlayerInput.SecondaryInteract) < GROUND_JUMP_BUFFERING && !IsDashing &&
@@ -300,8 +301,6 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnGround) groundTimestamp = PlayerInput.tickCount;
         if (IsOnWall) wallTimestamp = PlayerInput.tickCount;
         if (IsOnRail) railTimestamp = PlayerInput.tickCount;
-
-        if (bonusGravityCooldownTicks > 0) bonusGravityCooldownTicks--;
 
         // Movement happens here
         var factor = Time.fixedDeltaTime;
@@ -353,13 +352,11 @@ public class PlayerMovement : MonoBehaviour
 
             dashTime -= factor;
         }
-
         if (dashTime <= 0)
         {
             dashTime = 0;
             dashVector = Vector3.zero;
         }
-
         if (dashCancelTempSpeed > 0)
         {
             var loss = factor * DASH_CANCEL_TEMP_SPEED_DECAY;
@@ -367,14 +364,17 @@ public class PlayerMovement : MonoBehaviour
             Game.Canvas.speedChangeDisplay.interpolation += loss;
             dashCancelTempSpeed -= loss;
         }
-
         if (Game.PostProcessVolume != null && Game.PostProcessVolume.profile.TryGetSettings(out MotionBlur motion))
         {
             motion.enabled.value = IsDashing;
         }
+        
+        if (bonusAirSpeedTime > 0) bonusAirSpeedTime -= Time.fixedDeltaTime;
 
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         motionInterpolationDelta = 0;
+        
+        // This variable is the total movement that will occur in this tick
         var movement = (dashVector.magnitude > 0 ? dashVector : velocity) * Time.fixedDeltaTime;
         previousPosition = transform.position;
 
@@ -382,6 +382,7 @@ public class PlayerMovement : MonoBehaviour
         if (IsOnWall) wallLevel--;
         var iterations = 0;
 
+        // Hold helps collision hold you against walls/ground even if they get a little bumpy
         var hold = 0.1f;
         if (IsOnGround)
         {
@@ -395,6 +396,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
 
+        // Movement happens in 2 distinct phases
+        // Phase 1 is continuous collision, iteratively sweep test through colliders, applying collision to each one hit
         while (movement.magnitude > 0f && iterations < 5)
         {
             iterations++;
@@ -424,9 +427,11 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        // Phase 2 is discrete collision
+        // After doing sweep tests, use ComputePenetration() to ensure that the player is not intersecting with anything
+        // Apply collision function to everything touching the player
         var bounds = hitbox.bounds;
         var overlap = Physics.OverlapBox(bounds.center, bounds.extents);
-
         foreach (var other in overlap)
         {
             if (!CanCollide(other)) continue;
@@ -444,6 +449,9 @@ public class PlayerMovement : MonoBehaviour
                     ContactCollider(direction, other);
                 }
 
+                // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                // So we treat all slanted ground as perfectly flat when not sliding
+                if (IsOnGround && !IsSliding) direction = Vector3.up;
                 transform.position += direction * distance;
             }
         }
@@ -478,6 +486,18 @@ public class PlayerMovement : MonoBehaviour
             Game.ReturnToLastCheckpoint();
         }
 
+        var angle = Vector3.Angle(Vector3.up, normal);
+
+        if (angle < GROUND_ANGLE && !collider.CompareTag("Uninteractable") && !collider.CompareTag("Wall"))
+        {
+            IsOnGround = true;
+            currentGround = collider.gameObject;
+
+            // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+            // So we treat all slanted ground as perfectly flat when not sliding
+            if (!IsSliding) normal = Vector3.up;
+        }
+
         var dashProjection = Vector3.Dot(dashVector, -normal);
         if (dashProjection > 0)
         {
@@ -489,6 +509,9 @@ public class PlayerMovement : MonoBehaviour
         if (velocityProjection > 0)
         {
             var impulse = normal * velocityProjection;
+            
+            // If there is a tp happening on this tick, apply speed from before the collision to the speed after
+            // Effectively makes you not lose any speed from the collision
             if (tpThisTick)
             {
                 var speed = Flatten(velocity).magnitude;
@@ -503,14 +526,6 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        var angle = Vector3.Angle(Vector3.up, normal);
-
-        if (angle < GROUND_ANGLE && !collider.CompareTag("Uninteractable") && !collider.CompareTag("Wall"))
-        {
-            IsOnGround = true;
-            currentGround = collider.gameObject;
-        }
-
         if (angle >= GROUND_ANGLE && Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
         {
             surfAccelTime = 0.5f;
@@ -523,6 +538,7 @@ public class PlayerMovement : MonoBehaviour
             && (collider.gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.7 ||
                 WALL_ALLOW_SAME_FACING))
         {
+            // If the normal of a wall changes more than 10 degrees in 1 tick, kick you off the wall
             if (IsOnWall && Vector3.Angle(wallNormal, Flatten(normal).normalized) > 10)
             {
                 Accelerate(wallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
@@ -699,6 +715,7 @@ public class PlayerMovement : MonoBehaviour
         DoubleJumpAvailable = true;
         DashAvailable = true;
 
+        // Find the point on the rail closest to the player
         var closeIndex = 0;
         var closeDistance = float.MaxValue;
         for (var i = 0; i < currentRail.smoothedPoints.Length; i++)
@@ -710,6 +727,9 @@ public class PlayerMovement : MonoBehaviour
             closeIndex = i;
         }
 
+        // If rail direction is 0, we need to determine which direction the player should go based on their velocity
+        // We will do this with a simple angle comparison of the players velocity, and seeing which direction makes more sense
+        // After doing this, we will do a simple collision calculation on the rail, reducing player speed the harder they hit the rail
         if (railDirection == 0)
         {
             var c = currentRail.smoothedPoints[closeIndex];
@@ -750,6 +770,7 @@ public class PlayerMovement : MonoBehaviour
 
         var current = currentRail.smoothedPoints[closeIndex] + railLeanVector;
 
+        // If youre on the last point of a rail, we use the vector of the final 2 points to extrapolate 1 extra point on the rail
         Vector3 next;
         if (railDirection == 1 && closeIndex == currentRail.smoothedPoints.Length - 1)
         {
@@ -767,6 +788,7 @@ public class PlayerMovement : MonoBehaviour
         var previousVector = railVector;
         railVector = -(current - next).normalized;
 
+        // Should the rail forcefully end this tick (riding off the edge)
         if ((railDirection == -1 && closeIndex == 0 ||
              railDirection == 1 && closeIndex == currentRail.smoothedPoints.Length - 1) &&
             Vector3.Dot(transform.position - current, railVector) > 0)
@@ -775,9 +797,9 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        var balanceVector = GetBalanceVector(closeIndex + railDirection);
-        railLeanVector = Vector3.Lerp(railLeanVector, balanceVector, f);
-
+        // At some point i wanted rails to have set speeds
+        // But if your speed going onto the rail exceeded the rails set speed youd use your higher speed instead
+        // Ill probably change this
         if (railTickCount == 0)
         {
             var velInRailDirection = Flatten(velocity).magnitude * Flatten(railVector).normalized;
@@ -787,17 +809,29 @@ public class PlayerMovement : MonoBehaviour
             railSpeed = Mathf.Max(currentRail.speed, projection);
         }
 
+        // Get the vector from current player position to the next rail point and lerp them towards it
         var correctionVector = -(transform.position - next).normalized;
         velocity = railSpeed * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
 
+        // Apply gravity only if the player is moving down
+        // This makes them gain speed on downhill rails without losing speed on uphill rails // stonks
         if (velocity.y < 0) GravityTick(f);
 
+        // The balance vector is a vector that attempts to mimick which direction you would intuitively lean
+        // to not fall off the rail with real world physics, we will calculate a camera tilt based on it
+        var balanceVector = GetBalanceVector(closeIndex + railDirection);
+        railLeanVector = Vector3.Lerp(railLeanVector, balanceVector, f);
         var totalAngle = Vector3.Angle(Vector3.up, railLeanVector) / 2f;
         var roll = Vector3.Dot(railLeanVector.normalized * totalAngle, -transform.right);
-
         var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
         SetCameraRoll(roll, speed);
 
+        // This whole section attempts to guide the players view along the rail
+        // If you ride a rail through a 180 degree turn, its annoying to have to move your mouse in that 180 every time
+        // Automating this turn is hard to get right without feeling like the game is ripping control from you
+        // It applies more turning force when facing outward on the rail turn, and less when facing inward
+        // Players naturally look at their destination when doing a turn on a rail, so when they do that i dont want to move their view
+        // But if their view drifts away we want to pull it back in, and keep it smooth enough that it doesnt feel like the game is man handling you
         if (railTickCount > 0)
         {
             VectorToYawPitch(previousVector, out var prevVecYaw, out var prevVecPitch);
@@ -822,10 +856,10 @@ public class PlayerMovement : MonoBehaviour
                 yawChange = change * Mathf.Clamp01(Mathf.Pow(1 + (Mathf.Clamp(currAngle, 0, 90) / 90f), 2) + 0.5f);
             }
 
-            var pointsToEndOfRail =
-                railDirection == 1 ? currentRail.smoothedPoints.Length - 1 - closeIndex : closeIndex;
-            yawChange *= Mathf.Clamp(pointsToEndOfRail, 0, 5) / 5;
-            yawChange *= Mathf.Clamp(railTickCount - 1, 0, 10) / 10;
+            // Fade out/in yaw change before the rail ends and as it starts
+            var pointsToEndOfRail = railDirection == 1 ? currentRail.smoothedPoints.Length - 1 - closeIndex : closeIndex;
+            yawChange *= Mathf.Clamp(pointsToEndOfRail, 0, 5) / 5f;
+            yawChange *= Mathf.Clamp(railTickCount - 1, 0, 10) / 10f;
 
             pitchChange /= 2;
 
@@ -871,7 +905,10 @@ public class PlayerMovement : MonoBehaviour
     public void EndRail()
     {
         if (!IsOnRail) return;
+        
+        // Jump impulse is applied on rail end instead of PlayerJump() so that you get it even if you just ride off the end of the rail
         velocity.y += MIN_JUMP_HEIGHT;
+        
         SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
         currentRail = null;
         AudioManager.StopAudio(railDuring);
@@ -879,6 +916,8 @@ public class PlayerMovement : MonoBehaviour
         railDirection = 0;
     }
 
+    // I dont remember what i was thinking when i made this lol
+    // You can use Debug.DrawRay() to see what it does
     private Vector3 GetBalanceVector(int i)
     {
         var range = Mathf.Min((currentRail.smoothedPoints.Length - 1) / 2, 4);
@@ -1103,26 +1142,32 @@ public class PlayerMovement : MonoBehaviour
             AudioManager.PlayAudio(wallRun, true);
         }
 
+        // Fade in wall run sound so if you jump off right away its silent
         AudioManager.SetVolume(wallRun, Mathf.Clamp01(wallTickCount / 10f));
         wallTickCount++;
 
+        // Apply friction on walls only for a few ticks at the start of the wall
+        // Also wait until after jump buffering to keep buffering window for perfect kicks
         if (wallTickCount >= WALL_JUMP_BUFFERING && wallTickCount < WALL_FRICTION_TICKS + WALL_JUMP_BUFFERING)
         {
             ApplyFriction(f * JUMP_STAMINA_RECOVERY_FRICTION, BASE_SPEED * 2);
         }
 
+        // Apply camera roll from the wall
         var normal = Flatten(wallNormal);
         var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
-
         wallLeanAmount = Mathf.Clamp01(wallLeanAmount + Time.fixedDeltaTime / 0.1f);
         var roll = WALL_LEAN_DEGREES * -projection * wallLeanAmount;
         var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
         SetCameraRoll(roll, speed);
+        
+        // If you dash into a wall, the dash loses its vertical momentum when you touch the wall
         if (IsDashing)
         {
             dashVector.y = 0;
         }
 
+        // If you hold back on a wall, apply friction and accelerate in the opposite direction so you can turn around on walls
         if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) < -0.6f)
         {
             var alongView = (Wishdir - (Flatten(wallNormal).normalized *
@@ -1133,12 +1178,14 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
+            // Apply wall speed in direction youre already going
             if (Flatten(velocity).magnitude > 0)
             {
                 Accelerate(Flatten(velocity).normalized, WALL_SPEED, WALL_ACCELERATION, f);
             }
             else
             {
+                // If your velocity is 0, we cant accelerate in the direction youre moving, so we use CrosshairDirection instead
                 var alongView = (CrosshairDirection - (Flatten(wallNormal).normalized *
                                                        Vector3.Dot(CrosshairDirection, Flatten(wallNormal).normalized)))
                     .normalized;
@@ -1146,8 +1193,11 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        // Reduce y velocity while on walls, breaking falls
+        // This also applies to moving upwards on walls
         velocity.y = Mathf.Lerp(velocity.y, 0, f * WALL_CATCH_FRICTION);
 
+        // Push you into the wall, holding you against it a bit
         Accelerate(-wallNormal, 1, Gravity, f);
     }
 
@@ -1199,30 +1249,29 @@ public class PlayerMovement : MonoBehaviour
         lastWall = null;
         lastWallNormal = Vector3.zero;
 
+        // Only refresh dash once per piece of ground, preventing players from mashing dash on the floor
         if (!DashAvailable && lastRefreshGround != currentGround)
         {
             DashAvailable = true;
             lastRefreshGround = currentGround;
         }
-
         lastGround = currentGround;
+        
+        // Apply slide boost at the start of a slide or when landing on the ground while sliding
         if ((crouchAmount < 0.7 && IsSliding) || (groundTickCount == 0 && IsSliding))
         {
             var speed = Mathf.Lerp(0, BASE_SPEED + 8, Mathf.Clamp01(crouchAmount * 1.5f));
             Accelerate(Flatten(velocity).normalized, speed, BASE_SPEED);
         }
 
+        // Check for jump a bit late so you can get dash refresh and slide boost on tick perfect jumps
         if (PlayerJump()) return;
 
         groundTickCount++;
 
         if (groundTickCount == 1 && !IsSliding) AudioManager.PlayAudio(groundLand);
 
-        if (groundTickCount == 1 && IsSliding)
-        {
-            Accelerate(Flatten(velocity).normalized, BASE_SPEED + 4, BASE_SPEED);
-        }
-
+        // Stop sliding if you slow down enough
         if (Flatten(velocity).magnitude < BASE_SPEED)
         {
             IsSliding = false;
@@ -1245,12 +1294,14 @@ public class PlayerMovement : MonoBehaviour
 
         if (!IsDashing)
         {
+            // Camera roll for sliding, we calculate this outside the if statement so it can handle uncrouching
             var leanProjection = Vector3.Dot(slideLeanVector, camera.transform.right);
             var roll = leanProjection * 15 * crouchAmount;
             var rollspeed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
             SetCameraRoll(roll, rollspeed);
             if (IsSliding)
             {
+                // Sliding on ground has same movement as in the air (with friction)
                 ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
                 AirAccelerate(ref velocity, f);
 
@@ -1302,6 +1353,7 @@ public class PlayerMovement : MonoBehaviour
     private const float BACKWARD_AIR_ACCELERATION = 35;
     private const float FINISH_HOVER_DISTANCE = 6;
     private int airTickCount;
+    private float bonusAirSpeedTime;
 
     public void AirMove(ref Vector3 vel, float f)
     {
@@ -1328,12 +1380,15 @@ public class PlayerMovement : MonoBehaviour
         var didHit = rigidbody.SweepTest(movement.normalized, out var hit,
             movement.magnitude * WALL_LEAN_PREDICTION_TIME, QueryTriggerInteraction.Ignore);
 
+        // Ground buffering is more forgiving than wall buffering
+        // Hitting kicks while dashing is difficult, so we use ground buffering while dashing
         var wallBuffering = IsDashing ? GROUND_JUMP_BUFFERING : WALL_JUMP_BUFFERING;
 
         var eatJump = false;
         var fromWall = 0f;
 
-        if (Flatten(velocity).magnitude > BASE_SPEED - 1)
+        // Enter sliding state above speed threshold
+        if (Flatten(velocity).magnitude > BASE_SPEED - 2)
         {
             IsSliding = true;
         }
@@ -1345,10 +1400,12 @@ public class PlayerMovement : MonoBehaviour
                 Vector3.Dot(Flatten(hit.normal).normalized, lastWallNormal) < 0.7 ||
                 WALL_ALLOW_SAME_FACING))
         {
+            // This variable gives us a prediction of how long it will take until we touch the wall
             fromWall = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
 
             wallNormal = Flatten(hit.normal).normalized;
 
+            // Slowly increase lean amount, and ease it with the same ease function as titanfall
             if (wallLeanAmount < 1)
             {
                 wallLeanAmount = Mathf.Clamp01(wallLeanAmount + Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
@@ -1365,6 +1422,7 @@ public class PlayerMovement : MonoBehaviour
 
             IsSliding = false;
 
+            // First tick on approach, tell view model that lean is starting
             if (!ApproachingWall)
             {
                 if (cameraRotation < 0)
@@ -1376,12 +1434,14 @@ public class PlayerMovement : MonoBehaviour
                     weaponManager.RightWallStart();
                 }
             }
-
             ApproachingWall = true;
 
             // Eat jump inputs if you are < jumpForgiveness away from the wall to not eat double jump
             if (WALL_LEAN_PREDICTION_TIME * (1 - fromWall) / Time.fixedDeltaTime < wallBuffering) eatJump = true;
 
+            // This is to prevent landing on the very bottom of a wall
+            // If youre going towards the bottom of a wall
+            // your velocity will be redirected up so the bottom of your hitbox hits the bottom of the wall
             var fromBottom = 1;
             var upCheck = transform.position + (vel.normalized * hit.distance) + (-hit.normal * 0.55f) +
                           (Vector3.down * 1);
@@ -1397,8 +1457,11 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
+            // Tell view model that we're not approaching a wall
             weaponManager.WallStop();
             ApproachingWall = false;
+            
+            // Lean out of a wall, applying same ease function as titanfall
             if (wallLeanAmount > 0)
             {
                 wallLeanAmount = Mathf.Clamp01(wallLeanAmount - Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
@@ -1431,10 +1494,13 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        // Reduce air control as you approach a wall
+        // Actually super important, without it its really easy to start leaning into a wall and strafe out of it
         var mod = 1 - Mathf.Min(fromWall * 2, 1);
-
         AirAccelerate(ref vel, f, mod);
 
+        // If we're eating jump inputs, dont check for PlayerJump()
+        // Also set jumpBuffered higher than needed so that when PlayerJump() does eventually run it'll use the buffer
         if (eatJump)
         {
             if (PlayerInput.SincePressed(PlayerInput.Jump) < Mathf.Max(wallBuffering, GROUND_JUMP_BUFFERING))
@@ -1452,14 +1518,22 @@ public class PlayerMovement : MonoBehaviour
         var right = transform.right * PlayerInput.GetAxisStrafeRight();
 
         var accel = FORWARD_AIR_ACCELERATION * accelMod;
+        
+        // Different acceleration for holding backwards lets me have high accel for air movement without
+        // pressing s slamming you to a full stop
         if (Vector3.Dot(Flatten(vel), forward) < 0)
         {
             accel = BACKWARD_AIR_ACCELERATION * accelMod;
         }
 
+        // Player can turn sharper if holding forward and proper side direction
         if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0)
         {
-            if (Vector3.Dot(right, Flatten(vel)) < 0) accel += DIAGONAL_AIR_ACCEL_BONUS;
+            if (Vector3.Dot(right, Flatten(vel)) < 0)
+            {
+                accel += DIAGONAL_AIR_ACCEL_BONUS;
+                bonusAirSpeedTime = 0.2f;
+            }
         }
 
         var speed = Flatten(vel).magnitude;
@@ -1475,18 +1549,28 @@ public class PlayerMovement : MonoBehaviour
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
             var airspeed = AIR_SPEED;
+            
+            // This is very particular, this mechanic makes it feel better when transfering from diagonal strafing to side strafing
+            // It feels bad because diagonal strafing trails behind your velocity, while side strafing requires straight velocity to be optimal
+            if (bonusAirSpeedTime > 0) airspeed += 5;
+            
+            // Bonus air speed makes surfing give more speed, bonus side accel makes it more responsive
+            // This bonus persists for a bit after leaving a surf so you can actually jump off ramps
+            // (also leaves some cool high level tech potential for slant boosts)
             if (surfAccelTime > 0)
             {
                 airspeed *= 3;
                 sideaccel *= 50;
             }
 
+            // Air strafing has an offset applied to it so it always pushes you to go straight forward regardless of air speed
             var offset = vel + right * airspeed;
             var angle = Mathf.Atan2(offset.z, offset.x) - Mathf.Atan2(vel.z, vel.x);
 
             var offsetAngle = Mathf.Atan2(right.z, right.x) - angle;
             right = new Vector3(Mathf.Cos(offsetAngle), 0, Mathf.Sin(offsetAngle));
 
+            // This is just source air strafing
             var rightspeed = Vector3.Dot(vel, right);
             var rightaddspeed = Mathf.Abs(airspeed) - rightspeed;
             if (rightaddspeed > 0)
@@ -1500,6 +1584,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // My best attempt at recreating lurch from titanfall, definitely not perfect but it feels similar
     public void Lurch(Vector3 direction, float strength = 0.7f)
     {
         var wishdir = Flatten(direction).normalized;
@@ -1520,15 +1605,9 @@ public class PlayerMovement : MonoBehaviour
     public const float GRAVITY = 0.5f;
     public const float TERMINAL_VELOCITY = 60;
     public float Gravity => (velocity.y - Mathf.Lerp(velocity.y, -TERMINAL_VELOCITY, GRAVITY)) * (IsDashing ? 0 : 1);
-    private int bonusGravityCooldownTicks;
 
     public void GravityTick(float f)
     {
-        /*if (bonusGravityCooldownTicks == 0 &&
-            rigidbody.SweepTest(Vector3.down, out var hit, 20, QueryTriggerInteraction.Ignore) &&
-            !hit.collider.CompareTag("Uninteractable"))
-            velocity.y -= Gravity * f * 2;
-        else*/
         velocity.y -= Gravity * f;
     }
 
@@ -1576,12 +1655,14 @@ public class PlayerMovement : MonoBehaviour
         int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
         if (sinceJump <= Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) || jumpBuffered > 0)
         {
+            // Infinite buffering while teleporting
             if (teleportTime > 0)
             {
                 jumpBuffered = Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) * Time.fixedDeltaTime;
                 return false;
             }
 
+            // Pressing jump breaks grapple
             if (GrappleHooked)
             {
                 DetachGrapple();
@@ -1590,6 +1671,8 @@ public class PlayerMovement : MonoBehaviour
                 return true;
             }
 
+            // Pressing jump ends rail and does not give jump height
+            // Rail jump impulse is given in EndRail()
             if (PlayerInput.tickCount - railTimestamp < COYOTE_TICKS)
             {
                 if (railTickCount > RAIL_COOLDOWN_TICKS)
@@ -1598,7 +1681,6 @@ public class PlayerMovement : MonoBehaviour
                     PlayerInput.ConsumeBuffer(PlayerInput.Jump);
                     jumpBuffered = 0;
                 }
-
                 return true;
             }
 
@@ -1609,6 +1691,7 @@ public class PlayerMovement : MonoBehaviour
 
             if (!groundJump && !wallJump && !DoubleJumpAvailable) return false;
 
+            // Jumps give more height if you stay on the ground for a brief moment
             var jumpStamina = Mathf.Clamp01(Mathf.Max(groundTickCount, wallTickCount) / JUMP_STAMINA_RECOVERY_TICKS);
             var jumpHeight = Mathf.Lerp(MIN_JUMP_HEIGHT, MAX_JUMP_HEIGHT, jumpStamina);
 
@@ -1616,7 +1699,6 @@ public class PlayerMovement : MonoBehaviour
             AudioManager.StopAudio(groundLand);
             if (wallJump)
             {
-                // Jumping from wall
                 wallRecovery = WALL_AIR_ACCEL_RECOVERY;
                 ApproachingWall = false;
                 AudioManager.PlayOneShot(jump);
@@ -1626,6 +1708,7 @@ public class PlayerMovement : MonoBehaviour
                 lastWall = currentWall;
                 lastWallNormal = wallNormal;
 
+                // We calculate wall jump angle on vector normals so angle off the wall doesnt change with speed
                 var y = velocity.y;
                 var velDirection = Flatten(velocity).normalized;
                 var normal = wallNormal;
@@ -1642,7 +1725,7 @@ public class PlayerMovement : MonoBehaviour
                     CancelDash(ref h);
                 }
 
-                velocity.y = Mathf.Max( /*IsSliding ? h / 3 : */h, velocity.y);
+                velocity.y = Mathf.Max(h, velocity.y);
             }
             else
             {
@@ -1654,12 +1737,12 @@ public class PlayerMovement : MonoBehaviour
                     velocity.y = Mathf.Max(MAX_JUMP_HEIGHT, velocity.y);
                     StopDash();
                     AudioManager.PlayOneShot(jumpair);
-                    bonusGravityCooldownTicks = 10;
+                    
+                    // Apply a lurch and give a bit of speed if youre below a certain speed
+                    // Good for when players make big mistakes and can use double jump to recover from very low speeds in air
                     var speed = Flatten(velocity).magnitude;
-
                     var strength = Mathf.Clamp01((1 - speed / BASE_SPEED) * 4);
                     Lurch(Wishdir, strength);
-
                     var doubleJumpSpeed = BASE_SPEED / 1.5f;
                     if (Flatten(velocity).magnitude < doubleJumpSpeed)
                         velocity += Wishdir * (doubleJumpSpeed - Flatten(velocity).magnitude);
@@ -1667,7 +1750,6 @@ public class PlayerMovement : MonoBehaviour
                 else
                 {
                     AudioManager.PlayOneShot(jump);
-                    bonusGravityCooldownTicks = 100;
                     IsOnGround = false;
                     var height = jumpHeight;
                     if (IsDashing)
