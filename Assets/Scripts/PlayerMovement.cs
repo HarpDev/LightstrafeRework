@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -39,7 +40,14 @@ public class PlayerMovement : MonoBehaviour
     public bool IsSliding
     {
         // Give player a little control over sliding by allowing them to hold back to stand
-        get => !(Vector3.Dot(Wishdir, Flatten(velocity).normalized) < -0.2f) && sliding;
+        get
+        {
+            if (Vector3.Dot(Wishdir, Flatten(velocity).normalized) < -0.2f && Flatten(velocity).magnitude < SLIDE_BOOST_SPEED)
+            {
+                return false;
+            }
+            return sliding;
+        }
         private set => sliding = value;
     }
 
@@ -53,6 +61,8 @@ public class PlayerMovement : MonoBehaviour
     public void SetCameraRoll(float target, float speed)
     {
         cameraRotation = target;
+        // Cap tilt speed to prevent camera tilt being too snappy
+        if (speed > 150) speed = 150;
         cameraRotationSpeed = speed;
     }
 
@@ -208,6 +218,14 @@ public class PlayerMovement : MonoBehaviour
 
         // change rotation and color of the crosshair when dash is used
         Game.Canvas.crosshair.color = new Color(crosshairColor, crosshairColor, crosshairColor);
+        
+        // Fade out kick feedback
+        if (kickFeedback.color.a > 0)
+        {
+            var color = kickFeedback.color;
+            color.a -= Time.deltaTime * (1.03f - color.a) * 4f;
+            kickFeedback.color = color;
+        }
 
         if (DashAvailable)
         {
@@ -378,7 +396,16 @@ public class PlayerMovement : MonoBehaviour
         var movement = (dashVector.magnitude > 0 ? dashVector : velocity) * Time.fixedDeltaTime;
         previousPosition = transform.position;
 
-        if (IsOnGround) groundLevel--;
+        if (IsOnGround)
+        {
+            groundLevel--;
+            if (!IsOnGround)
+            {
+                SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
+                AudioManager.StopAudio(slide);
+                AudioManager.StopAudio(groundLand);
+            }
+        }
         if (IsOnWall) wallLevel--;
         var iterations = 0;
 
@@ -1131,13 +1158,15 @@ public class PlayerMovement : MonoBehaviour
     private float wallRecovery;
     private float wallLeanAmount;
 
+    public Text kickFeedback;
+
     public void WallMove(float f)
     {
         DoubleJumpAvailable = true;
         lastGround = null;
         if (PlayerJump()) return;
 
-        if (wallTickCount == WALL_JUMP_BUFFERING)
+        if (wallTickCount == 0)
         {
             AudioManager.PlayAudio(wallRun, true);
         }
@@ -1147,10 +1176,9 @@ public class PlayerMovement : MonoBehaviour
         wallTickCount++;
 
         // Apply friction on walls only for a few ticks at the start of the wall
-        // Also wait until after jump buffering to keep buffering window for perfect kicks
-        if (wallTickCount >= WALL_JUMP_BUFFERING && wallTickCount < WALL_FRICTION_TICKS + WALL_JUMP_BUFFERING)
+        if (wallTickCount < WALL_FRICTION_TICKS)
         {
-            ApplyFriction(f * JUMP_STAMINA_RECOVERY_FRICTION, BASE_SPEED * 2);
+            ApplyFriction(f * JUMP_STAMINA_RECOVERY_FRICTION, BASE_SPEED);
         }
 
         // Apply camera roll from the wall
@@ -1181,7 +1209,8 @@ public class PlayerMovement : MonoBehaviour
             // Apply wall speed in direction youre already going
             if (Flatten(velocity).magnitude > 0)
             {
-                Accelerate(Flatten(velocity).normalized, WALL_SPEED, WALL_ACCELERATION, f);
+                var s = Mathf.Lerp(WALL_SPEED, SLIDE_BOOST_SPEED, Mathf.Clamp01(wallTickCount / 200f));
+                Accelerate(Flatten(velocity).normalized, s, WALL_ACCELERATION, f);
             }
             else
             {
@@ -1227,7 +1256,7 @@ public class PlayerMovement : MonoBehaviour
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
     public const float SLIDE_FRICTION = 0.2f;
-    public const float SLIDE_MOVEMENT_SCALE = 2f;
+    public const float SLIDE_BOOST_SPEED = 18f;
     private int groundTickCount;
     private int groundTimestamp = -100000;
     private Vector3 previousPosition;
@@ -1248,6 +1277,7 @@ public class PlayerMovement : MonoBehaviour
         GravityTick(f);
         lastWall = null;
         lastWallNormal = Vector3.zero;
+        wallLeanAmount = 0;
 
         // Only refresh dash once per piece of ground, preventing players from mashing dash on the floor
         if (!DashAvailable && lastRefreshGround != currentGround)
@@ -1260,7 +1290,7 @@ public class PlayerMovement : MonoBehaviour
         // Apply slide boost at the start of a slide or when landing on the ground while sliding
         if ((crouchAmount < 0.7 && IsSliding) || (groundTickCount == 0 && IsSliding))
         {
-            var speed = Mathf.Lerp(0, BASE_SPEED + 8, Mathf.Clamp01(crouchAmount * 1.5f));
+            var speed = Mathf.Lerp(0, SLIDE_BOOST_SPEED, Mathf.Clamp01(crouchAmount * 1.5f));
             Accelerate(Flatten(velocity).normalized, speed, BASE_SPEED);
         }
 
@@ -1315,7 +1345,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            AirAccelerate(ref velocity, f, SLIDE_MOVEMENT_SCALE);
+            AirAccelerate(ref velocity, f);
         }
     }
 
@@ -1385,7 +1415,7 @@ public class PlayerMovement : MonoBehaviour
         var wallBuffering = IsDashing ? GROUND_JUMP_BUFFERING : WALL_JUMP_BUFFERING;
 
         var eatJump = false;
-        var fromWall = 0f;
+        var timeToWall = 0f;
 
         // Enter sliding state above speed threshold
         if (Flatten(velocity).magnitude > BASE_SPEED - 2)
@@ -1401,7 +1431,7 @@ public class PlayerMovement : MonoBehaviour
                 WALL_ALLOW_SAME_FACING))
         {
             // This variable gives us a prediction of how long it will take until we touch the wall
-            fromWall = 1 - hit.distance / movement.magnitude / WALL_LEAN_PREDICTION_TIME;
+            timeToWall = (hit.distance / (movement.magnitude * WALL_LEAN_PREDICTION_TIME)) * WALL_LEAN_PREDICTION_TIME;
 
             wallNormal = Flatten(hit.normal).normalized;
 
@@ -1436,8 +1466,8 @@ public class PlayerMovement : MonoBehaviour
             }
             ApproachingWall = true;
 
-            // Eat jump inputs if you are < jumpForgiveness away from the wall to not eat double jump
-            if (WALL_LEAN_PREDICTION_TIME * (1 - fromWall) / Time.fixedDeltaTime < wallBuffering) eatJump = true;
+            // Eat jump inputs if you are < buffering away from the wall to not eat double jump
+            if (timeToWall < wallBuffering * Time.fixedDeltaTime) eatJump = true;
 
             // This is to prevent landing on the very bottom of a wall
             // If youre going towards the bottom of a wall
@@ -1496,14 +1526,19 @@ public class PlayerMovement : MonoBehaviour
 
         // Reduce air control as you approach a wall
         // Actually super important, without it its really easy to start leaning into a wall and strafe out of it
-        var mod = 1 - Mathf.Min(fromWall * 2, 1);
+        var mod = 1f;
+        if (ApproachingWall)
+        {
+            mod = timeToWall / WALL_LEAN_PREDICTION_TIME;
+            mod = 1 - Mathf.Pow(1 - mod, 3);
+        }
         AirAccelerate(ref vel, f, mod);
 
         // If we're eating jump inputs, dont check for PlayerJump()
         // Also set jumpBuffered higher than needed so that when PlayerJump() does eventually run it'll use the buffer
         if (eatJump)
         {
-            if (PlayerInput.SincePressed(PlayerInput.Jump) < Mathf.Max(wallBuffering, GROUND_JUMP_BUFFERING))
+            if (PlayerInput.SincePressed(PlayerInput.Jump) == 0)
             {
                 jumpBuffered = 2 * Mathf.Max(wallBuffering, GROUND_JUMP_BUFFERING) * Time.fixedDeltaTime;
             }
@@ -1645,7 +1680,7 @@ public class PlayerMovement : MonoBehaviour
     public const int JUMP_STAMINA_RECOVERY_TICKS = 5;
     public const float JUMP_STAMINA_RECOVERY_FRICTION = 3;
     public const int COYOTE_TICKS = 20;
-    public const int WALL_JUMP_BUFFERING = 4;
+    public const int WALL_JUMP_BUFFERING = 2;
     public const int GROUND_JUMP_BUFFERING = 6;
     private float jumpBuffered;
     private int jumpTimestamp;
@@ -1699,6 +1734,11 @@ public class PlayerMovement : MonoBehaviour
             AudioManager.StopAudio(groundLand);
             if (wallJump)
             {
+                if (kickFeedback != null && !coyoteJump && wallTickCount <= JUMP_STAMINA_RECOVERY_TICKS)
+                {
+                    kickFeedback.text = "+" + wallTickCount;
+                    kickFeedback.color = wallTickCount == 0 ? Color.green : Color.white;
+                }
                 wallRecovery = WALL_AIR_ACCEL_RECOVERY;
                 ApproachingWall = false;
                 AudioManager.PlayOneShot(jump);
@@ -1707,9 +1747,19 @@ public class PlayerMovement : MonoBehaviour
 
                 lastWall = currentWall;
                 lastWallNormal = wallNormal;
+                var y = velocity.y;
+                
+                // If holding back when jump off the wall, jump backwards off the wall
+                // This is in line with holding back to turn on around in WallMove()
+                // It is here as well so that if the player jumps off the wall before actually turning around from WallMove()
+                // they will still jump off the desired direction
+                if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) < -0.6f)
+                {
+                    velocity = -Flatten(velocity).normalized * BASE_SPEED;
+                    velocity.y = y;
+                }
 
                 // We calculate wall jump angle on vector normals so angle off the wall doesnt change with speed
-                var y = velocity.y;
                 var velDirection = Flatten(velocity).normalized;
                 var normal = wallNormal;
                 var jumpDirection =
