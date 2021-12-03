@@ -220,7 +220,7 @@ public class PlayerMovement : MonoBehaviour
         Game.Canvas.crosshair.color = new Color(crosshairColor, crosshairColor, crosshairColor);
         
         // Fade out kick feedback
-        if (kickFeedback.color.a > 0)
+        if (kickFeedback != null && kickFeedback.color.a > 0)
         {
             var color = kickFeedback.color;
             color.a -= Time.deltaTime * (1.03f - color.a) * 4f;
@@ -556,7 +556,6 @@ public class PlayerMovement : MonoBehaviour
         if (angle >= GROUND_ANGLE && Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
         {
             surfAccelTime = 0.5f;
-            DoubleJumpAvailable = true;
         }
 
         if (!collider.CompareTag("Uninteractable")
@@ -726,10 +725,9 @@ public class PlayerMovement : MonoBehaviour
     */
     public bool IsOnRail => currentRail != null;
 
-    public const int RAIL_COOLDOWN_TICKS = 40;
+    public const int RAIL_COOLDOWN_TICKS = 100;
     private int railTimestamp = -100000;
     private int railDirection;
-    private float railSpeed;
     private int railTickCount;
     private Vector3 railVector;
     private Vector3 railLeanVector;
@@ -824,21 +822,10 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        // At some point i wanted rails to have set speeds
-        // But if your speed going onto the rail exceeded the rails set speed youd use your higher speed instead
-        // Ill probably change this
-        if (railTickCount == 0)
-        {
-            var velInRailDirection = Flatten(velocity).magnitude * Flatten(railVector).normalized;
-            velInRailDirection.y = velocity.y;
-
-            var projection = Vector3.Dot(velInRailDirection, railVector);
-            railSpeed = Mathf.Max(currentRail.speed, projection);
-        }
-
         // Get the vector from current player position to the next rail point and lerp them towards it
         var correctionVector = -(transform.position - next).normalized;
-        velocity = railSpeed * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
+        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
+        Accelerate(velocity.normalized, SLIDE_BOOST_SPEED, GROUND_ACCELERATION);
 
         // Apply gravity only if the player is moving down
         // This makes them gain speed on downhill rails without losing speed on uphill rails // stonks
@@ -934,7 +921,8 @@ public class PlayerMovement : MonoBehaviour
         if (!IsOnRail) return;
         
         // Jump impulse is applied on rail end instead of PlayerJump() so that you get it even if you just ride off the end of the rail
-        velocity.y += MIN_JUMP_HEIGHT;
+        // Also only apply if moving mostly upwards, sometimes we want rails to throw the player down
+        if (velocity.y > -4) velocity.y += MIN_JUMP_HEIGHT;
         
         SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
         currentRail = null;
@@ -1146,7 +1134,8 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_ACCELERATION = 2f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 4;
-    public const int WALL_FRICTION_TICKS = 20;
+    public const int WALL_FRICTION_TICKS = 8;
+    public const float WALL_FRICTION = 5;
     public const bool WALL_ALLOW_SAME_FACING = false;
     private Vector3 wallNormal;
     private Vector3 lastWallNormal;
@@ -1178,7 +1167,7 @@ public class PlayerMovement : MonoBehaviour
         // Apply friction on walls only for a few ticks at the start of the wall
         if (wallTickCount < WALL_FRICTION_TICKS)
         {
-            ApplyFriction(f * JUMP_STAMINA_RECOVERY_FRICTION, BASE_SPEED);
+            ApplyFriction(f * WALL_FRICTION, BASE_SPEED);
         }
 
         // Apply camera roll from the wall
@@ -1202,7 +1191,7 @@ public class PlayerMovement : MonoBehaviour
                                         Vector3.Dot(Wishdir, Flatten(wallNormal).normalized)))
                 .normalized;
             Accelerate(alongView, WALL_SPEED, WALL_ACCELERATION, f);
-            ApplyFriction(f * JUMP_STAMINA_RECOVERY_FRICTION);
+            ApplyFriction(f * WALL_FRICTION);
         }
         else
         {
@@ -1594,8 +1583,8 @@ public class PlayerMovement : MonoBehaviour
             // (also leaves some cool high level tech potential for slant boosts)
             if (surfAccelTime > 0)
             {
-                airspeed *= 3;
-                sideaccel *= 50;
+                airspeed = 2;
+                sideaccel = 50000;
             }
 
             // Air strafing has an offset applied to it so it always pushes you to go straight forward regardless of air speed
@@ -1678,9 +1667,8 @@ public class PlayerMovement : MonoBehaviour
     public const float MAX_JUMP_HEIGHT = 16f;
     public const float MIN_JUMP_HEIGHT = 14f;
     public const int JUMP_STAMINA_RECOVERY_TICKS = 5;
-    public const float JUMP_STAMINA_RECOVERY_FRICTION = 3;
     public const int COYOTE_TICKS = 20;
-    public const int WALL_JUMP_BUFFERING = 2;
+    public const int WALL_JUMP_BUFFERING = 3;
     public const int GROUND_JUMP_BUFFERING = 6;
     private float jumpBuffered;
     private int jumpTimestamp;
@@ -1688,7 +1676,7 @@ public class PlayerMovement : MonoBehaviour
     public bool PlayerJump()
     {
         int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
-        if (sinceJump <= Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) || jumpBuffered > 0)
+        if (sinceJump == Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) || jumpBuffered > 0)
         {
             // Infinite buffering while teleporting
             if (teleportTime > 0)
@@ -1710,7 +1698,7 @@ public class PlayerMovement : MonoBehaviour
             // Rail jump impulse is given in EndRail()
             if (PlayerInput.tickCount - railTimestamp < COYOTE_TICKS)
             {
-                if (railTickCount > RAIL_COOLDOWN_TICKS)
+                if (railTickCount > 10)
                 {
                     EndRail();
                     PlayerInput.ConsumeBuffer(PlayerInput.Jump);
@@ -1734,7 +1722,7 @@ public class PlayerMovement : MonoBehaviour
             AudioManager.StopAudio(groundLand);
             if (wallJump)
             {
-                if (kickFeedback != null && !coyoteJump && wallTickCount <= JUMP_STAMINA_RECOVERY_TICKS)
+                if (kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
                 {
                     kickFeedback.text = "+" + wallTickCount;
                     kickFeedback.color = wallTickCount == 0 ? Color.green : Color.white;
@@ -1753,7 +1741,7 @@ public class PlayerMovement : MonoBehaviour
                 // This is in line with holding back to turn on around in WallMove()
                 // It is here as well so that if the player jumps off the wall before actually turning around from WallMove()
                 // they will still jump off the desired direction
-                if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) < -0.6f)
+                if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) < -0.8f)
                 {
                     velocity = -Flatten(velocity).normalized * BASE_SPEED;
                     velocity.y = y;

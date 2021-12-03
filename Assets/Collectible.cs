@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using TMPro.EditorUtilities;
 using UnityEngine;
 
 public class Collectible : MonoBehaviour
@@ -11,14 +12,41 @@ public class Collectible : MonoBehaviour
     private GameObject nosprite;
     private GameObject gemsprite;
 
+    private Vector3 start;
+
+    private void Awake()
+    {
+        start = transform.position;
+        adjust = start;
+    }
+
+    private Vector3 adjust;
     private void Update()
     {
+
+        if (RequirementsMet())
+        {
+            var target = Game.Player.camera.transform.position;
+            var towardTarget = target - start;
+            var adjustVector = towardTarget.normalized *
+                               Mathf.Min(Mathf.Max(0, 15 - towardTarget.magnitude), towardTarget.magnitude);
+
+            adjustVector -= Game.Player.velocity.normalized *
+                            Vector3.Dot(Game.Player.velocity.normalized, adjustVector);
+
+            adjustVector = adjustVector.normalized * Mathf.Min(adjustVector.magnitude, 5);
+
+            adjust = Vector3.Lerp(adjust, start + adjustVector, Time.deltaTime * 5);
+            transform.position = adjust;
+        }
+        
         transform.Rotate(0, 0, 50 * Time.deltaTime);
         if (RequirementsMet())
         {
             if (gemsprite == null)
             {
                 gemsprite = Instantiate(GemSprite, Game.Canvas.transform);
+                gemsprite.transform.SetAsFirstSibling();
             }
             if (nosprite != null) Destroy(nosprite);
 
@@ -40,6 +68,7 @@ public class Collectible : MonoBehaviour
             if (nosprite == null)
             {
                 nosprite = Instantiate(NoSprite, Game.Canvas.transform);
+                nosprite.transform.SetAsFirstSibling();
             }
             if (gemsprite != null) Destroy(gemsprite);
 
