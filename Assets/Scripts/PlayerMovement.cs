@@ -1269,7 +1269,7 @@ public class PlayerMovement : MonoBehaviour
     public int GetWallBufferingAmount()
     {
         var wallBuffering = WALL_JUMP_BUFFERING;
-        var bonusBuffering = Mathf.Max(0, Mathf.RoundToInt((Flatten(velocity).magnitude - 10f) / 20f));
+        var bonusBuffering = Mathf.Max(0, Mathf.RoundToInt((Flatten(velocity).magnitude - 15f) / 20f));
         wallBuffering += bonusBuffering;
         // Hitting kicks while dashing is difficult, so we use increase buffering while dashing
         if (IsDashing) wallBuffering *= 2;
@@ -1423,7 +1423,7 @@ public class PlayerMovement : MonoBehaviour
 ╚═╝░░╚═╝╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝░╚════╝░░░░╚═╝░░░╚══════╝
     */
     public bool ApproachingGround { get; set; }
-    private const float AIR_SPEED = 1f;
+    private const float AIR_SPEED = 1.5f;
     private const float SIDE_AIR_ACCELERATION = 50;
     private const float FORWARD_AIR_ACCELERATION = 50;
     private const float DIAGONAL_AIR_ACCEL_BONUS = 100;
@@ -1575,7 +1575,7 @@ public class PlayerMovement : MonoBehaviour
         var mod = 1f;
         if (ApproachingWall)
         {
-            mod = timeToWall / WALL_LEAN_PREDICTION_TIME;
+            mod = Mathf.Clamp01(((timeToWall - (WALL_LEAN_PREDICTION_TIME / 2)) * 2) / WALL_LEAN_PREDICTION_TIME);
             mod = 1 - Mathf.Pow(1 - mod, 3);
         }
 
@@ -1725,7 +1725,7 @@ public class PlayerMovement : MonoBehaviour
     public const float MIN_JUMP_HEIGHT = 14f;
     public const int JUMP_STAMINA_RECOVERY_TICKS = 5;
     public const int COYOTE_TICKS = 20;
-    public const int WALL_JUMP_BUFFERING = 1;
+    public const int WALL_JUMP_BUFFERING = 2;
     public const int GROUND_JUMP_BUFFERING = 6;
     private float jumpBuffered;
     private int jumpTimestamp;
