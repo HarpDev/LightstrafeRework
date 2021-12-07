@@ -1269,7 +1269,7 @@ public class PlayerMovement : MonoBehaviour
     public int GetWallBufferingAmount()
     {
         var wallBuffering = WALL_JUMP_BUFFERING;
-        var bonusBuffering = Mathf.Max(0, Mathf.RoundToInt((Flatten(velocity).magnitude - 15f) / 20f));
+        var bonusBuffering = Mathf.Max(0, Mathf.RoundToInt((Flatten(velocity).magnitude - 15f) / 30f));
         wallBuffering += bonusBuffering;
         // Hitting kicks while dashing is difficult, so we use increase buffering while dashing
         if (IsDashing) wallBuffering *= 2;
@@ -1301,7 +1301,8 @@ public class PlayerMovement : MonoBehaviour
     public const float GROUND_ACCELERATION = 6.5f;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
-    public const float SLIDE_FRICTION = 0.2f;
+    public const float SLIDE_FRICTION = 0.4f;
+    public const int SLIDE_FRICTION_TICKS = 20;
     public const float SLIDE_BOOST_SPEED = 18f;
     private int groundTickCount;
     private int groundTimestamp = -100000;
@@ -1379,7 +1380,7 @@ public class PlayerMovement : MonoBehaviour
             if (IsSliding)
             {
                 // Sliding on ground has same movement as in the air (with friction)
-                ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
+                if (groundTickCount < SLIDE_FRICTION_TICKS) ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
                 AirAccelerate(ref velocity, f);
 
                 slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, f * 7);
