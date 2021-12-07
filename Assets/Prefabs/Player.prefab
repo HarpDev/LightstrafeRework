@@ -308,12 +308,12 @@ MonoBehaviour:
   weaponManager: {fileID: 1351658015657563558}
   camera: {fileID: 1351658016518666248}
   cameraParent: {fileID: 1351658015547209675}
-  abilityDot: {fileID: 2691765926665665699, guid: 04c51a6cd8413a946aae2f53befeebd4,
-    type: 3}
   rigidbody: {fileID: 1351658015657563556}
   cameraPosition: {x: 0, y: 0.4, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   jumpKitEnabled: 1
+  AbilityAvailable: 0
+  EquippedAbility: 0
   jump: {fileID: 8300000, guid: 61f176ee97fec12479afd1146a8081f0, type: 3}
   jumpair: {fileID: 8300000, guid: bf130dd437a2d634b9c8b83dcd776c62, type: 3}
   dash: {fileID: 8300000, guid: de6a20422d5c06d4b8256e5b5a009f4c, type: 3}
@@ -327,7 +327,11 @@ MonoBehaviour:
   railLand: {fileID: 8300000, guid: 87e697ae7a8139b4e9fd75973199b572, type: 3}
   railDuring: {fileID: 8300000, guid: 58d6665ad1faf704eb4419d9e3ff131d, type: 3}
   railEnd: {fileID: 8300000, guid: 9637aeae0eaf390428a4760f1df3e34f, type: 3}
+  wow: {fileID: 8300000, guid: 71ec9c95213f0b54fa4b27d4628a84cd, type: 3}
+  music1: {fileID: 8300000, guid: dedffb759c0ba584986c8d0dd63b42a5, type: 3}
+  music2: {fileID: 8300000, guid: 64bf40bf7d6009c4d955426cc4aef4bf, type: 3}
   grappleTether: {fileID: 1351658015657563557}
+  kickFeedback: {fileID: 0}
 --- !u!114 &1351658015657563553
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -490,7 +494,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 0}
+  - {fileID: 2100000, guid: 1ef60e3a3198134438f8ec120d37e7bf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -522,7 +526,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 1
+        value: 0.13513184
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -586,6 +590,7 @@ MonoBehaviour:
   - {fileID: 271368100, guid: 8dcf5390a829a5e4a9839b8d9380f922, type: 3}
   - {fileID: 391917514384487629, guid: d2aeb77fc6a09d14ab27661954c6e77d, type: 3}
   tracerMaterial: {fileID: 2100000, guid: 16adbd4a878d18b4ebda375ec72234a3, type: 2}
+  startGun: 0
 --- !u!114 &1351658015657563559
 MonoBehaviour:
   m_ObjectHideFlags: 0

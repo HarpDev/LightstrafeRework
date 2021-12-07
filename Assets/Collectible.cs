@@ -1,13 +1,11 @@
-﻿using System;
-using System.Linq;
-using TMPro.EditorUtilities;
+﻿using System.Linq;
 using UnityEngine;
 
 public class Collectible : MonoBehaviour
 {
     public GameObject NoSprite;
     public GameObject GemSprite;
-    public GameObject[] Requires;
+    public int Requires;
 
     private GameObject nosprite;
     private GameObject gemsprite;
@@ -86,7 +84,7 @@ public class Collectible : MonoBehaviour
 
     private bool RequirementsMet()
     {
-        return Requires.All(req => req == null) || Requires.Length == 0;
+        return Requires <= 0;
     }
 
     public void Collect()
@@ -95,12 +93,16 @@ public class Collectible : MonoBehaviour
         if (gemsprite != null) Destroy(gemsprite);
         if (nosprite != null) Destroy(nosprite);
         var objects = FindObjectsOfType<Collectible>();
+        foreach (var gem in objects)
+        {
+            gem.GetComponent<Collectible>().Requires--;
+        }
         if (objects.Length == 1)
         {
             Game.EndTimer();
         }
         
-        Game.Player.AudioManager.PlayOneShot(Game.Player.wow);
+        Game.Player.AudioManager.PlayOneShot(Game.Player.wow, false, 0.4f);
         
         Destroy(gameObject);
     }
