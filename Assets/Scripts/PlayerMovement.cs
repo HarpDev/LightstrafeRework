@@ -522,6 +522,8 @@ public class PlayerMovement : MonoBehaviour
             var realscale = hitbox.transform.localScale;
             if (!IsSliding) realscale.y = 2;
             hitbox.transform.localScale = reducedscale;
+            
+            // a lot of these numbers are really particular and finnicky
             transform.position -= movement.normalized * 0.2f;
             movement += movement.normalized * 0.2f;
             if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
@@ -542,19 +544,19 @@ public class PlayerMovement : MonoBehaviour
                         continue;
                     }
 
-                    // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
-                    // So we treat all slanted ground as perfectly flat when not sliding
-                    var angle = Vector3.Angle(Vector3.up, direction);
-                    if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
-
                     if (CanCollide(hit.collider))
                     {
+                        // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                        // So we treat all slanted ground as perfectly flat when not sliding
+                        var angle = Vector3.Angle(Vector3.up, direction);
+                        if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+                        
                         // Depenetrate
                         transform.position += direction * distance;
-
+                        
                         // Apply this collision to the movement for this tick
                         var movementProjection = Vector3.Dot(movement, -direction);
-                        if (movementProjection > 0) movement += hit.normal * movementProjection;
+                        if (movementProjection > 0) movement += direction * movementProjection;
 
                         // Collide
                         ContactCollider(direction, hit.collider);
