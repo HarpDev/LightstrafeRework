@@ -1152,6 +1152,7 @@ public class PlayerMovement : MonoBehaviour
         GrappleHooked = true;
         grappleTicks = 0;
         DoubleJumpAvailable = true;
+        lastWall = null;
     }
 
     public void DetachGrapple()
