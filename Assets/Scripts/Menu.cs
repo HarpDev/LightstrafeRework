@@ -7,9 +7,10 @@ public class Menu : MonoBehaviour
 
     private void Update()
     {
-        if (PlayerInput.GetKeyDown(PlayerInput.Pause))
+        if (PlayerInput.SincePressed(PlayerInput.Pause) == 0)
         {
             Game.CloseMenu();
+            PlayerInput.ConsumeBuffer(PlayerInput.Pause);
         }
     }
 }

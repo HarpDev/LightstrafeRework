@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using FullSerializer;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.SceneManagement;
@@ -49,9 +50,14 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsSliding
     {
-        // Give player a little control over sliding by allowing them to hold back to stand
+        // Give player a little control over sliding by allowing them to hold back/neutral to stand
         get
         {
+            if (!PlayerInput.GetKey(PlayerInput.MoveForward) &&
+                !PlayerInput.GetKey(PlayerInput.MoveBackward) &&
+                !PlayerInput.GetKey(PlayerInput.MoveRight) &&
+                !PlayerInput.GetKey(PlayerInput.MoveLeft) &&
+                Flatten(velocity).magnitude < SLIDE_BOOST_SPEED) return false;
             if (Vector3.Dot(Wishdir, Flatten(velocity).normalized) < -0.2f &&
                 Flatten(velocity).magnitude < SLIDE_BOOST_SPEED)
             {
@@ -147,6 +153,8 @@ public class PlayerMovement : MonoBehaviour
         AudioManager = GetComponent<PlayerAudioManager>();
         LookScale = 1;
 
+        //PlayerInput.ReadReplayFile("C:\\Users\\Fzzy\\Desktop\\replay.txt");
+
         Yaw += transform.rotation.eulerAngles.y;
 
         Cursor.lockState = CursorLockMode.Locked;
@@ -196,11 +204,6 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         jumpBuffered = Mathf.Max(jumpBuffered - Time.deltaTime, 0);
-
-        if (PlayerInput.GetKeyDown(PlayerInput.Pause))
-        {
-            if (!IsPaused()) Pause();
-        }
 
         if (!IsPaused() && Cursor.visible) Unpause();
 
@@ -253,6 +256,7 @@ public class PlayerMovement : MonoBehaviour
         {
             if (AbilityAvailable && EquippedAbility != AbilityType.NONE) crosshairon = true;
         }
+
         if (crosshairon)
         {
             Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0,
@@ -283,10 +287,6 @@ public class PlayerMovement : MonoBehaviour
 
         CameraRoll -= Mathf.Sign(CameraRoll - cameraRotation) * Mathf.Min(cameraRotationSpeed * Time.deltaTime,
             Mathf.Abs(CameraRoll - cameraRotation));
-
-        // Check for level restart
-        if (PlayerInput.GetKeyDown(PlayerInput.LastCheckpoint)) Game.ReturnToLastCheckpoint();
-        if (PlayerInput.GetKeyDown(PlayerInput.RestartLevel)) Game.RestartLevel();
 
         var position = cameraPosition;
 
@@ -342,6 +342,19 @@ public class PlayerMovement : MonoBehaviour
     private void FixedUpdate()
     {
         wallRecovery -= Mathf.Min(wallRecovery, Time.fixedDeltaTime);
+
+        if (PlayerInput.SincePressed(PlayerInput.Pause) == 0)
+        {
+            if (!IsPaused())
+            {
+                PlayerInput.WriteReplayToFile();
+                Pause();
+            }
+        }
+
+        // Check for level restart
+        if (PlayerInput.SincePressed(PlayerInput.LastCheckpoint) == 0) Game.ReturnToLastCheckpoint();
+        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0) Game.RestartLevel();
 
         // Set Wishdir
         Wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() +
@@ -488,38 +501,74 @@ public class PlayerMovement : MonoBehaviour
 
         if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
 
-        // Movement happens in 2 distinct phases
-        // Phase 1 is continuous collision, iteratively sweep test through colliders, applying collision to each one hit
         while (movement.magnitude > 0f && iterations < 5)
         {
             iterations++;
+
+            // this is fucked lol
+            // good luck
+            if (Math.Abs(hitbox.transform.localScale.y - 1) < 0.05f && !IsSliding)
+            {
+                hitbox.transform.localScale = new Vector3(1, 2, 1);
+                hitbox.transform.position += Vector3.up;
+            }
+            if (Math.Abs(hitbox.transform.localScale.y - 2) < 0.05f && IsSliding)
+            {
+                hitbox.transform.localScale = new Vector3(1, 1, 1);
+                hitbox.transform.position -= Vector3.up;
+            }
+            var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
+            reducedscale.y = IsSliding ? reducedscale.y : 2f - hitbox.contactOffset * 2;
+            var realscale = hitbox.transform.localScale;
+            if (!IsSliding) realscale.y = 2;
+            hitbox.transform.localScale = reducedscale;
+            transform.position -= movement.normalized * 0.2f;
+            movement += movement.normalized * 0.2f;
             if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
                 QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
             {
-                transform.position += movement.normalized * hit.distance;
+                hitbox.transform.localScale = realscale;
+                transform.position += movement.normalized * (hit.distance + 0.05f);
                 movement -= movement.normalized * hit.distance;
 
-                var movementProjection = Vector3.Dot(movement, -hit.normal);
-                if (movementProjection > 0) movement += hit.normal * movementProjection;
-                if (CanCollide(hit.collider))
+                if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation,
+                    hit.collider, hit.collider.gameObject.transform.position,
+                    hit.collider.gameObject.transform.rotation,
+                    out var direction, out var distance))
                 {
-                    ContactCollider(hit.normal, hit.collider);
+                    if (hit.collider.isTrigger)
+                    {
+                        ContactTrigger(direction, hit.collider);
+                        continue;
+                    }
+
+                    // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                    // So we treat all slanted ground as perfectly flat when not sliding
+                    var angle = Vector3.Angle(Vector3.up, direction);
+                    if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+
+                    if (CanCollide(hit.collider))
+                    {
+                        // Depenetrate
+                        transform.position += direction * distance;
+
+                        // Apply this collision to the movement for this tick
+                        var movementProjection = Vector3.Dot(movement, -direction);
+                        if (movementProjection > 0) movement += hit.normal * movementProjection;
+
+                        // Collide
+                        ContactCollider(direction, hit.collider);
+                    }
                 }
             }
             else
             {
-                if (Physics.Raycast(transform.position, movement.normalized, out var ray, movement.magnitude, 1,
-                    QueryTriggerInteraction.Ignore) && CanCollide(ray.collider))
-                {
-                    movement = movement.normalized * ray.distance;
-                }
-
+                hitbox.transform.localScale = realscale;
                 transform.position += movement;
-                movement = new Vector3();
+                movement = Vector3.zero;
             }
         }
 
-        // Phase 2 is discrete collision
         // After doing sweep tests, use ComputePenetration() to ensure that the player is not intersecting with anything
         // Apply collision function to everything touching the player
         var bounds = hitbox.bounds;
@@ -543,7 +592,8 @@ public class PlayerMovement : MonoBehaviour
 
                 // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
                 // So we treat all slanted ground as perfectly flat when not sliding
-                if (IsOnGround && !IsSliding) direction = Vector3.up;
+                var angle = Vector3.Angle(Vector3.up, direction);
+                if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
                 transform.position += direction * distance;
             }
         }
@@ -559,7 +609,7 @@ public class PlayerMovement : MonoBehaviour
 ╚█████╔╝╚█████╔╝███████╗███████╗██║██████╔╝███████╗
 ░╚════╝░░╚════╝░╚══════╝╚══════╝╚═╝╚═════╝░╚══════╝
     */
-    public const float VERTICAL_COLLIDE_INEFFICIENCY = 0.3f;
+    public const float VERTICAL_COLLIDE_INEFFICIENCY = 0.5f;
     private float surfAccelTime;
 
     private bool CanCollide(Component other, bool ignoreUninteractable = true)
@@ -643,6 +693,7 @@ public class PlayerMovement : MonoBehaviour
         if (angle >= GROUND_ANGLE && Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
         {
             surfAccelTime = 0.5f;
+            DoubleJumpAvailable = true;
         }
 
         if (!collider.CompareTag("Uninteractable")
@@ -763,7 +814,7 @@ public class PlayerMovement : MonoBehaviour
             velocity = Mathf.Max(velocity.magnitude, BASE_SPEED) * velocity.normalized;
 
             jumpHeight /= DASH_CANCEL_JUMP_DIVIDE;
-            
+
             var gain = DASH_CANCEL_TEMP_SPEED - dashCancelTempSpeed;
             velocity += Flatten(velocity).normalized * gain;
             dashCancelTempSpeed += gain;
@@ -771,6 +822,7 @@ public class PlayerMovement : MonoBehaviour
 
             return StopDash();
         }
+
         return false;
     }
 
@@ -1121,6 +1173,7 @@ public class PlayerMovement : MonoBehaviour
             hit = spherehit.point;
             return true;
         }
+
         hit = Vector3.zero;
         return false;
     }
@@ -1176,8 +1229,8 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_AIR_ACCEL_RECOVERY = 0.35f;
     public const float WALL_END_BOOST_SPEED = 2;
     public const float WALL_LEAN_DEGREES = 15f;
-    public const float WALL_SPEED = 13;
-    public const float WALL_ACCELERATION = 2f;
+    public const float WALL_SPEED = 10;
+    public const float WALL_ACCELERATION = 1f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 4;
     public const int WALL_FRICTION_TICKS = 5;
@@ -1192,6 +1245,7 @@ public class PlayerMovement : MonoBehaviour
     private GameObject currentWall;
     private float wallRecovery;
     private float wallLeanAmount;
+    private float wallLeanLerp;
 
     public Text kickFeedback;
 
@@ -1222,13 +1276,22 @@ public class PlayerMovement : MonoBehaviour
         var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
         wallLeanAmount = Mathf.Clamp01(wallLeanAmount + Time.fixedDeltaTime / 0.1f);
         var roll = WALL_LEAN_DEGREES * -projection * wallLeanAmount;
-        var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
-        SetCameraRoll(roll, speed);
+        wallLeanLerp = wallTickCount == 1 ? roll : Mathf.Lerp(wallLeanLerp, roll, f * 8);
+        var speed = Mathf.Abs(CameraRoll - wallLeanLerp) / Time.fixedDeltaTime;
+        SetCameraRoll(wallLeanLerp, speed);
 
         // If you dash into a wall, the dash loses its vertical momentum when you touch the wall
         if (IsDashing)
         {
             dashVector.y = 0;
+        }
+
+        if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) > 0.6f)
+        {
+            var alongView = (Wishdir - (Flatten(wallNormal).normalized *
+                                        Vector3.Dot(Wishdir, Flatten(wallNormal).normalized)))
+                .normalized;
+            Accelerate(alongView, WALL_SPEED, WALL_ACCELERATION * 4, f);
         }
 
         // If you hold back on a wall, apply friction and accelerate in the opposite direction so you can turn around on walls
@@ -1237,7 +1300,7 @@ public class PlayerMovement : MonoBehaviour
             var alongView = (Wishdir - (Flatten(wallNormal).normalized *
                                         Vector3.Dot(Wishdir, Flatten(wallNormal).normalized)))
                 .normalized;
-            Accelerate(alongView, WALL_SPEED, WALL_ACCELERATION, f);
+            Accelerate(alongView, WALL_SPEED, WALL_ACCELERATION * 4, f);
             ApplyFriction(f * WALL_FRICTION);
         }
         else
@@ -1458,7 +1521,6 @@ public class PlayerMovement : MonoBehaviour
             movement.magnitude * WALL_LEAN_PREDICTION_TIME, QueryTriggerInteraction.Ignore);
 
         var wallBuffering = GetWallBufferingAmount();
-        Debug.Log(wallBuffering);
 
         var eatJump = false;
         var timeToWall = 0f;
@@ -1775,7 +1837,7 @@ public class PlayerMovement : MonoBehaviour
                 if (kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
                 {
                     var wallBuffering = GetWallBufferingAmount();
-                    
+
                     var frictionTicks = Mathf.Max(0, IsDashing ? 0 : wallTickCount - wallBuffering);
                     kickFeedback.text = "+" + frictionTicks;
                     kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
@@ -1804,11 +1866,22 @@ public class PlayerMovement : MonoBehaviour
                 // We calculate wall jump angle on vector normals so angle off the wall doesnt change with speed
                 var velDirection = Flatten(velocity).normalized;
                 var normal = wallNormal;
-                var jumpDirection =
+                var strictDirection =
                     Flatten(Flatten(velDirection - normal * Vector3.Dot(velDirection, normal)).normalized +
                             normal * WALL_JUMP_ANGLE).normalized;
-                velocity = Mathf.Max(Flatten(velocity).magnitude, BASE_SPEED) * jumpDirection;
-                velocity += jumpDirection * WALL_JUMP_SPEED;
+                var realDirection = (Flatten(velocity) + normal * WALL_JUMP_SPEED).normalized;
+                var strictAngle = Vector3.Dot(strictDirection, normal);
+                var realAngle = Vector3.Dot(realDirection, normal);
+                if (realAngle > strictAngle)
+                {
+                    velocity = Flatten(velocity).magnitude * realDirection;
+                }
+                else
+                {
+                    velocity = Flatten(velocity).magnitude * strictDirection;
+                }
+
+                velocity += Flatten(velocity).normalized * WALL_JUMP_SPEED;
 
                 velocity.y = y;
                 var h = jumpHeight;

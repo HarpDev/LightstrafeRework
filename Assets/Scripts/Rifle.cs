@@ -201,7 +201,7 @@ public class Rifle : WeaponManager.Gun
             }
         }
 
-        if (PlayerInput.GetKeyDown(PlayerInput.TertiaryInteract) && Time.timeScale > 0 && boomerangAvailable)
+        if (PlayerInput.SincePressed(PlayerInput.TertiaryInteract) == 0 && Time.timeScale > 0 && boomerangAvailable)
         {
             if (animator != null)
             {

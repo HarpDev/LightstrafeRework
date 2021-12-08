@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using FullSerializer;
 using UnityEngine;
 
 public class PlayerInput : MonoBehaviour
@@ -20,8 +22,8 @@ public class PlayerInput : MonoBehaviour
     public static int Pause { get { return PlayerPrefs.GetInt("Pause", (int)KeyCode.Escape); } private set { PlayerPrefs.SetInt("Pause", (int)value); } }
     public static int Slide { get { return PlayerPrefs.GetInt("Slide", (int)KeyCode.LeftControl); } private set { PlayerPrefs.SetInt("Slide", (int)value); } }
 
-    private static Dictionary<int, int> keyPressTimestamps = new Dictionary<int, int>();
-    private static Dictionary<int, int> keyReleaseTimestamps = new Dictionary<int, int>();
+    public static Dictionary<int, int> keyPressTimestamps = new Dictionary<int, int>();
+    public static Dictionary<int, int> keyReleaseTimestamps = new Dictionary<int, int>();
 
     public enum AlternateCode
     {
@@ -61,7 +63,7 @@ public class PlayerInput : MonoBehaviour
     public static bool GetKeyDown(KeyCode key) { return GetKeyDown((int)key); }
     public static bool GetKeyDown(AlternateCode key) { return GetKeyDown((int)key); }
 
-    public static bool GetKeyDown(int key)
+    private static bool GetKeyDown(int key)
     {
         if (key > 0) return Input.GetKeyDown((KeyCode)key);
 
@@ -85,19 +87,24 @@ public class PlayerInput : MonoBehaviour
 
     public static bool GetKey(int key)
     {
-        if (key > 0) return Input.GetKey((KeyCode)key);
+        if (key > 0) return SincePressed(key) < SinceReleased(key);
 
         return false;
     }
 
     public static void ConsumeBuffer(int key)
     {
+        if (playing) return;
         keyPressTimestamps[key] = -1;
         keyReleaseTimestamps[key] = -1;
     }
 
     public static float GetAxisStrafeRight()
     {
+        if (playing)
+        {
+            return replay[tickCount].axisRight;
+        }
         if (Input.GetKey((KeyCode)MoveRight))
             return Input.GetKey((KeyCode)MoveLeft) ? 0 : 1;
         else
@@ -106,6 +113,10 @@ public class PlayerInput : MonoBehaviour
 
     public static float GetAxisStrafeForward()
     {
+        if (playing)
+        {
+            return replay[tickCount].axisForward;
+        }
         if (Input.GetKey((KeyCode)MoveForward))
             return Input.GetKey((KeyCode)MoveBackward) ? 0 : 1;
         else
@@ -114,15 +125,94 @@ public class PlayerInput : MonoBehaviour
 
     public static void SimulateKeyPress(int key)
     {
+        if (playing) return;
         keyPressTimestamps[key] = tickCount;
         keyReleaseTimestamps[key] = tickCount;
     }
 
+    private struct ReplayTick
+    {
+        public Dictionary<int, int> keyPressTicks;
+        public Dictionary<int, int> keyReleaseTicks;
+        public float axisRight;
+        public float axisForward;
+        public float yaw;
+        public float pitch;
+        public Vector3 position;
+        public Vector3 velocity;
+    }
+
+    private static bool recording = false;
+    private static bool playing = false;
+    private static Dictionary<int, ReplayTick> replay = new Dictionary<int, ReplayTick>();
+    private float replayLastYaw;
+    private float replayLastPitch;
+    private float replayMouseInterpolation;
     private void FixedUpdate()
     {
         tickCount++;
+        if (recording)
+        {
+            var presses = new Dictionary<int, int>(keyPressTimestamps);
+            var releases = new Dictionary<int, int>(keyReleaseTimestamps);
+            var tick = new ReplayTick
+            {
+                keyPressTicks = presses,
+                keyReleaseTicks = releases,
+                axisForward = GetAxisStrafeForward(),
+                axisRight = GetAxisStrafeRight(),
+                yaw = Game.Player.Yaw,
+                pitch = Game.Player.Pitch,
+                position = Game.Player.transform.position,
+                velocity = Game.Player.velocity
+            };
+            replay[tickCount] = tick;
+        }
+
+        if (playing)
+        {
+            if (replay.Count < tickCount)
+            {
+                Debug.Log("replay stopped");
+                Time.timeScale = 0;
+                playing = false;
+            }
+            if (replay.ContainsKey(tickCount))
+            {
+                keyPressTimestamps = replay[tickCount].keyPressTicks;
+                keyReleaseTimestamps = replay[tickCount].keyReleaseTicks;
+                replayLastYaw = replay[tickCount].yaw;
+                replayLastPitch = replay[tickCount].pitch;
+                Game.Player.transform.position = replay[tickCount].position;
+                Game.Player.velocity = replay[tickCount].velocity;
+                replayMouseInterpolation = 0;
+            }
+        }
     }
 
+    public static void WriteReplayToFile()
+    {
+        if (!recording) return;
+        Debug.Log("replay saved to file");
+        var s = new fsSerializer();
+        recording = false;
+        s.TrySerialize(replay, out var serial).AssertSuccessWithoutWarnings();
+        File.WriteAllText("C:\\Users\\Fzzy\\Desktop\\replay.txt", fsJsonPrinter.CompressedJson(serial));
+    }
+
+    public static void ReadReplayFile(string path)
+    {
+        var s = new fsSerializer();
+        var serial = File.ReadAllText(path);
+        var json = fsJsonParser.Parse(serial);
+        object deserialized = null;
+        s.TryDeserialize(json, replay.GetType(), ref deserialized).AssertSuccessWithoutWarnings();
+        recording = false;
+        playing = true;
+        replay = (Dictionary<int, ReplayTick>)deserialized;
+        Debug.Log("reading replay from file\ntickCount: " + replay.Count);
+    }
+    
     public static int GetBindByName(string name)
     {
         var properties = typeof(PlayerInput).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly);
@@ -170,6 +260,13 @@ public class PlayerInput : MonoBehaviour
 
     private void Update()
     {
+        if (playing)
+        {
+            Game.Player.Yaw = Mathf.Lerp(replayLastYaw, replay[tickCount].yaw, replayMouseInterpolation);
+            Game.Player.Pitch = Mathf.Lerp(replayLastPitch, replay[tickCount].pitch, replayMouseInterpolation);
+            replayMouseInterpolation += Time.deltaTime;
+            return;
+        }
         var properties = typeof(PlayerInput).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly);
         foreach (var prop in properties)
         {
