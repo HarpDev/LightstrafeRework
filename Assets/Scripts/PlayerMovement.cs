@@ -679,8 +679,7 @@ public class PlayerMovement : MonoBehaviour
                 var impulseCollide = velocity + impulse;
 
                 if (x2 != 0 && Flatten(verticalCollide).magnitude > Flatten(impulseCollide).magnitude &&
-                    Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE &&
-                    angle >= GROUND_ANGLE)
+                    Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
                 {
                     velocity += impulse * VERTICAL_COLLIDE_INEFFICIENCY;
                     velocity.y = y1;
@@ -840,6 +839,7 @@ public class PlayerMovement : MonoBehaviour
 
     public const int RAIL_COOLDOWN_TICKS = 100;
     public const float RAIL_SPEED = 25;
+    public const float RAIL_ACCELERATION = 1;
     private int railTimestamp = -100000;
     private int railDirection;
     private int railTickCount;
@@ -899,8 +899,8 @@ public class PlayerMovement : MonoBehaviour
             {
                 var forward = currentRail.smoothedPoints[closeIndex - railDirection] -
                               currentRail.smoothedPoints[closeIndex];
-                var p = Vector3.Dot(velocity, forward.normalized);
-                velocity = velocity.normalized * p;
+                var p = Vector3.Dot(velocity, Flatten(forward).normalized);
+                velocity = Flatten(velocity).normalized * p;
             }
             catch (IndexOutOfRangeException)
             {
@@ -939,7 +939,7 @@ public class PlayerMovement : MonoBehaviour
         // Get the vector from current player position to the next rail point and lerp them towards it
         var correctionVector = -(transform.position - next).normalized;
         velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
-        Accelerate(velocity.normalized, RAIL_SPEED, GROUND_ACCELERATION);
+        Accelerate(velocity.normalized, RAIL_SPEED, RAIL_ACCELERATION, f);
 
         // Apply gravity only if the player is moving down
         // This makes them gain speed on downhill rails without losing speed on uphill rails // stonks
