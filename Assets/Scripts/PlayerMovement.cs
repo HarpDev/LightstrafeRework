@@ -53,6 +53,7 @@ public class PlayerMovement : MonoBehaviour
         // Give player a little control over sliding by allowing them to hold back/neutral to stand
         get
         {
+            if (IsOnRail) return false;
             if (!PlayerInput.GetKey(PlayerInput.MoveForward) &&
                 !PlayerInput.GetKey(PlayerInput.MoveBackward) &&
                 !PlayerInput.GetKey(PlayerInput.MoveRight) &&
@@ -484,7 +485,14 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (IsOnWall) wallLevel--;
+        if (IsOnWall)
+        {
+            wallLevel--;
+            if (!IsOnWall)
+            {
+                AudioManager.StopAudio(slide);
+            }
+        }
         var iterations = 0;
 
         // Hold helps collision hold you against walls/ground even if they get a little bumpy
@@ -512,17 +520,19 @@ public class PlayerMovement : MonoBehaviour
                 hitbox.transform.localScale = new Vector3(1, 2, 1);
                 hitbox.transform.position += Vector3.up;
             }
+
             if (Math.Abs(hitbox.transform.localScale.y - 2) < 0.05f && IsSliding)
             {
                 hitbox.transform.localScale = new Vector3(1, 1, 1);
                 hitbox.transform.position -= Vector3.up;
             }
+
             var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
             reducedscale.y = IsSliding ? reducedscale.y : 2f - hitbox.contactOffset * 2;
             var realscale = hitbox.transform.localScale;
             if (!IsSliding) realscale.y = 2;
             hitbox.transform.localScale = reducedscale;
-            
+
             // a lot of these numbers are really particular and finnicky
             transform.position -= movement.normalized * 0.2f;
             movement += movement.normalized * 0.2f;
@@ -550,10 +560,10 @@ public class PlayerMovement : MonoBehaviour
                         // So we treat all slanted ground as perfectly flat when not sliding
                         var angle = Vector3.Angle(Vector3.up, direction);
                         if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
-                        
+
                         // Depenetrate
                         transform.position += direction * distance;
-                        
+
                         // Apply this collision to the movement for this tick
                         var movementProjection = Vector3.Dot(movement, -direction);
                         if (movementProjection > 0) movement += direction * movementProjection;
@@ -938,7 +948,7 @@ public class PlayerMovement : MonoBehaviour
 
         // Get the vector from current player position to the next rail point and lerp them towards it
         var correctionVector = -(transform.position - next).normalized;
-        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 20).normalized;
+        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 80).normalized;
         Accelerate(velocity.normalized, RAIL_SPEED, RAIL_ACCELERATION, f);
 
         // Apply gravity only if the player is moving down
@@ -1089,8 +1099,10 @@ public class PlayerMovement : MonoBehaviour
     public const float GRAPPLE_ACCELERATION = 30f;
     public const float GRAPPLE_RANGE = 35;
     public const float GRAPPLE_SPEED = 25;
-    public const float GFORCE_GAIN_FRICTION = 2f;
-    public const float GFORCE_LOSE_BONUS = 40;
+    public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 2f;
+    public const float GFORCE_SPEEDGAIN_UP_FRICTION = 8f;
+    public const float GRAPPLE_UPWARD_PULL = 30;
+    public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
     private int grappleTicks;
     private Vector3 grappleAttachPosition;
 
@@ -1114,22 +1126,49 @@ public class PlayerMovement : MonoBehaviour
         {
             GravityTick(f);
         }
+        else
+        {
+            velocity += towardPoint.normalized * GRAPPLE_ACCELERATION * f;
+            velocity = velocity.normalized * speed;
+        }
 
         if (velocity.magnitude < GRAPPLE_SPEED) velocity += towardPoint.normalized * GRAPPLE_ACCELERATION * f;
 
         if (velocityProjection < 0)
         {
-            var beforeSwing = velocity;
-            velocity += towardPoint.normalized * -velocityProjection;
-            var verticalG = Mathf.Abs((towardPoint.normalized * -velocityProjection).y);
-            if (Flatten(velocity).magnitude > Flatten(beforeSwing).magnitude)
+            if (Mathf.Abs(Vector3.Angle(Vector3.up, velocity) - 90) < 20)
             {
-                ApplyFriction(f * verticalG * GFORCE_GAIN_FRICTION, SLIDE_BOOST_SPEED);
+                var wishdir = velocity + (towardPoint.normalized * -velocityProjection);
+                var x2 = Flatten(wishdir).magnitude;
+                var x1 = Flatten(velocity).magnitude;
+                var y2 = wishdir.y;
+                var y1 = x1 * y2 / x2;
+
+                velocity.y = y1;
             }
             else
             {
-                velocity += velocity.normalized * f * GFORCE_LOSE_BONUS * verticalG;
+                var beforeSwing = velocity;
+                velocity += towardPoint.normalized * -velocityProjection;
+                var verticalG = Mathf.Abs((towardPoint.normalized * -velocityProjection).y);
+                if (Flatten(velocity).magnitude > Flatten(beforeSwing).magnitude)
+                {
+                    if (velocity.y > 0)
+                    {
+                        ApplyFriction(f * verticalG * GFORCE_SPEEDGAIN_UP_FRICTION, SLIDE_BOOST_SPEED);
+                    }
+                    else
+                    {
+                        ApplyFriction(f * verticalG * GFORCE_SPEEDGAIN_DOWN_FRICTION, SLIDE_BOOST_SPEED);
+                    }
+                }
             }
+        }
+
+        if (velocity.y > 0)
+        {
+            var verticalProjection = Vector3.Dot(velocity.normalized, Vector3.up);
+            velocity += Vector3.up * verticalProjection * GRAPPLE_UPWARD_PULL * f;
         }
 
         var gain = 0.3f;
@@ -1408,9 +1447,6 @@ public class PlayerMovement : MonoBehaviour
             Accelerate(Flatten(velocity).normalized, speed, BASE_SPEED);
         }
 
-        // Check for jump a bit late so you can get dash refresh and slide boost on tick perfect jumps
-        if (PlayerJump()) return;
-
         groundTickCount++;
 
         if (groundTickCount == 1 && !IsSliding) AudioManager.PlayAudio(groundLand);
@@ -1461,6 +1497,8 @@ public class PlayerMovement : MonoBehaviour
         {
             AirAccelerate(ref velocity, f);
         }
+
+        PlayerJump();
     }
 
     // Returns speed gain
@@ -1905,7 +1943,10 @@ public class PlayerMovement : MonoBehaviour
                 if (!groundJump)
                 {
                     DoubleJumpAvailable = false;
-                    velocity.y = Mathf.Max(MAX_JUMP_HEIGHT, velocity.y);
+                    if (GrappleHooked)
+                        velocity.y = Mathf.Max(MAX_JUMP_HEIGHT, velocity.y + GRAPPLE_DOUBLEJUMP_IMPULSE);
+                    else
+                        velocity.y = Mathf.Max(MAX_JUMP_HEIGHT, velocity.y);
                     StopDash();
                     AudioManager.PlayOneShot(jumpair);
 
