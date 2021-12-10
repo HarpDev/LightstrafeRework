@@ -75,24 +75,9 @@ public class Game : MonoBehaviour
             }
             return canvas;
         }
-        private set { canvas = value; }
     }
 
     public static List<Canvas> UiTree { get; private set; }
-
-    private static PostProcessVolume postProcessVolume;
-    public static PostProcessVolume PostProcessVolume
-    {
-        get
-        {
-            if (postProcessVolume == null)
-            {
-                if (player != null) postProcessVolume = player.gameObject.GetComponent<PostProcessVolume>();
-            }
-            return postProcessVolume;
-        }
-        private set { postProcessVolume = value; }
-    }
 
     private static bool _inputAlreadyTaken;
 
@@ -129,12 +114,6 @@ public class Game : MonoBehaviour
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
                 OpenMenu(LevelCompleted);
-            }
-
-            if (Game.PostProcessVolume.profile.TryGetSettings(out Blur blur))
-            {
-                blur.BlurIterations.value = Mathf.RoundToInt((1 - Time.timeScale) * 8);
-                blur.enabled.value = true;
             }
         }
 

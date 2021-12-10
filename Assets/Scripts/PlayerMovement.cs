@@ -119,12 +119,6 @@ public class PlayerMovement : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         Game.OpenPauseMenu();
-
-        if (Game.PostProcessVolume.profile.TryGetSettings(out Blur blur))
-        {
-            blur.BlurIterations.value = 8;
-            blur.enabled.value = true;
-        }
     }
 
     public static void Unpause()
@@ -132,13 +126,6 @@ public class PlayerMovement : MonoBehaviour
         Time.timeScale = 1;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        Game.PostProcessVolume.profile.TryGetSettings(out Blur blur);
-        if (blur != null)
-        {
-            blur.BlurIterations.value = 0;
-            blur.enabled.value = false;
-        }
     }
 
     /*
@@ -460,11 +447,6 @@ public class PlayerMovement : MonoBehaviour
             dashCancelTempSpeed -= loss;
         }
 
-        if (Game.PostProcessVolume != null && Game.PostProcessVolume.profile.TryGetSettings(out MotionBlur motion))
-        {
-            motion.enabled.value = IsDashing;
-        }
-
         if (bonusAirSpeedTime > 0) bonusAirSpeedTime -= Time.fixedDeltaTime;
 
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
@@ -493,6 +475,7 @@ public class PlayerMovement : MonoBehaviour
                 AudioManager.StopAudio(slide);
             }
         }
+
         var iterations = 0;
 
         // Hold helps collision hold you against walls/ground even if they get a little bumpy
@@ -1373,6 +1356,7 @@ public class PlayerMovement : MonoBehaviour
 
     public int GetWallBufferingAmount()
     {
+        return 0;
         var wallBuffering = WALL_JUMP_BUFFERING;
         var bonusBuffering = Mathf.Max(0, Mathf.RoundToInt((Flatten(velocity).magnitude - 15f) / 30f));
         wallBuffering += bonusBuffering;
@@ -1622,7 +1606,7 @@ public class PlayerMovement : MonoBehaviour
             // This is to prevent landing on the very bottom of a wall
             // If youre going towards the bottom of a wall
             // your velocity will be redirected up so the bottom of your hitbox hits the bottom of the wall
-            var fromBottom = 1;
+            /*var fromBottom = 1;
             var upCheck = transform.position + (vel.normalized * hit.distance) + (-hit.normal * 0.55f) +
                           (Vector3.down * 1);
             if (Physics.Raycast(upCheck + Vector3.down * fromBottom, Vector3.up, out var upHit, 2, 1,
@@ -1633,7 +1617,7 @@ public class PlayerMovement : MonoBehaviour
                 if (p * Mathf.Rad2Deg < -45) p = Mathf.Deg2Rad * -45;
                 var y = Mathf.Tan(-p) * Flatten(vel).magnitude;
                 vel.y = y;
-            }
+            }*/
         }
         else
         {
@@ -1713,23 +1697,31 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Player can turn sharper if holding forward and proper side direction
-        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0)
+        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0 && Vector3.Dot(right, Flatten(vel)) < 0)
         {
-            if (Vector3.Dot(right, Flatten(vel)) < 0)
+            accel += DIAGONAL_AIR_ACCEL_BONUS;
+            bonusAirSpeedTime = 0.2f;
+            var speed = Flatten(vel).magnitude;
+            vel += Wishdir * accel * f;
+            if (speed < Flatten(vel).magnitude)
             {
-                accel += DIAGONAL_AIR_ACCEL_BONUS;
-                bonusAirSpeedTime = 0.2f;
+                var y = vel.y;
+                vel = Flatten(vel).normalized * speed;
+                vel.y = y;
+            }
+        }
+        else
+        {
+            var speed = Flatten(vel).magnitude;
+            vel += forward * accel * f;
+            if (speed < Flatten(vel).magnitude)
+            {
+                var y = vel.y;
+                vel = Flatten(vel).normalized * speed;
+                vel.y = y;
             }
         }
 
-        var speed = Flatten(vel).magnitude;
-        vel += forward * accel * f;
-        if (speed < Flatten(vel).magnitude)
-        {
-            var y = vel.y;
-            vel = Flatten(vel).normalized * speed;
-            vel.y = y;
-        }
 
         if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() <= 0)
         {
@@ -1829,8 +1821,8 @@ public class PlayerMovement : MonoBehaviour
     public const float MIN_JUMP_HEIGHT = 14f;
     public const int JUMP_STAMINA_RECOVERY_TICKS = 5;
     public const int COYOTE_TICKS = 20;
-    public const int WALL_JUMP_BUFFERING = 2;
-    public const int GROUND_JUMP_BUFFERING = 6;
+    public const int WALL_JUMP_BUFFERING = 0;
+    public const int GROUND_JUMP_BUFFERING = 0;
     private float jumpBuffered;
     private int jumpTimestamp;
 
