@@ -439,6 +439,13 @@ public class PlayerMovement : MonoBehaviour
             dashVector = Vector3.zero;
         }
 
+        if (GrappleCharges < GRAPPLE_CHARGES)
+        {
+            GrappleCharges += Time.deltaTime * GRAPPLE_RECHARGE_RATE;
+            if (GrappleCharges > GRAPPLE_CHARGES) GrappleCharges = GRAPPLE_CHARGES;
+        }
+        if (GrappleCharges < 0) GrappleCharges = 0;
+
         if (dashCancelTempSpeed > 0)
         {
             var loss = factor * DASH_CANCEL_TEMP_SPEED_DECAY;
@@ -1090,6 +1097,9 @@ public class PlayerMovement : MonoBehaviour
     public const float GFORCE_SPEEDGAIN_UP_FRICTION = 5.5f;
     public const float GRAPPLE_UPWARD_PULL = 30;
     public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
+    public const int GRAPPLE_CHARGES = 2;
+    public const float GRAPPLE_RECHARGE_RATE = 0.2f;
+    public float GrappleCharges { get; set; }
     private int grappleTicks;
     private Vector3 grappleAttachPosition;
 
@@ -1179,6 +1189,7 @@ public class PlayerMovement : MonoBehaviour
         grappleTicks = 0;
         DoubleJumpAvailable = true;
         lastWall = null;
+        GrappleCharges--;
     }
 
     public void DetachGrapple()
@@ -1192,6 +1203,9 @@ public class PlayerMovement : MonoBehaviour
 
     public bool GrappleCast(Vector3 origin, Vector3 direction, out Vector3 hit)
     {
+        hit = Vector3.zero;
+        if (GrappleCharges < 1) return false;
+        
         if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_RANGE))
         {
             hit = rayhit.point;
@@ -1202,8 +1216,6 @@ public class PlayerMovement : MonoBehaviour
             hit = spherehit.point;
             return true;
         }
-
-        hit = Vector3.zero;
         return false;
     }
 
@@ -1289,6 +1301,7 @@ public class PlayerMovement : MonoBehaviour
         if (wallTickCount == wallBuffering)
         {
             AudioManager.PlayAudio(wallRun, true);
+            GrappleCharges += 0.3f;
         }
 
         // Fade in wall run sound so if you jump off right away its silent
@@ -1417,6 +1430,7 @@ public class PlayerMovement : MonoBehaviour
         lastWall = null;
         lastWallNormal = Vector3.zero;
         wallLeanAmount = 0;
+        if (groundTickCount == 0) GrappleCharges += 0.3f;
 
         // Only refresh ability once per piece of ground, preventing players from mashing abilities on the ground
         if (!AbilityAvailable && lastRefreshGround != currentGround)
@@ -1525,7 +1539,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirMove(ref Vector3 vel, float f)
     {
-        GravityTick(f);
+        if (!ApproachingWall) GravityTick(f);
         slideLeanVector = Vector3.zero;
         airTickCount++;
 
