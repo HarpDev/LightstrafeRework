@@ -29,6 +29,14 @@ public class GrappleChargeUI : MonoBehaviour
         {
             var amt = Mathf.Clamp01(Game.Player.GrappleCharges - i);
             bars[i].GetComponent<Image>().fillAmount = amt;
+            if (bars[i].activeSelf && Game.Player.EquippedAbility != PlayerMovement.AbilityType.GRAPPLE)
+            {
+                bars[i].SetActive(false);
+            }
+            if (!bars[i].activeSelf && Game.Player.EquippedAbility == PlayerMovement.AbilityType.GRAPPLE)
+            {
+                bars[i].SetActive(true);
+            }
         }
     }
 }

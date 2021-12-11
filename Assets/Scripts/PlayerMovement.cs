@@ -1274,8 +1274,8 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_ACCELERATION = 1f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 6;
-    public const int WALL_FRICTION_TICKS = 10;
-    public const float WALL_FRICTION = 4.2f;
+    public const int WALL_FRICTION_TICKS = 5;
+    public const float WALL_FRICTION = 6f;
     public const int WALL_JUMP_BUFFERING = 0;
     public const bool WALL_ALLOW_SAME_FACING = false;
     private Vector3 wallNormal;
@@ -1539,7 +1539,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void AirMove(ref Vector3 vel, float f)
     {
-        if (!ApproachingWall) GravityTick(f);
+        GravityTick(f);
         slideLeanVector = Vector3.zero;
         airTickCount++;
 
