@@ -639,15 +639,13 @@ public class PlayerMovement : MonoBehaviour
         var dashProjection = Vector3.Dot(dashVector, -normal);
         if (dashProjection > 0)
         {
-            var impulse = normal * dashProjection;
-            dashVector += impulse;
+            dashVector += normal * dashProjection;
         }
 
         var velocityProjection = Vector3.Dot(velocity, -normal);
+        var impulse = normal * velocityProjection;
         if (velocityProjection > 0)
         {
-            var impulse = normal * velocityProjection;
-
             // If there is a tp happening on this tick, apply speed from before the collision to the speed after
             // Effectively makes you not lose any speed from the collision
             if (tpThisTick)
@@ -709,6 +707,12 @@ public class PlayerMovement : MonoBehaviour
                 wallNormal = Flatten(normal).normalized;
 
                 currentWall = collider.gameObject;
+
+                if (Flatten(velocity).magnitude < SLIDE_BOOST_SPEED)
+                {
+                    var fromSlideBoostSpeed = SLIDE_BOOST_SPEED - Flatten(velocity).magnitude;
+                    velocity += Flatten(velocity).normalized * Mathf.Min(velocityProjection, fromSlideBoostSpeed);
+                }
             }
         }
     }
@@ -1082,8 +1086,8 @@ public class PlayerMovement : MonoBehaviour
     public const float GRAPPLE_ACCELERATION = 30f;
     public const float GRAPPLE_RANGE = 35;
     public const float GRAPPLE_SPEED = 25;
-    public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 2f;
-    public const float GFORCE_SPEEDGAIN_UP_FRICTION = 8f;
+    public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.4f;
+    public const float GFORCE_SPEEDGAIN_UP_FRICTION = 5.5f;
     public const float GRAPPLE_UPWARD_PULL = 30;
     public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
     private int grappleTicks;
@@ -1257,9 +1261,10 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_SPEED = 10;
     public const float WALL_ACCELERATION = 1f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
-    public const float WALL_JUMP_SPEED = 4;
-    public const int WALL_FRICTION_TICKS = 5;
-    public const float WALL_FRICTION = 5;
+    public const float WALL_JUMP_SPEED = 6;
+    public const int WALL_FRICTION_TICKS = 10;
+    public const float WALL_FRICTION = 4.2f;
+    public const int WALL_JUMP_BUFFERING = 0;
     public const bool WALL_ALLOW_SAME_FACING = false;
     private Vector3 wallNormal;
     private Vector3 lastWallNormal;
@@ -1356,12 +1361,10 @@ public class PlayerMovement : MonoBehaviour
 
     public int GetWallBufferingAmount()
     {
-        return 0;
         var wallBuffering = WALL_JUMP_BUFFERING;
-        var bonusBuffering = Mathf.Max(0, Mathf.RoundToInt((Flatten(velocity).magnitude - 15f) / 30f));
-        wallBuffering += bonusBuffering;
+        //if (Flatten(velocity).magnitude > 25) wallBuffering += 1;
         // Hitting kicks while dashing is difficult, so we use increase buffering while dashing
-        if (IsDashing) wallBuffering *= 2;
+        if (IsDashing) wallBuffering += 5;
         return wallBuffering;
     }
 
@@ -1390,8 +1393,8 @@ public class PlayerMovement : MonoBehaviour
     public const float GROUND_ACCELERATION = 6.5f;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
-    public const float SLIDE_FRICTION = 0.4f;
-    public const int SLIDE_FRICTION_TICKS = 20;
+    public const float SLIDE_FRICTION = 0.8f;
+    public const int SLIDE_FRICTION_TICKS = 10;
     public const float SLIDE_BOOST_SPEED = 18f;
     private int groundTickCount;
     private int groundTimestamp = -100000;
@@ -1467,7 +1470,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 // Sliding on ground has same movement as in the air (with friction)
                 if (groundTickCount < SLIDE_FRICTION_TICKS) ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
-                AirAccelerate(ref velocity, f);
+                AirAccelerate(ref velocity, f, 1, 0);
 
                 slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, f * 7);
             }
@@ -1514,8 +1517,8 @@ public class PlayerMovement : MonoBehaviour
     public bool ApproachingGround { get; set; }
     private const float AIR_SPEED = 1.5f;
     private const float SIDE_AIR_ACCELERATION = 50;
-    private const float FORWARD_AIR_ACCELERATION = 50;
-    private const float DIAGONAL_AIR_ACCEL_BONUS = 100;
+    private const float FORWARD_AIR_ACCELERATION = 70;
+    private const float DIAGONAL_AIR_ACCEL_BONUS = 80;
     private const float BACKWARD_AIR_ACCELERATION = 35;
     private int airTickCount;
     private float bonusAirSpeedTime;
@@ -1682,7 +1685,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // Returns the amount of speed gained from air strafing
-    public void AirAccelerate(ref Vector3 vel, float f, float accelMod = 1)
+    public void AirAccelerate(ref Vector3 vel, float f, float accelMod = 1, float sideairspeedmod = 1f)
     {
         var forward = transform.forward * PlayerInput.GetAxisStrafeForward();
         var right = transform.right * PlayerInput.GetAxisStrafeRight();
@@ -1697,7 +1700,8 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Player can turn sharper if holding forward and proper side direction
-        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0 && Vector3.Dot(right, Flatten(vel)) < 0)
+        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0 &&
+            Vector3.Dot(right, Flatten(vel)) < 0)
         {
             accel += DIAGONAL_AIR_ACCEL_BONUS;
             bonusAirSpeedTime = 0.2f;
@@ -1726,7 +1730,7 @@ public class PlayerMovement : MonoBehaviour
         if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() <= 0)
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
-            var airspeed = AIR_SPEED;
+            var airspeed = AIR_SPEED * sideairspeedmod;
 
             // This is very particular, this mechanic makes it feel better when transfering from diagonal strafing to side strafing
             // It feels bad because diagonal strafing trails behind your velocity, while side strafing requires straight velocity to be optimal
@@ -1819,9 +1823,8 @@ public class PlayerMovement : MonoBehaviour
     */
     public const float MAX_JUMP_HEIGHT = 16f;
     public const float MIN_JUMP_HEIGHT = 14f;
-    public const int JUMP_STAMINA_RECOVERY_TICKS = 5;
+    public const int JUMP_STAMINA_RECOVERY_TICKS = 10;
     public const int COYOTE_TICKS = 20;
-    public const int WALL_JUMP_BUFFERING = 0;
     public const int GROUND_JUMP_BUFFERING = 0;
     private float jumpBuffered;
     private int jumpTimestamp;
