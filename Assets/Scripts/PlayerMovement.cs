@@ -38,15 +38,9 @@ public class PlayerMovement : MonoBehaviour
     private bool sliding;
     private float crouchAmount;
 
-    public bool AbilityAvailable;
-    public AbilityType EquippedAbility = AbilityType.NONE;
-
-    public enum AbilityType
-    {
-        NONE,
-        GRAPPLE,
-        DASH
-    }
+    public bool DashAvailable { get; set; }
+    public bool GrappleEnabled;
+    public bool DashEnabled;
 
     public bool IsSliding
     {
@@ -231,30 +225,33 @@ public class PlayerMovement : MonoBehaviour
             kickFeedback.color = color;
         }
 
-        var crosshairon = false;
-        if (EquippedAbility == AbilityType.GRAPPLE)
+        var crosshairRotated = false;
+        if (GrappleEnabled)
         {
             var start = camera.transform.position + CrosshairDirection * 1;
             if (GrappleCast(start, CrosshairDirection, out var hit))
             {
-                crosshairon = true;
+                crosshairRotated = true;
             }
         }
-        else
-        {
-            if (AbilityAvailable && EquippedAbility != AbilityType.NONE) crosshairon = true;
-        }
 
-        if (crosshairon)
+        if (crosshairRotated)
         {
             Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0,
                 Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 45, Time.deltaTime * 20));
-            crosshairColor = Mathf.Lerp(crosshairColor, 1, Time.deltaTime * 20);
         }
         else
         {
             Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0,
                 Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 0, Time.deltaTime * 20));
+        }
+
+        if (DashAvailable)
+        {
+            crosshairColor = Mathf.Lerp(crosshairColor, 1, Time.deltaTime * 20);
+        }
+        else
+        {
             crosshairColor = Mathf.Lerp(crosshairColor, 100f / 255f, Time.deltaTime * 20);
         }
 
@@ -372,27 +369,25 @@ public class PlayerMovement : MonoBehaviour
             AirMove(ref velocity, factor);
         if (IsDashing) AirMove(ref dashVector, factor);
 
-        if (PlayerInput.SincePressed(PlayerInput.PrimaryInteract) == 0)
+        if (PlayerInput.SincePressed(PlayerInput.PrimaryInteract) == 0 && GrappleEnabled)
         {
-            if (EquippedAbility == AbilityType.GRAPPLE)
+            if (GrappleHooked) DetachGrapple();
+            else
             {
-                if (GrappleHooked) DetachGrapple();
-                else
+                var start = camera.transform.position + CrosshairDirection * 1;
+                if (GrappleCast(start, CrosshairDirection, out var hit))
                 {
-                    var start = camera.transform.position + CrosshairDirection * 1;
-                    if (GrappleCast(start, CrosshairDirection, out var hit))
-                    {
-                        AttachGrapple(hit);
-                    }
+                    AttachGrapple(hit);
                 }
             }
-            else if (EquippedAbility == AbilityType.DASH)
+        }
+
+        if (PlayerInput.SincePressed(PlayerInput.SecondaryInteract) == 0 && DashEnabled)
+        {
+            if (DashAvailable)
             {
-                if (AbilityAvailable)
-                {
-                    Dash(CrosshairDirection);
-                    AbilityAvailable = false;
-                }
+                Dash(CrosshairDirection);
+                DashAvailable = false;
             }
         }
 
@@ -457,7 +452,7 @@ public class PlayerMovement : MonoBehaviour
         motionInterpolationDelta = 0;
 
         // This variable is the total movement that will occur in this tick
-        var movement = (velocity + dashVector) * Time.fixedDeltaTime;
+        var movement = (IsDashing ? dashVector : velocity) * Time.fixedDeltaTime;
         previousPosition = transform.position;
 
         if (IsOnGround)
@@ -629,8 +624,10 @@ public class PlayerMovement : MonoBehaviour
         }
 
         var stepHeight = 1f;
-        var stepCheck = transform.position - Flatten(normal).normalized * (hitbox.bounds.size.x + 0.02f) + Vector3.up * stepHeight;
-        if (Physics.Raycast(stepCheck, Vector3.down, out var stepHit, stepHeight, 1, QueryTriggerInteraction.Ignore) && !IsOnGround)
+        var stepCheck = transform.position - Flatten(normal).normalized * (hitbox.bounds.size.x + 0.02f) +
+                        Vector3.up * stepHeight;
+        if (Physics.Raycast(stepCheck, Vector3.down, out var stepHit, stepHeight, 1, QueryTriggerInteraction.Ignore) &&
+            !IsOnGround)
         {
             if (Vector3.Angle(stepHit.normal, Vector3.up) < GROUND_ANGLE)
             {
@@ -790,10 +787,10 @@ public class PlayerMovement : MonoBehaviour
     public bool IsDashing => dashVector.magnitude > 0.05f;
 
     public const float DASH_SPEED = 25;
-    public const float DASH_CANCEL_TEMP_SPEED = 20;
+    public const float DASH_CANCEL_TEMP_SPEED = 15;
+    public const float DASH_CANCEL_SPEED = 2;
     public const float DASH_CANCEL_TEMP_SPEED_DECAY = 20;
     public const float DASH_WALL_UPCANCEL_MULTIPLY = 2f;
-    public const float DASH_CANCEL_JUMP_DIVIDE = 1.4f;
     public const float DASH_TIME = 0.6f;
     private float dashTime;
     private float dashCancelTempSpeed;
@@ -805,10 +802,22 @@ public class PlayerMovement : MonoBehaviour
 
         if (velocity.magnitude < SLIDE_BOOST_SPEED) velocity = wishdir * SLIDE_BOOST_SPEED;
 
-        dashVector = wishdir.normalized * DASH_SPEED;
-        dashTime = DASH_TIME;
+        if (Mathf.Abs(Vector3.Angle(wishdir, Vector3.up) - 90) < 45)
+        {
+            var x2 = Flatten(wishdir).magnitude;
+            var x1 = Flatten(velocity).magnitude;
+            var y2 = wishdir.y;
+            var y1 = x1 * y2 / x2;
 
-        velocity = velocity.magnitude * wishdir.normalized;
+            velocity = Flatten(velocity).magnitude * Flatten(wishdir).normalized;
+            velocity.y = y1;
+        }
+        else
+        {
+            velocity = velocity.magnitude * wishdir.normalized;
+        }
+        dashVector = velocity + wishdir.normalized * DASH_SPEED;
+        dashTime = DASH_TIME;
     }
 
     public bool StopDash()
@@ -828,12 +837,10 @@ public class PlayerMovement : MonoBehaviour
         if (IsDashing)
         {
             AudioManager.PlayOneShot(dashCancel);
-            velocity = Mathf.Max(velocity.magnitude, BASE_SPEED) * velocity.normalized;
-
-            jumpHeight /= DASH_CANCEL_JUMP_DIVIDE;
+            velocity = Mathf.Max(velocity.magnitude, SLIDE_BOOST_SPEED) * velocity.normalized;
 
             var gain = DASH_CANCEL_TEMP_SPEED - dashCancelTempSpeed;
-            velocity += Flatten(velocity).normalized * gain;
+            velocity += Flatten(velocity).normalized * (gain + DASH_CANCEL_SPEED);
             dashCancelTempSpeed += gain;
             Game.Canvas.speedChangeDisplay.interpolation -= gain;
 
@@ -868,7 +875,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!IsOnRail) return;
         DoubleJumpAvailable = true;
-        AbilityAvailable = true;
+        DashAvailable = true;
 
         // Find the point on the rail closest to the player
         var closeIndex = 0;
@@ -1445,12 +1452,7 @@ public class PlayerMovement : MonoBehaviour
         wallLeanAmount = 0;
         if (groundTickCount == 0) GrappleCharges += 0.3f;
 
-        // Only refresh ability once per piece of ground, preventing players from mashing abilities on the ground
-        if (!AbilityAvailable && lastRefreshGround != currentGround)
-        {
-            AbilityAvailable = true;
-            lastRefreshGround = currentGround;
-        }
+        DashAvailable = true;
 
         lastGround = currentGround;
 
