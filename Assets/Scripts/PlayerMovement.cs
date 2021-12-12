@@ -288,7 +288,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         var ease = 1 - Mathf.Pow(1 - crouchAmount, 2);
-        position.y -= 0.7f * ease;
+        position.y -= 0.5f * ease;
 
         // Camera position is interpolated between ticks
         camera.transform.position = InterpolatedPosition + position;
@@ -439,11 +439,8 @@ public class PlayerMovement : MonoBehaviour
             dashVector = Vector3.zero;
         }
 
-        if (GrappleCharges < GRAPPLE_CHARGES)
-        {
-            GrappleCharges += Time.deltaTime * GRAPPLE_RECHARGE_RATE;
-            if (GrappleCharges > GRAPPLE_CHARGES) GrappleCharges = GRAPPLE_CHARGES;
-        }
+        if (GrappleCharges < GRAPPLE_CHARGES) GrappleCharges += Time.deltaTime * GRAPPLE_RECHARGE_RATE;
+        if (GrappleCharges > GRAPPLE_CHARGES) GrappleCharges = GRAPPLE_CHARGES;
         if (GrappleCharges < 0) GrappleCharges = 0;
 
         if (dashCancelTempSpeed > 0)
@@ -546,6 +543,9 @@ public class PlayerMovement : MonoBehaviour
 
                     if (CanCollide(hit.collider))
                     {
+                        // Collide
+                        ContactCollider(hit.collider, ref direction, ref distance);
+
                         // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
                         // So we treat all slanted ground as perfectly flat when not sliding
                         var angle = Vector3.Angle(Vector3.up, direction);
@@ -557,9 +557,6 @@ public class PlayerMovement : MonoBehaviour
                         // Apply this collision to the movement for this tick
                         var movementProjection = Vector3.Dot(movement, -direction);
                         if (movementProjection > 0) movement += direction * movementProjection;
-
-                        // Collide
-                        ContactCollider(direction, hit.collider);
                     }
                 }
             }
@@ -589,7 +586,7 @@ public class PlayerMovement : MonoBehaviour
 
                 if (CanCollide(other))
                 {
-                    ContactCollider(direction, other);
+                    ContactCollider(other, ref direction, ref distance);
                 }
 
                 // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
@@ -624,12 +621,27 @@ public class PlayerMovement : MonoBehaviour
         return true;
     }
 
-    private void ContactCollider(Vector3 normal, Collider collider)
+    private void ContactCollider(Collider collider, ref Vector3 normal, ref float distance)
     {
         if (collider.GetComponent<KillCollider>() != null)
         {
             Game.ReturnToLastCheckpoint();
         }
+
+        var stepHeight = 1f;
+        var stepCheck = transform.position - Flatten(normal).normalized * (hitbox.bounds.size.x + 0.02f) + Vector3.up * stepHeight;
+        if (Physics.Raycast(stepCheck, Vector3.down, out var stepHit, stepHeight, 1, QueryTriggerInteraction.Ignore) && !IsOnGround)
+        {
+            if (Vector3.Angle(stepHit.normal, Vector3.up) < GROUND_ANGLE)
+            {
+                normal = Vector3.up;
+                distance = stepHeight - stepHit.distance;
+            }
+
+            Debug.DrawRay(stepCheck, Vector3.down * stepHeight, Color.red, 10f);
+        }
+        else
+            Debug.DrawRay(stepCheck, Vector3.down * stepHeight, Color.blue, 10f);
 
         var angle = Vector3.Angle(Vector3.up, normal);
 
@@ -1205,7 +1217,7 @@ public class PlayerMovement : MonoBehaviour
     {
         hit = Vector3.zero;
         if (GrappleCharges < 1) return false;
-        
+
         if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_RANGE))
         {
             hit = rayhit.point;
@@ -1216,6 +1228,7 @@ public class PlayerMovement : MonoBehaviour
             hit = spherehit.point;
             return true;
         }
+
         return false;
     }
 
@@ -1274,8 +1287,8 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_ACCELERATION = 1f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 6;
-    public const int WALL_FRICTION_TICKS = 5;
-    public const float WALL_FRICTION = 6f;
+    public const int WALL_FRICTION_TICKS = 10;
+    public const float WALL_FRICTION = 4.2f;
     public const int WALL_JUMP_BUFFERING = 0;
     public const bool WALL_ALLOW_SAME_FACING = false;
     private Vector3 wallNormal;
