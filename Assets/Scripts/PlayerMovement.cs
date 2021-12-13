@@ -618,11 +618,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void ContactCollider(Collider collider, ref Vector3 normal, ref float distance)
     {
-        if (collider.GetComponent<KillCollider>() != null)
-        {
-            Game.ReturnToLastCheckpoint();
-        }
-
         var stepHeight = 1f;
         var stepCheck = transform.position - Flatten(normal).normalized * (hitbox.bounds.size.x + 0.02f) +
                         Vector3.up * stepHeight;

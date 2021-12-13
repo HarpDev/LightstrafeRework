@@ -38,7 +38,6 @@ public class Rifle : WeaponManager.Gun
 
     private float _crouchFactor;
     private float _crouchReloadMod;
-    private Target closest;
 
     public bool UseSideGun
     {
@@ -55,22 +54,6 @@ public class Rifle : WeaponManager.Gun
     public void ReloadComplete()
     {
         animator.SetBool("Reload", false);
-    }
-
-    public void BoomerangThrow()
-    {
-        boomerangVisible = false;
-        var proj = Instantiate(projectileBoomerang).GetComponent<BoomerangProjectile>();
-
-        var screen = viewModel.WorldToViewportPoint(boomerangBone.position);
-        screen.z = 1.8f;
-        proj.transform.position = Game.Player.camera.ViewportToWorldPoint(screen);
-        proj.transform.rotation = boomerangBone.rotation;
-        proj.transform.Rotate(new Vector3(0, 90, 0), Space.Self);
-
-        var vel = (Game.Player.CrosshairDirection * 20) + Game.Player.velocity;
-        proj.velocity = vel.magnitude;
-        proj.direction = vel.normalized;
     }
 
     public void BoltUp()
@@ -106,13 +89,6 @@ public class Rifle : WeaponManager.Gun
     protected float leftHandFactor;
     private bool fireInputConsumed;
 
-    private Target[] targets;
-
-    private void Start()
-    {
-        targets = FindObjectsOfType<Target>();
-    }
-
     private bool shotAvailable;
 
     private void Update()
@@ -129,31 +105,6 @@ public class Rifle : WeaponManager.Gun
         animator.SetLayerWeight(1, leftHandFactor);
 
         animatedBoomerang.GetComponent<SkinnedMeshRenderer>().enabled = boomerangVisible;
-
-        var minAngleDiff = float.MaxValue;
-        closest = null;
-        foreach (var t in targets)
-        {
-            if (t == null) continue;
-            var d = t.transform.position - Game.Player.camera.transform.position;
-            if (d.magnitude > 100) continue;
-            var angleDiff = Vector3.Angle(Game.Player.CrosshairDirection, d);
-            if (angleDiff > 20) continue;
-            if (angleDiff < minAngleDiff)
-            {
-                minAngleDiff = angleDiff;
-                closest = t;
-            }
-        }
-
-        if (closest != null)
-        {
-            //var crosshairpos = Game.Player.camera.WorldToScreenPoint(closest.transform.position);
-            //Game.Canvas.crosshair.transform.position = crosshairpos;
-        } else
-        {
-            //Game.Canvas.crosshair.transform.localPosition = Vector3.zero;
-        }
 
         if (Game.Player.IsOnGround)
         {

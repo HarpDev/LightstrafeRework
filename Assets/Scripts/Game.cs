@@ -135,7 +135,7 @@ public class Game : MonoBehaviour
         {
             DontDestroyOnLoad(gameObject);
             I = this;
-            Application.targetFrameRate = 300;
+            Application.targetFrameRate = 144;
         }
         else if (I != this)
         {
