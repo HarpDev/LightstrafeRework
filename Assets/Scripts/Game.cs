@@ -17,10 +17,6 @@ public class Game : MonoBehaviour
     public static float SoundVolume { get => PlayerPrefs.GetFloat("SoundVolume", 1); set => PlayerPrefs.SetFloat("SoundVolume", value); }
     public static float MusicVolume { get => PlayerPrefs.GetFloat("MusicVolume", 1); set => PlayerPrefs.SetFloat("MusicVolume", value); }
 
-    public static string checkpointScene;
-    public static Vector3 lastCheckpoint;
-    public static float checkpointYaw;
-
     public static readonly Color green = new Color(19f / 255f, 176f / 255f, 65f / 255f);
     public static readonly Color gold = new Color(255f / 255f, 226f / 255f, 0);
 
@@ -216,17 +212,6 @@ public class Game : MonoBehaviour
         LevelFinished = false;
         CurrentLevelTickCount = 0;
         Time.timeScale = 1;
-        lastCheckpoint = new Vector3();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    }
-
-    public static void ReturnToLastCheckpoint()
-    {
-        if (lastCheckpoint.sqrMagnitude <= 0.05f)
-        {
-            CurrentLevelTickCount = 0;
-            TimerRunning = false;
-        }
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
@@ -244,7 +229,6 @@ public class Game : MonoBehaviour
                 LevelFinished = false;
                 CurrentLevelTickCount = 0;
                 Time.timeScale = 1;
-                lastCheckpoint = new Vector3();
                 SceneManager.LoadScene(0);
             }
         }
@@ -254,7 +238,6 @@ public class Game : MonoBehaviour
             LevelFinished = false;
             CurrentLevelTickCount = 0;
             Time.timeScale = 1;
-            lastCheckpoint = new Vector3();
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
     }

@@ -13,14 +13,12 @@ public class PlayerInput : MonoBehaviour
     public static int MoveBackward { get { return PlayerPrefs.GetInt("MoveBackward", (int)KeyCode.S); } private set { PlayerPrefs.SetInt("MoveBackward", (int)value); } }
     public static int MoveRight { get { return PlayerPrefs.GetInt("MoveRight", (int)KeyCode.D); } private set { PlayerPrefs.SetInt("MoveRight", (int)value); } }
     public static int MoveLeft { get { return PlayerPrefs.GetInt("MoveLeft", (int)KeyCode.A); } private set { PlayerPrefs.SetInt("MoveLeft", (int)value); } }
-    public static int LastCheckpoint { get { return PlayerPrefs.GetInt("LastCheckpoint", (int)KeyCode.R); } private set { PlayerPrefs.SetInt("LastCheckpoint", (int)value); } }
-    public static int RestartLevel { get { return PlayerPrefs.GetInt("RestartLevel", (int)KeyCode.None); } private set { PlayerPrefs.SetInt("RestartLevel", (int)value); } }
+    public static int RestartLevel { get { return PlayerPrefs.GetInt("RestartLevel", (int)KeyCode.R); } private set { PlayerPrefs.SetInt("RestartLevel", (int)value); } }
     public static int PrimaryInteract { get { return PlayerPrefs.GetInt("PrimaryInteract", (int)KeyCode.Mouse0); } private set { PlayerPrefs.SetInt("PrimaryInteract", (int)value); } }
     public static int SecondaryInteract { get { return PlayerPrefs.GetInt("SecondaryInteract", (int)KeyCode.Mouse1); } private set { PlayerPrefs.SetInt("SecondaryInteract", (int)value); } }
     public static int TertiaryInteract { get { return PlayerPrefs.GetInt("TertiaryInteract", (int)KeyCode.Q); } private set { PlayerPrefs.SetInt("TertiaryInteract", (int)value); } }
     public static int Jump { get { return PlayerPrefs.GetInt("Jump", (int)KeyCode.Space); } private set { PlayerPrefs.SetInt("Jump", value); } }
     public static int Pause { get { return PlayerPrefs.GetInt("Pause", (int)KeyCode.Escape); } private set { PlayerPrefs.SetInt("Pause", (int)value); } }
-    public static int Slide { get { return PlayerPrefs.GetInt("Slide", (int)KeyCode.LeftControl); } private set { PlayerPrefs.SetInt("Slide", (int)value); } }
 
     public static Dictionary<int, int> keyPressTimestamps = new Dictionary<int, int>();
     public static Dictionary<int, int> keyReleaseTimestamps = new Dictionary<int, int>();

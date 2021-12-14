@@ -9,11 +9,6 @@ public class ButtonFunctions : MonoBehaviour
         Game.RestartLevel();
     }
 
-    public void ReturnToLastCheckpoint()
-    {
-        Game.ReturnToLastCheckpoint();
-    }
-
     public void NextLevel()
     {
         Game.NextLevel();
