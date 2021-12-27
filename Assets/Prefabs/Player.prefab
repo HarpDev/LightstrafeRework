@@ -27,6 +27,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1351658015657563487}
   m_RootOrder: 2
@@ -153,6 +154,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1351658016518666252}
   m_Father: {fileID: 1351658015657563487}
@@ -190,6 +192,7 @@ Transform:
   m_LocalRotation: {x: -0, y: -0.50000036, z: -0, w: -0.86602527}
   m_LocalPosition: {x: -170.64001, y: 28.3, z: 894.31}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1351658015547209675}
   - {fileID: 1351658015834648979}
@@ -218,8 +221,8 @@ MonoBehaviour:
   cameraPosition: {x: 0, y: 0.4, z: 0}
   velocity: {x: 0, y: 0, z: 0}
   jumpKitEnabled: 1
-  AbilityAvailable: 0
-  EquippedAbility: 0
+  GrappleEnabled: 0
+  DashEnabled: 0
   jump: {fileID: 8300000, guid: 61f176ee97fec12479afd1146a8081f0, type: 3}
   jumpair: {fileID: 8300000, guid: bf130dd437a2d634b9c8b83dcd776c62, type: 3}
   dash: {fileID: 8300000, guid: de6a20422d5c06d4b8256e5b5a009f4c, type: 3}
@@ -361,6 +364,7 @@ LineRenderer:
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
   m_MotionVectors: 2
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
@@ -505,6 +509,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1351658015657563487}
   m_RootOrder: 1
@@ -635,6 +640,7 @@ Transform:
     w: -1}
   m_LocalPosition: {x: 0.0002113618, y: 1.4680805, z: -0.071533225}
   m_LocalScale: {x: 14.14702, y: 14.147022, z: 14.14702}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1351658015547209675}
   m_RootOrder: 0
@@ -701,6 +707,7 @@ LineRenderer:
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
@@ -815,6 +822,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1351658015657563487}
   m_RootOrder: 3

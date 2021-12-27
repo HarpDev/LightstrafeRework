@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PlayerAudioManager : MonoBehaviour
 {
-    private Dictionary<string, PlayingAudio> playingAudio = new Dictionary<string, PlayingAudio>();
+    private Dictionary<string, PlayingAudio> playingAudio = new();
 
     public struct PlayingAudio
     {
@@ -63,34 +63,6 @@ public class PlayerAudioManager : MonoBehaviour
         playingAudio[clip.name] = playing;
     }
 
-    private GameObject music;
-    private AudioClip musicLoop;
-
-    public void PlayMusic(AudioClip clip, AudioClip loop)
-    {
-        if (music != null)
-        {
-            Destroy(music);
-        }
-
-        music = new GameObject("Music-" + clip.name);
-        music.transform.parent = gameObject.transform;
-        music.transform.localPosition = Vector3.zero;
-
-        musicLoop = loop;
-
-        var audio = music.AddComponent<AudioSource>();
-        audio.clip = clip;
-        audio.volume = Game.MusicVolume;
-        audio.pitch = Time.timeScale;
-        audio.loop = false;
-        audio.Play();
-
-        var playing = new PlayingAudio(music, Game.MusicVolume);
-
-        playingAudio[clip.name] = playing;
-    }
-
     public void StopAudio(AudioClip clip)
     {
         if (!IsPlaying(clip)) return;
@@ -115,26 +87,11 @@ public class PlayerAudioManager : MonoBehaviour
 
     private void Update()
     {
-        if (music != null)
-        {
-            var m = music.GetComponent<AudioSource>();
-            if (!m.isPlaying)
-            {
-                m.clip = musicLoop;
-                m.loop = true;
-                m.Play();
-            }
-        }
-
         foreach (KeyValuePair<string, PlayingAudio> e in playingAudio)
         {
             var playing = e.Value;
             var source = playing.obj.GetComponent<AudioSource>();
             source.pitch = Time.timeScale;
-            if (e.Value.obj == music)
-            {
-                playing.volume = Game.MusicVolume;
-            }
             source.volume = Game.SoundVolume * playing.volume;
         }
     }
@@ -145,7 +102,6 @@ public class PlayerAudioManager : MonoBehaviour
         var toRemove = new List<string>();
         while (e.MoveNext())
         {
-            if (e.Current.Value.obj == music) continue;
             if (!e.Current.Value.obj.GetComponent<AudioSource>().isPlaying)
             {
                 toRemove.Add(e.Current.Key);

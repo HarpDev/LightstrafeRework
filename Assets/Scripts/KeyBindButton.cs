@@ -26,7 +26,6 @@ public class KeyBindButton : MonoBehaviour
                 if (PlayerInput.GetKeyDown(kcode))
                 {
                     PlayerInput.SetBind(bindName, kcode);
-                    PlayerInput.ConsumeBuffer((int)kcode);
                     text.text = kcode.ToString();
                     rebinding = false;
                     break;
@@ -37,7 +36,6 @@ public class KeyBindButton : MonoBehaviour
                 if (PlayerInput.GetKeyDown(kcode))
                 {
                     PlayerInput.SetBind(bindName, kcode);
-                    PlayerInput.ConsumeBuffer((int)kcode);
                     text.text = kcode.ToString();
                     rebinding = false;
                     break;
