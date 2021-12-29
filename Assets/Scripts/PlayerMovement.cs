@@ -386,6 +386,12 @@ public class PlayerMovement : MonoBehaviour
                 DashAvailable = false;
             }
         }
+        for (var i = 0; i < previousSpeeds.Length - 1; i++)
+        {
+            previousSpeeds[i + 1] = previousSpeeds[i];
+        }
+        previousSpeeds[0] = Flatten(velocity).magnitude;
+        if (dashCooldown > 0) dashCooldown--;
 
         // do teleport after movement so collision is done first
         // makes buffering work so you can tp onto a surface and be registered as on the surface before inputs are calculated
@@ -776,16 +782,22 @@ public class PlayerMovement : MonoBehaviour
     public const float DASH_WALL_UPCANCEL_MULTIPLY = 2f;
     public const float DASH_DISTANCE = 30f;
     public const float DASH_UPVELOCITY_LIMIT = 20;
+    public const int DASH_COOLDOWN_TICKS = 25;
+    private int dashCooldown;
     private float dashTime;
     private float dashCancelTempSpeed;
     private int dashEndTimestamp;
     private float speedBeforeDash;
+    private float[] previousSpeeds = new float[100];
 
     public void Dash(Vector3 wishdir)
     {
+        if (dashCooldown > 0) return;
         AudioManager.PlayOneShot(dash);
+        StopDash();
+        dashCooldown = DASH_COOLDOWN_TICKS;
 
-        if (velocity.magnitude < SLIDE_BOOST_SPEED) velocity = velocity.normalized * SLIDE_BOOST_SPEED;
+        if (velocity.magnitude < SLIDE_BOOST_SPEED) velocity += CrosshairDirection * (SLIDE_BOOST_SPEED - velocity.magnitude);
         speedBeforeDash = Flatten(velocity).magnitude;
 
         var angle = Vector3.Angle(wishdir, Vector3.up);
