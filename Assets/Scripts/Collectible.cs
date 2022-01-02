@@ -6,6 +6,9 @@ public class Collectible : MonoBehaviour
     public GameObject NoSprite;
     public GameObject GemSprite;
     public int Requires;
+    public GameObject Visual;
+
+    private bool chasingPlayer;
 
     private GameObject nosprite;
     private GameObject gemsprite;
@@ -19,10 +22,11 @@ public class Collectible : MonoBehaviour
     }
 
     private Vector3 adjust;
+    private float chaseSpeed = 30;
+
     private void Update()
     {
-
-        if (RequirementsMet())
+        if (RequirementsMet() && !chasingPlayer)
         {
             var target = Game.Player.camera.transform.position;
             var towardTarget = target - start;
@@ -33,11 +37,18 @@ public class Collectible : MonoBehaviour
                             Vector3.Dot(Game.Player.velocity.normalized, adjustVector);
 
             adjustVector = adjustVector.normalized * Mathf.Min(adjustVector.magnitude, 5);
-
+            
             adjust = Vector3.Lerp(adjust, start + adjustVector, Time.deltaTime * 5);
-            transform.position = adjust;
+            Visual.transform.position = adjust;
         }
-        
+
+        if (chasingPlayer)
+        {
+            var towardCamera = Game.Player.camera.transform.position - transform.position;
+            transform.position += towardCamera.normalized * Mathf.Min(Time.deltaTime * chaseSpeed, towardCamera.magnitude);
+            chaseSpeed += Time.deltaTime * 10;
+        }
+
         transform.Rotate(0, 0, 50 * Time.deltaTime);
         if (RequirementsMet())
         {
@@ -46,11 +57,14 @@ public class Collectible : MonoBehaviour
                 gemsprite = Instantiate(GemSprite, Game.Canvas.transform);
                 gemsprite.transform.SetAsFirstSibling();
             }
+
             if (nosprite != null) Destroy(nosprite);
 
             var toScreen = Game.Player.camera.WorldToScreenPoint(transform.position);
             gemsprite.transform.position = toScreen;
-            var scale = Mathf.Clamp01(1 - (Vector3.Distance(transform.position, Game.Player.camera.transform.position) - 20) / 20);
+            var scale = Mathf.Clamp01(1 -
+                                      (Vector3.Distance(transform.position, Game.Player.camera.transform.position) -
+                                       20) / 20);
             scale = 1 - scale;
             if (Game.Player.camera.WorldToViewportPoint(transform.position).z < 0)
             {
@@ -68,11 +82,13 @@ public class Collectible : MonoBehaviour
                 nosprite = Instantiate(NoSprite, Game.Canvas.transform);
                 nosprite.transform.SetAsFirstSibling();
             }
+
             if (gemsprite != null) Destroy(gemsprite);
 
             var toScreen = Game.Player.camera.WorldToScreenPoint(transform.position);
             nosprite.transform.position = toScreen;
-            var scale = Mathf.Clamp01(1 - Vector3.Distance(transform.position, Game.Player.camera.transform.position) / 30);
+            var scale = Mathf.Clamp01(1 - Vector3.Distance(transform.position, Game.Player.camera.transform.position) /
+                30);
             if (Game.Player.camera.WorldToViewportPoint(transform.position).z < 0)
             {
                 scale = 0;
@@ -92,18 +108,29 @@ public class Collectible : MonoBehaviour
         if (!RequirementsMet()) return;
         if (gemsprite != null) Destroy(gemsprite);
         if (nosprite != null) Destroy(nosprite);
-        var objects = FindObjectsOfType<Collectible>();
-        foreach (var gem in objects)
+        if (chasingPlayer)
         {
-            gem.GetComponent<Collectible>().Requires--;
+            var objects = FindObjectsOfType<Collectible>();
+            foreach (var gem in objects)
+            {
+                gem.GetComponent<Collectible>().Requires--;
+            }
+
+            if (objects.Length == 1)
+            {
+                Game.EndTimer();
+            }
+
+            Game.Player.AudioManager.PlayOneShot(Game.Player.wow, false, 0.4f);
+
+            Destroy(gameObject);
         }
-        if (objects.Length == 1)
+        else
         {
-            Game.EndTimer();
+            transform.position = Visual.transform.position;
+            Visual.transform.localPosition = Vector3.zero;
+            GetComponent<SphereCollider>().radius = 1f;
+            chasingPlayer = true;
         }
-        
-        Game.Player.AudioManager.PlayOneShot(Game.Player.wow, false, 0.4f);
-        
-        Destroy(gameObject);
     }
 }
