@@ -408,29 +408,16 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        for (var i = previousSpeeds.Length - 2; i >= 0; i--)
-        {
-            previousSpeeds[i + 1] = previousSpeeds[i];
-        }
-
-        previousSpeeds[0] = Flatten(velocity).magnitude;
-
         if (dashTime > 0)
         {
-            slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, factor * 4);
-
-            if (!ApproachingWall)
+            if (dashTime - factor <= 0)
             {
-                var leanProjection = Vector3.Dot(slideLeanVector, camera.transform.right);
-                SetCameraRoll(leanProjection * 15, CAMERA_ROLL_CORRECT_SPEED);
+                StopDash();
             }
-
-            dashTime -= factor;
-        }
-
-        if (dashTime <= 0)
-        {
-            StopDash();
+            else
+            {
+                dashTime -= factor;
+            }
         }
 
         if (dashCancelTempSpeed > 0)
@@ -639,7 +626,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void ContactCollider(Collider collider, ref Vector3 normal, ref float distance)
     {
-        if (!IsOnWall && Vector3.Dot(Flatten(CrosshairDirection).normalized, Flatten(normal).normalized) < -0.5f && surfAccelTime <= 0)
+        if (!IsOnWall && Vector3.Dot(Flatten(CrosshairDirection).normalized, Flatten(normal).normalized) < -0.5f &&
+            surfAccelTime <= 0)
         {
             var feetPosition = transform.position + Vector3.down;
             var stepCheck = feetPosition - Flatten(normal).normalized * (hitbox.bounds.size.x / 2 + 0.05f) +
@@ -808,40 +796,35 @@ public class PlayerMovement : MonoBehaviour
     public bool IsDashing => dashTime > 0;
 
     public const float DASH_SPEED = 70;
-    public const float DASH_CANCEL_TEMP_SPEED = 20;
+    public const float DASH_CANCEL_TEMP_SPEED = 5;
     public const float DASH_SPEEDGAIN = 10;
-    public const float DASH_SPEEDGAIN_CAP = 30;
-    public const float DASH_CANCEL_TEMP_SPEED_DECAY = 15;
+    public const float DASH_SPEEDGAIN_CAP = 35;
+    public const float DASH_CANCEL_TEMP_SPEED_DECAY = 1.5f;
     public const float DASH_CANCEL_UP_SPEED = 50f;
     public const float DASH_DISTANCE = 30f;
     public const float DASH_UPVELOCITY_LIMIT = 16;
+    public const float DASH_MAX_REFUND = 5;
     private float dashTime;
     private float dashCancelTempSpeed;
     private int dashEndTimestamp;
-    private float speedBeforeDash;
+    private Vector3 velocityBeforeDash;
     private Vector3 dashVector;
-    private float[] previousSpeeds = new float[50];
+    private bool upDashFatigue;
 
     public void Dash(Vector3 wishdir)
     {
         if (!DashAvailable) return;
         AudioManager.PlayOneShot(dash);
         StopDash();
-
-        if (velocity.magnitude < SLIDE_BOOST_SPEED)
-            velocity += wishdir.normalized * (SLIDE_BOOST_SPEED - velocity.magnitude);
-        var s = Flatten(velocity).magnitude;
-        foreach (var p in previousSpeeds)
+        if (wishdir.y > 0 && upDashFatigue)
         {
-            if (s >= p) continue;
-            var y = velocity.y;
-            velocity = Flatten(velocity).normalized * p;
-            velocity.y = y;
+            wishdir = Flatten(wishdir).normalized;
         }
 
-        speedBeforeDash = Flatten(velocity).magnitude;
+        if (velocity.magnitude < SLIDE_BOOST_SPEED)
+            velocity = wishdir.normalized * SLIDE_BOOST_SPEED;
+        velocityBeforeDash = velocity;
 
-        //var angle = Vector3.Angle(wishdir, Vector3.up);
         var x2 = Flatten(wishdir).magnitude;
         var x1 = Flatten(velocity).magnitude;
         var y2 = wishdir.y;
@@ -851,12 +834,8 @@ public class PlayerMovement : MonoBehaviour
         onlyYChange.y = y1;
 
         velocity = Mathf.Min(velocity.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+        upDashFatigue = true;
 
-        var rawgain = DASH_SPEEDGAIN *
-                      Mathf.Clamp01((DASH_SPEEDGAIN_CAP - Flatten(velocity).magnitude) / DASH_SPEEDGAIN_CAP);
-        velocity += Flatten(velocity).normalized * rawgain;
-
-        DoubleJumpAvailable = true;
         Charges--;
 
         dashVector = wishdir.normalized * DASH_SPEED;
@@ -871,11 +850,31 @@ public class PlayerMovement : MonoBehaviour
             dashTime = 0;
             dashEndTimestamp = PlayerInput.tickCount;
 
+            var wishdir = dashVector.normalized;
+
+            var x2 = Flatten(wishdir).magnitude;
+            var x1 = Flatten(velocityBeforeDash).magnitude;
+            var y2 = wishdir.y;
+            var y1 = x1 * y2 / x2;
+
+            var onlyYChange = Flatten(velocityBeforeDash).magnitude * Flatten(wishdir).normalized;
+            onlyYChange.y = y1;
+
+            velocity = Mathf.Min(velocityBeforeDash.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+
             var y = velocity.y;
-            if (Flatten(velocity).magnitude < speedBeforeDash)
-                velocity = Flatten(velocity).normalized * speedBeforeDash;
+            if (dashVector.y > 0 && Flatten(velocity).sqrMagnitude < Flatten(velocityBeforeDash).sqrMagnitude)
+            {
+                var refundAmt = Flatten(velocityBeforeDash).magnitude - Flatten(velocity).magnitude;
+                if (refundAmt > DASH_MAX_REFUND) refundAmt = DASH_MAX_REFUND;
+                velocity += Flatten(velocity).normalized * refundAmt;
+            }
 
             velocity.y = Mathf.Min(DASH_UPVELOCITY_LIMIT, y);
+
+            var rawgain = DASH_SPEEDGAIN *
+                          Mathf.Clamp01((DASH_SPEEDGAIN_CAP - Flatten(velocity).magnitude) / DASH_SPEEDGAIN_CAP);
+            velocity += Flatten(velocity).normalized * rawgain;
             return true;
         }
 
@@ -1096,6 +1095,8 @@ public class PlayerMovement : MonoBehaviour
         {
             railDirection = 1;
         }
+
+        Charges += CHARGE_TOUCH_RECHARGE;
 
         if (GrappleHooked) DetachGrapple();
     }
@@ -1344,8 +1345,8 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_ACCELERATION = 1f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 6;
-    public const int WALL_FRICTION_TICKS = 8;
-    public const float WALL_FRICTION = 5.2f;
+    public const int WALL_FRICTION_TICKS = 6;
+    public const float WALL_FRICTION = 6f;
     public const bool WALL_ALLOW_SAME_FACING = false;
     public const int WALL_ALLOW_SAME_FACING_COOLDOWN_TICKS = 200;
     private Vector3 wallNormal;
@@ -1366,6 +1367,7 @@ public class PlayerMovement : MonoBehaviour
     {
         DoubleJumpAvailable = true;
         lastGround = null;
+        upDashFatigue = false;
         if (PlayerJump()) return;
         if (IsDashing) wallTickCount = -1;
 
@@ -1389,6 +1391,7 @@ public class PlayerMovement : MonoBehaviour
         wallLeanLerp = wallTickCount <= 1 ? roll : Mathf.Lerp(wallLeanLerp, roll, f * 20);
         var speed = Mathf.Abs(CameraRoll - wallLeanLerp) / Time.fixedDeltaTime;
         SetCameraRoll(wallLeanLerp, speed);
+        ApproachingWall = false;
 
         if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) > 0.6f)
         {
@@ -1478,6 +1481,8 @@ public class PlayerMovement : MonoBehaviour
             Game.EndTimer();
         }
 
+        upDashFatigue = false;
+
         DoubleJumpAvailable = true;
         GravityTick(f);
         wallLeanAmount = 0;
@@ -1526,19 +1531,22 @@ public class PlayerMovement : MonoBehaviour
         var roll = leanProjection * 15 * crouchAmount;
         var rollspeed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
         SetCameraRoll(roll, rollspeed);
-        if (IsSliding)
+        if (!IsDashing)
         {
-            // Sliding on ground has same movement as in the air
-            if (groundTickCount is > 0 and <= SLIDE_FRICTION_TICKS)
-                ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
-            AirAccelerate(ref velocity, f, 1, 0);
+            if (IsSliding)
+            {
+                // Sliding on ground has same movement as in the air
+                if (groundTickCount is > 0 and <= SLIDE_FRICTION_TICKS)
+                    ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
+                AirAccelerate(ref velocity, f, 1, 0);
 
-            slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, f * 7);
-        }
-        else
-        {
-            ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 3);
-            Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
+                slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, f * 7);
+            }
+            else
+            {
+                ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 3);
+                Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
+            }
         }
     }
 
@@ -1963,12 +1971,20 @@ public class PlayerMovement : MonoBehaviour
                         ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
                         frictionTicks++;
                     }
-                }
 
-                if (kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
+                    if (kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
+                    {
+                        kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
+                        kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
+                    }
+                }
+                else
                 {
-                    kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
-                    kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
+                    if (kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
+                    {
+                        kickFeedback.text = "" + frictionTicks;
+                        kickFeedback.color = Color.cyan;
+                    }
                 }
 
                 if (CancelDash(false))
@@ -2043,15 +2059,23 @@ public class PlayerMovement : MonoBehaviour
                             ApplyFriction(Time.fixedDeltaTime * SLIDE_FRICTION, 0, BASE_SPEED / 2);
                             frictionTicks++;
                         }
+
+                        if (kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
+                        {
+                            kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
+                            kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
+                        }
+                    }
+                    else
+                    {
+                        if (kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
+                        {
+                            kickFeedback.text = "" + frictionTicks;
+                            kickFeedback.color = Color.cyan;
+                        }
                     }
 
                     CancelDash(true);
-
-                    if (kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
-                    {
-                        kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
-                        kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
-                    }
 
                     velocity.y = Mathf.Max(height, velocity.y);
                 }
