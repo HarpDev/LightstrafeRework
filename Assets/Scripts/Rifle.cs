@@ -104,8 +104,6 @@ public class Rifle : WeaponManager.Gun
         }
         animator.SetLayerWeight(1, leftHandFactor);
 
-        animatedBoomerang.GetComponent<SkinnedMeshRenderer>().enabled = boomerangVisible;
-
         if (Game.Player.IsOnGround)
         {
             shotAvailable = true;
@@ -149,16 +147,6 @@ public class Rifle : WeaponManager.Gun
             {
                 animator.Play("Fire", -1, 0f);
                 animator.SetBool("Reload", true);
-            }
-        }
-
-        if (PlayerInput.SincePressed(PlayerInput.TertiaryInteract) == 0 && Time.timeScale > 0 && boomerangAvailable)
-        {
-            if (animator != null)
-            {
-                animator.Play("BoomerangThrow", 1, 0f);
-                boomerangVisible = true;
-                boomerangAvailable = false;
             }
         }
     }
@@ -207,7 +195,7 @@ public class Rifle : WeaponManager.Gun
 
         _prevVelocity = Game.Player.velocity;
 
-        if (Game.Player.IsDashing) _forward += Time.deltaTime / 1.2f;
+        _forward += Time.deltaTime / 1.2f;
         _forward = Mathf.Lerp(_forward, 0, Time.deltaTime * 8);
 
         var localforward = _forward;

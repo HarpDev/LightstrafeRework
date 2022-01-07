@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FullSerializer;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -306,8 +307,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // FOV increases with speed
-        var targetFOV = 100;
-        if (Flatten(velocity).magnitude > 16) targetFOV += 10;
+        var targetFOV = 110;
         if (IsDashing) targetFOV += 20;
         if (teleportTime > 0)
         {
@@ -526,44 +526,54 @@ public class PlayerMovement : MonoBehaviour
             // a lot of these numbers are really particular and finnicky
             transform.position -= movement.normalized * 0.2f;
             movement += movement.normalized * 0.2f;
+            var collided = false;
             if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
-                    QueryTriggerInteraction.Ignore) && CanCollide(hit.collider) &&
-                Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation,
+                QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
+            {
+                hitbox.transform.localScale = realscale;
+                transform.position += movement.normalized * (hit.distance + 0.05f);
+                if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation,
                     hit.collider, hit.collider.gameObject.transform.position,
                     hit.collider.gameObject.transform.rotation,
                     out var direction, out var distance))
-            {
-                if (Vector3.Dot(hit.normal, direction) <= 0.01f) continue;
-
-                hitbox.transform.localScale = realscale;
-                transform.position += movement.normalized * (hit.distance + 0.05f);
-                movement -= movement.normalized * hit.distance;
-
-                if (hit.collider.isTrigger)
                 {
-                    ContactTrigger(direction, hit.collider);
-                    continue;
-                }
+                    if (Vector3.Dot(hit.normal, direction) <= 0.01f)
+                    {
+                        hitbox.transform.localScale = reducedscale;
+                        transform.position -= movement.normalized * (hit.distance + 0.05f);
+                        continue;
+                    }
 
-                if (CanCollide(hit.collider))
-                {
-                    // Collide
-                    ContactCollider(hit.collider, ref direction, ref distance);
+                    collided = true;
+                    movement -= movement.normalized * hit.distance;
 
-                    // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
-                    // So we treat all slanted ground as perfectly flat when not sliding
-                    var angle = Vector3.Angle(Vector3.up, direction);
-                    if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+                    if (hit.collider.isTrigger)
+                    {
+                        ContactTrigger(direction, hit.collider);
+                        continue;
+                    }
 
-                    // Depenetrate
-                    transform.position += direction * distance;
+                    if (CanCollide(hit.collider))
+                    {
+                        // Collide
+                        ContactCollider(hit.collider, ref direction, ref distance);
 
-                    // Apply this collision to the movement for this tick
-                    var movementProjection = Vector3.Dot(movement, -direction);
-                    if (movementProjection > 0) movement += direction * movementProjection;
+                        // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                        // So we treat all slanted ground as perfectly flat when not sliding
+                        var angle = Vector3.Angle(Vector3.up, direction);
+                        if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+
+                        // Depenetrate
+                        transform.position += direction * distance;
+
+                        // Apply this collision to the movement for this tick
+                        var movementProjection = Vector3.Dot(movement, -direction);
+                        if (movementProjection > 0) movement += direction * movementProjection;
+                    }
                 }
             }
-            else
+
+            if (!collided)
             {
                 hitbox.transform.localScale = realscale;
                 transform.position += movement;
@@ -685,21 +695,19 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 var wishdir = velocity + impulse;
-                var x2 = Flatten(wishdir).magnitude;
-                var x1 = Flatten(velocity).magnitude;
-                var y2 = wishdir.y;
-                var y1 = x1 * y2 / x2;
+                var y = CalculateYForDirection(wishdir);
 
                 var verticalCollide = velocity + impulse * VERTICAL_COLLIDE_INEFFICIENCY;
-                verticalCollide.y = y1;
+                verticalCollide.y = y;
 
                 var impulseCollide = velocity + impulse;
 
-                if (x2 != 0 && Flatten(verticalCollide).magnitude > Flatten(impulseCollide).magnitude &&
+                if (Flatten(wishdir).magnitude != 0 &&
+                    Flatten(verticalCollide).magnitude > Flatten(impulseCollide).magnitude &&
                     Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
                 {
                     velocity += impulse * VERTICAL_COLLIDE_INEFFICIENCY;
-                    velocity.y = y1;
+                    velocity.y = y;
                 }
                 else
                 {
@@ -831,13 +839,10 @@ public class PlayerMovement : MonoBehaviour
                 velocity = wishdir.normalized * SLIDE_BOOST_SPEED;
             velocityBeforeDash = velocity;
 
-            var x2 = Flatten(wishdir).magnitude;
-            var x1 = Flatten(velocity).magnitude;
-            var y2 = wishdir.y;
-            var y1 = x1 * y2 / x2;
+            var y = CalculateYForDirection(wishdir);
 
             var onlyYChange = Flatten(velocity).magnitude * Flatten(wishdir).normalized;
-            onlyYChange.y = y1;
+            onlyYChange.y = y;
 
             velocity = Mathf.Min(velocity.magnitude, onlyYChange.magnitude) * wishdir.normalized;
             upDashFatigue = true;
@@ -859,10 +864,7 @@ public class PlayerMovement : MonoBehaviour
 
             var wishdir = dashVector.normalized;
 
-            var x2 = Flatten(wishdir).magnitude;
-            var x1 = Flatten(velocityBeforeDash).magnitude;
-            var y2 = wishdir.y;
-            var y1 = x1 * y2 / x2;
+            var y1 = CalculateYForDirection(wishdir);
 
             var onlyYChange = Flatten(velocityBeforeDash).magnitude * Flatten(wishdir).normalized;
             onlyYChange.y = y1;
@@ -970,6 +972,8 @@ public class PlayerMovement : MonoBehaviour
             closeIndex = i;
         }
 
+        var speedBeforeAnything = Flatten(velocity).magnitude;
+
         // If rail direction is 0, we need to determine which direction the player should go based on their velocity
         // We will do this with a simple angle comparison of the players velocity, and seeing which direction makes more sense
         // After doing this, we will do a simple collision calculation on the rail, reducing player speed the harder they hit the rail
@@ -1042,27 +1046,13 @@ public class PlayerMovement : MonoBehaviour
 
         // Get the vector from current player position to the next rail point and lerp them towards it
         var correctionVector = -(transform.position - next).normalized;
-        var adjusted = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 80).normalized;
-        if (adjusted.y < velocity.y || adjusted.y > 0.96f)
-        {
-            velocity = adjusted;
-        }
-        else
-        {
-            var wishdir = adjusted.normalized;
-            var x2 = Flatten(wishdir).magnitude;
-            var x1 = Flatten(velocity).magnitude;
-            var y2 = wishdir.y;
-            var y1 = x1 * y2 / x2;
+        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 80).normalized;
 
-            velocity = Flatten(adjusted).normalized * Flatten(velocity).magnitude;
-            velocity.y = y1;
-        }
         Accelerate(velocity.normalized, RAIL_SPEED, RAIL_ACCELERATION, f);
 
         // Apply gravity only if the player is moving down
         // This makes them gain speed on downhill rails without losing speed on uphill rails // stonks
-        //if (velocity.y < 0) GravityTick(f);
+        if (velocity.y < 0) GravityTick(f);
 
         // The balance vector is a vector that attempts to mimick which direction you would intuitively lean
         // to not fall off the rail with real world physics, we will calculate a camera tilt based on it
@@ -1072,6 +1062,10 @@ public class PlayerMovement : MonoBehaviour
         var roll = Vector3.Dot(railLeanVector.normalized * totalAngle, -transform.right);
         var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
         SetCameraRoll(roll, speed);
+
+        var desiredDirection = velocity.normalized;
+        velocity = Flatten(velocity).normalized * speedBeforeAnything;
+        velocity.y = CalculateYForDirection(desiredDirection);
 
         // This whole section attempts to guide the players view along the rail
         // If you ride a rail through a 180 degree turn, its annoying to have to move your mouse in that 180 every time
@@ -1233,10 +1227,6 @@ public class PlayerMovement : MonoBehaviour
             {
                 velocity += towardPoint.normalized * GRAPPLE_ACCELERATION * f * 2;
             }
-            else
-            {
-                velocity -= Flatten(towardPoint).normalized * GRAPPLE_ACCELERATION * f;
-            }
 
             velocity = velocity.normalized * speed;
         }
@@ -1245,15 +1235,12 @@ public class PlayerMovement : MonoBehaviour
 
         if (velocityProjection < 0)
         {
-            if (Mathf.Abs(Vector3.Angle(Vector3.up, velocity) - 90) < 20)
+            if (Vector3.Angle(Flatten(velocity), velocity) < 20)
             {
                 var wishdir = velocity + (towardPoint.normalized * -velocityProjection);
-                var x2 = Flatten(wishdir).magnitude;
-                var x1 = Flatten(velocity).magnitude;
-                var y2 = wishdir.y;
-                var y1 = x1 * y2 / x2;
+                var y = CalculateYForDirection(wishdir);
 
-                velocity.y = y1;
+                velocity.y = y;
             }
             else
             {
@@ -1276,8 +1263,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (velocity.y > 0)
         {
-            var verticalProjection = Vector3.Dot(velocity.normalized, Vector3.up);
-            velocity += Vector3.up * verticalProjection * GRAPPLE_UPWARD_PULL * f;
+                velocity += Vector3.up * velocity.normalized.y * GRAPPLE_UPWARD_PULL * f;
         }
 
         var gain = 0.3f;
@@ -2145,5 +2131,16 @@ public class PlayerMovement : MonoBehaviour
     private static Vector3 Flatten(Vector3 vec)
     {
         return new Vector3(vec.x, 0, vec.z);
+    }
+
+    public float CalculateYForDirection(Vector3 direction)
+    {
+        var wishdir = direction.normalized;
+        var x2 = Flatten(wishdir).magnitude;
+        var x1 = Flatten(velocity).magnitude;
+        var y2 = wishdir.y;
+        var y1 = x1 * y2 / x2;
+
+        return y1;
     }
 }

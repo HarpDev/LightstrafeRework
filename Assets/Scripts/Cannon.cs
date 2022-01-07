@@ -142,7 +142,7 @@ public class Cannon : WeaponManager.Gun
 
         prevVelocity = Game.Player.velocity;
 
-        if (Game.Player.IsDashing) forward += Time.deltaTime / 1.2f;
+         forward += Time.deltaTime / 1.2f;
         forward = Mathf.Lerp(forward, 0, Time.deltaTime * 8);
 
         var localforward = forward;

@@ -11,7 +11,7 @@ public class WeaponManager : MonoBehaviour
 
     public Material tracerMaterial;
 
-    private Dictionary<GunType, Dictionary<string, object>> parameters = new Dictionary<GunType, Dictionary<string, object>>();
+    private Dictionary<GunType, Dictionary<string, object>> parameters = new();
 
     public GunType startGun = GunType.Rifle;
 
@@ -21,7 +21,7 @@ public class WeaponManager : MonoBehaviour
 
     public enum GunType
     {
-        Rifle, Pistol, Cannon, None
+        Rifle, Pistol, Cannon, GrappleGun, None
     }
 
     public void EquipGun(GunType? type)
@@ -132,46 +132,23 @@ public class WeaponManager : MonoBehaviour
             return world;
         }
 
-        public void DoAbilityCatch()
-        {
-            animator.Play("AbilityCatch", 1, 0f);
-        }
-
         public void LeftWallStart()
         {
+            if (animator.layerCount <= 1) return;
             if (animator.GetCurrentAnimatorStateInfo(1).normalizedTime > 1)
                 animator.Play("LeftWallTouch", 1, 0f);
         }
 
         public void RightWallStart()
         {
+            if (animator.layerCount <= 1) return;
             if (animator.GetCurrentAnimatorStateInfo(1).normalizedTime > 1)
                 animator.Play("RightWallTouch", 1, 0f);
         }
 
-        public bool boomerangVisible = true;
-        public bool boomerangAvailable = true;
-
-        public void BoomerangCatch(int direction)
-        {
-            if (direction == 0)
-            {
-                animator.Play("BoomerangCatchRight", 1, 0f);
-            }
-            else if (direction == 1)
-            {
-                animator.Play("BoomerangCatchLeft", 1, 0f);
-            }
-            else
-            {
-                animator.Play("BoomerangCatchForward", 1, 0f);
-            }
-            boomerangVisible = true;
-            boomerangAvailable = true;
-        }
-
         public void WallStop()
         {
+            if (animator.layerCount <= 1) return;
             var info = animator.GetCurrentAnimatorStateInfo(1);
             if (info.IsName("RightWallTouch"))
             {
