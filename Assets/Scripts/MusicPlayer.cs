@@ -53,6 +53,6 @@ public class MusicPlayer : MonoBehaviour
 
         audio.volume = Game.MusicVolume;
 
-        transform.position = Game.Player.camera.transform.position;
+        if (Game.Player != null) transform.position = Game.Player.camera.transform.position;
     }
 }

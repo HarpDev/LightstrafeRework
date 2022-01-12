@@ -36,12 +36,12 @@ public class Game : MonoBehaviour
     }
     public static void SetBestLevelTime(string level, float time)
     {
-        PlayerPrefs.SetFloat("va0.9BestTime" + level, time);
+        PlayerPrefs.SetFloat("BestTime" + level, time);
     }
 
     public static float GetBestLevelTime(string level)
     {
-        return PlayerPrefs.HasKey("va0.9BestTime" + level) ? PlayerPrefs.GetFloat("va0.9BestTime" + level) : -1f;
+        return PlayerPrefs.HasKey("BestTime" + level) ? PlayerPrefs.GetFloat("BestTime" + level) : -1f;
     }
 
     private static PlayerMovement player;
@@ -70,6 +70,20 @@ public class Game : MonoBehaviour
                 if (canvasObj != null) canvas = canvasObj.GetComponent<CanvasContainer>();
             }
             return canvas;
+        }
+    }
+
+    private static MenuAnimation menuAnimation;
+    public static MenuAnimation MenuAnimation
+    {
+        get
+        {
+            if (menuAnimation == null)
+            {
+                var menuObj = GameObject.Find("MenuAnimation");
+                if (menuObj != null) menuAnimation = menuObj.GetComponent<MenuAnimation>();
+            }
+            return menuAnimation;
         }
     }
 
@@ -164,13 +178,18 @@ public class Game : MonoBehaviour
         _inputAlreadyTaken = true;
         if (UiTree.Count > 0)
         {
+            if (UiTree.Count == 1)
+            {
+                var menu = MenuAnimation;
+                if (menu != null) menu.SendToStartPosition();
+            }
             if (UiTree.Count == 1 && player != null && PlayerMovement.IsPaused() && LevelFinished) return;
-            var obj = UiTree[UiTree.Count - 1];
+            var obj = UiTree[^1];
             UiTree.RemoveAt(UiTree.Count - 1);
             Destroy(obj.gameObject);
             if (UiTree.Count > 0)
             {
-                UiTree[UiTree.Count - 1].gameObject.SetActive(true);
+                UiTree[^1].gameObject.SetActive(true);
             }
             else
             {

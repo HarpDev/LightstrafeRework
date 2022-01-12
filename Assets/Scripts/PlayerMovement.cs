@@ -319,6 +319,11 @@ public class PlayerMovement : MonoBehaviour
         var lerpSpeed = 5;
         if (IsDashing) lerpSpeed += 5;
         camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, targetFOV, Time.deltaTime * lerpSpeed);
+
+        if (Input.GetKeyDown((KeyCode) PlayerInput.Pause) && !IsPaused())
+        {
+            pauseOnNextTick = true;
+        }
     }
 
     /*
@@ -330,17 +335,16 @@ public class PlayerMovement : MonoBehaviour
 ╚═╝░░░░░╚═╝╚═╝░░╚═╝╚══════╝╚═════╝░░╚═════╝░╚═╝░░░░░╚═════╝░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝
     */
 
+    private bool pauseOnNextTick;
+
     private void FixedUpdate()
     {
         wallRecovery -= Mathf.Min(wallRecovery, Time.fixedDeltaTime);
 
-        if (PlayerInput.SincePressed(PlayerInput.Pause) == 0)
+        if (pauseOnNextTick)
         {
-            if (!IsPaused())
-            {
-                PlayerInput.WriteReplayToFile();
-                Pause();
-            }
+            pauseOnNextTick = false;
+            if (!IsPaused()) Pause();
         }
 
         // Check for level restart
@@ -1377,8 +1381,8 @@ public class PlayerMovement : MonoBehaviour
     public const float WALL_ACCELERATION = 1f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 6;
-    public const int WALL_FRICTION_TICKS = 6;
-    public const float WALL_FRICTION = 6f;
+    public const int WALL_FRICTION_TICKS = 4;
+    public const float WALL_FRICTION = 5.2f;
     public const bool WALL_ALLOW_SAME_FACING = false;
     public const int WALL_ALLOW_SAME_FACING_COOLDOWN_TICKS = 200;
     private Vector3 wallNormal;
@@ -1493,8 +1497,8 @@ public class PlayerMovement : MonoBehaviour
     public const float GROUND_ACCELERATION = 6.5f;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
-    public const float SLIDE_FRICTION = 2f;
-    public const int SLIDE_FRICTION_TICKS = 5;
+    public const float SLIDE_FRICTION = 1.2f;
+    public const int SLIDE_FRICTION_TICKS = 8;
     public const float SLIDE_BOOST_SPEED = 18f;
     private int groundTickCount;
     private int groundTimestamp = -100000;

@@ -19,10 +19,12 @@ public class Collectible : MonoBehaviour
     {
         start = transform.position;
         adjust = start;
+        chaseTimeStart = chaseTime;
     }
 
     private Vector3 adjust;
-    private float chaseSpeed = 30;
+    private float chaseTime = 0.5f;
+    private float chaseTimeStart;
 
     private void Update()
     {
@@ -44,9 +46,8 @@ public class Collectible : MonoBehaviour
 
         if (chasingPlayer)
         {
-            var towardCamera = Game.Player.camera.transform.position - transform.position;
-            transform.position += towardCamera.normalized * Mathf.Min(Time.deltaTime * chaseSpeed, towardCamera.magnitude);
-            chaseSpeed += Time.deltaTime * 10;
+            transform.position = Vector3.Lerp(Game.Player.camera.transform.position, start, chaseTime / chaseTimeStart);
+            chaseTime -= Time.deltaTime;
         }
 
         transform.Rotate(0, 0, 50 * Time.deltaTime);
@@ -128,6 +129,7 @@ public class Collectible : MonoBehaviour
         else
         {
             transform.position = Visual.transform.position;
+            start = transform.position;
             Visual.transform.localPosition = Vector3.zero;
             GetComponent<SphereCollider>().radius = 1f;
             chasingPlayer = true;

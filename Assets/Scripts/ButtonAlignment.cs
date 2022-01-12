@@ -8,6 +8,7 @@ public class ButtonAlignment : MonoBehaviour
 
     private void Update()
     {
+        if (Application.isPlaying) return;
         var position = transform.localPosition;
         position.x -= position.x % 165;
         position.y -= position.y % 35;

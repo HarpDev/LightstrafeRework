@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using FullSerializer;
 using UnityEngine;
 
@@ -341,6 +342,18 @@ public class PlayerInput : MonoBehaviour
         }
 
         typeof(PlayerInput).GetProperty(key).SetValue(null, bind);
+    }
+
+    public static void ResetBindsToDefault()
+    {
+        var properties = typeof(PlayerInput).GetProperties(System.Reflection.BindingFlags.Public |
+                                                           System.Reflection.BindingFlags.Static |
+                                                           System.Reflection.BindingFlags.DeclaredOnly);
+        foreach (var prop in properties)
+        {
+            var name = nameof(prop);
+            PlayerPrefs.DeleteKey(prop.Name);
+        }
     }
 
     private void Update()

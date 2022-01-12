@@ -5,9 +5,9 @@ using UnityEngine;
 public class Menu : MonoBehaviour
 {
 
-    private void Update()
+    private void LateUpdate()
     {
-        if (PlayerInput.SincePressed(PlayerInput.Pause) == 0)
+        if (Input.GetKeyDown((KeyCode)PlayerInput.Pause))
         {
             Game.CloseMenu();
             PlayerInput.ConsumeBuffer(PlayerInput.Pause);
