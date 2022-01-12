@@ -186,6 +186,19 @@ public class PlayerMovement : MonoBehaviour
             currentGround = hit.collider.gameObject;
             groundTickCount = 2;
         }
+
+        var notification = "";
+        if (DashEnabled)
+        {
+            notification += "Press " + ((KeyCode) PlayerInput.SecondaryInteract) + " to dash";
+        }
+
+        if (GrappleEnabled)
+        {
+            if (DashEnabled) notification += "\n";
+            notification += "Press " + ((KeyCode) PlayerInput.PrimaryInteract) + " to grapple";
+        }
+        if (notification.Length > 0) Game.Canvas.SendNotification(notification);
     }
 
     /*
@@ -1497,8 +1510,8 @@ public class PlayerMovement : MonoBehaviour
     public const float GROUND_ACCELERATION = 6.5f;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
-    public const float SLIDE_FRICTION = 1.2f;
-    public const int SLIDE_FRICTION_TICKS = 8;
+    public const float SLIDE_FRICTION = 0.8f;
+    public const int SLIDE_FRICTION_TICKS = 20;
     public const float SLIDE_BOOST_SPEED = 18f;
     private int groundTickCount;
     private int groundTimestamp = -100000;
@@ -1931,11 +1944,11 @@ public class PlayerMovement : MonoBehaviour
 ╚█████╔╝╚██████╔╝██║░╚═╝░██║██║░░░░░
 ░╚════╝░░╚═════╝░╚═╝░░░░░╚═╝╚═╝░░░░░
     */
-    public const float MAX_JUMP_HEIGHT = 16f;
+    public const float MAX_JUMP_HEIGHT = 18f;
     public const float MIN_JUMP_HEIGHT = 14f;
     public const int JUMP_STAMINA_RECOVERY_TICKS = 10;
     public const int COYOTE_TICKS = 20;
-    public const int GROUND_JUMP_BUFFERING = 4;
+    public const int GROUND_JUMP_BUFFERING = 2;
     public const int WALL_JUMP_BUFFERING = 4;
 
     private float jumpBuffered;
@@ -2079,7 +2092,6 @@ public class PlayerMovement : MonoBehaviour
                     AudioManager.PlayOneShot(jump);
                     IsOnGround = false;
                     var height = jumpHeight;
-                    var negativeFrictionTicks = Mathf.Min(sinceJump, WALL_JUMP_BUFFERING);
                     var frictionTicks = Mathf.Max(0, groundTickCount);
 
                     if (CancelDash(true))
@@ -2092,15 +2104,10 @@ public class PlayerMovement : MonoBehaviour
                     }
                     else
                     {
-                        for (var i = 0; i < negativeFrictionTicks; i++)
-                        {
-                            ApplyFriction(Time.fixedDeltaTime * SLIDE_FRICTION, 0, BASE_SPEED / 2);
-                            frictionTicks++;
-                        }
 
                         if (kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
                         {
-                            kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
+                            kickFeedback.text = "+" + frictionTicks;
                             kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
                         }
                     }

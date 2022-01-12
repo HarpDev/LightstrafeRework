@@ -15432,7 +15432,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 12
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 45.433, y: -45.439, z: -35.883}
 --- !u!1 &1158315737 stripped
 GameObject:
@@ -23215,6 +23215,75 @@ Transform:
   m_Father: {fileID: 987946749}
   m_RootOrder: 15
   m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
+--- !u!1001 &1823416855
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 7020229145822090984, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_Name
+      value: Sky and Fog Volume
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -129.53474
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -123.00001
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1272.8198
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.86602545
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -60
+      objectReference: {fileID: 0}
+    - target: {fileID: 7020229145822090986, guid: edc48b95987dd874baf826faddbd18ba,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: edc48b95987dd874baf826faddbd18ba, type: 3}
 --- !u!1 &1834074577
 GameObject:
   m_ObjectHideFlags: 0
@@ -26718,55 +26787,6 @@ Mesh:
     offset: 0
     size: 0
     path: 
---- !u!1 &2113144269
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2113144271}
-  - component: {fileID: 2113144270}
-  m_Layer: 0
-  m_Name: Sky and Fog Volume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2113144270
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2113144269}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_IsGlobal: 1
-  priority: 0
-  blendDistance: 0
-  weight: 1
-  sharedProfile: {fileID: 11400000, guid: 64b330a0bcb6a0249994e009f2ce460d, type: 2}
---- !u!4 &2113144271
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2113144269}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -196, y: -38, z: 1090}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 11
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &543450652145116358 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7067136280134031365, guid: 36ba5a79c49c7b943983bcf5c065b612,
