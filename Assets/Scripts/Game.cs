@@ -14,6 +14,12 @@ public class Game : MonoBehaviour
     public Canvas Pause;
     public Canvas LevelCompleted;
 
+    public static bool UseTimingDisplay
+    {
+        get => PlayerPrefs.GetInt("UseTimingDisplay", 0) != 0;
+        set => PlayerPrefs.SetInt("UseTimingDisplay", value ? 1 : 0);
+    }
+
     public static float SoundVolume { get => PlayerPrefs.GetFloat("SoundVolume", 1); set => PlayerPrefs.SetFloat("SoundVolume", value); }
     public static float MusicVolume { get => PlayerPrefs.GetFloat("MusicVolume", 1); set => PlayerPrefs.SetFloat("MusicVolume", value); }
 

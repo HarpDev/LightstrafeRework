@@ -59,9 +59,10 @@ public class PlayerMovement : MonoBehaviour
     private float crouchAmount;
 
     public const int CHARGES = 2;
+    public const float CHARGE_START = 1;
     public const float CHARGE_TOUCH_RECHARGE = 0.5f;
     public const float CHARGE_RECHARGE_RATE = 0f;
-    private bool surfaceTouched;
+    private bool surfaceTouched = true;
     public float Charges { get; set; }
     public bool DashAvailable => Charges >= 1;
 
@@ -161,7 +162,7 @@ public class PlayerMovement : MonoBehaviour
         LookScale = 1;
 
         //PlayerInput.ReadReplayFile("C:\\Users\\Fzzy\\Desktop\\replay.txt");
-        Charges = CHARGES;
+        Charges = CHARGE_START;
 
         Yaw += transform.rotation.eulerAngles.y;
 
@@ -263,11 +264,14 @@ public class PlayerMovement : MonoBehaviour
         Game.Canvas.crosshair.color = new Color(crosshairColor, crosshairColor, crosshairColor, crosshairColor);
 
         // Fade out kick feedback
-        if (kickFeedback != null && kickFeedback.color.a > 0)
+        if (Game.Canvas.kickFeedback != null && Game.Canvas.kickFeedback.color.a > 0)
         {
-            var color = kickFeedback.color;
-            color.a -= Time.deltaTime * (1.03f - color.a) * 4f;
-            kickFeedback.color = color;
+            var color = Game.Canvas.kickFeedback.color;
+            if (Game.UseTimingDisplay)
+                color.a -= Time.deltaTime * (1.03f - color.a) * 4f;
+            else
+                color.a = 0;
+            Game.Canvas.kickFeedback.color = color;
         }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
@@ -1410,8 +1414,6 @@ public class PlayerMovement : MonoBehaviour
     private float wallLeanAmount;
     private float wallLeanLerp;
 
-    public Text kickFeedback;
-
     public void WallMove(float f)
     {
         DoubleJumpAvailable = true;
@@ -2014,10 +2016,10 @@ public class PlayerMovement : MonoBehaviour
                 if (CancelDash(false))
                 {
                     speedGain = 0;
-                    if (kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
+                    if (Game.Canvas.kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
                     {
-                        kickFeedback.text = "" + frictionTicks;
-                        kickFeedback.color = Color.cyan;
+                        Game.Canvas.kickFeedback.text = "" + frictionTicks;
+                        Game.Canvas.kickFeedback.color = Color.cyan;
                     }
                 }
                 else
@@ -2028,10 +2030,10 @@ public class PlayerMovement : MonoBehaviour
                         frictionTicks++;
                     }
 
-                    if (kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
+                    if (Game.Canvas.kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
                     {
-                        kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
-                        kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
+                        Game.Canvas.kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
+                        Game.Canvas.kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
                     }
                 }
 
@@ -2096,19 +2098,19 @@ public class PlayerMovement : MonoBehaviour
 
                     if (CancelDash(true))
                     {
-                        if (kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
+                        if (Game.Canvas.kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
                         {
-                            kickFeedback.text = "" + frictionTicks;
-                            kickFeedback.color = Color.cyan;
+                            Game.Canvas.kickFeedback.text = "" + frictionTicks;
+                            Game.Canvas.kickFeedback.color = Color.cyan;
                         }
                     }
                     else
                     {
 
-                        if (kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
+                        if (Game.Canvas.kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
                         {
-                            kickFeedback.text = "+" + frictionTicks;
-                            kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
+                            Game.Canvas.kickFeedback.text = "+" + frictionTicks;
+                            Game.Canvas.kickFeedback.color = frictionTicks == 0 ? Color.green : Color.white;
                         }
                     }
 

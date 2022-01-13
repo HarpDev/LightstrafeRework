@@ -10,6 +10,7 @@ public class CanvasContainer : MonoBehaviour
     public Image crosshair;
     public SpeedChangeDisplay speedChangeDisplay;
     public GameObject textNotificationPrefab;
+    public Text kickFeedback;
 
     public void SendNotification(string text, float duration = 5f, int fontSize = 40)
     {
