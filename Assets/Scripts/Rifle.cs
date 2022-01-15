@@ -38,15 +38,21 @@ public class Rifle : WeaponManager.Gun
 
     private float _crouchFactor;
     private float _crouchReloadMod;
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
+    }
 
     public bool UseSideGun
     {
         get
         {
-            if (!Game.Player.jumpKitEnabled) return false;
+            if (!player.jumpKitEnabled) return false;
             if (_layer0Info.IsName("Unequip")) return false;
 
-            if (Game.Player.IsSliding) return true;
+            if (player.IsSliding) return true;
             return false;
         }
     }
@@ -58,22 +64,22 @@ public class Rifle : WeaponManager.Gun
 
     public void BoltUp()
     {
-        Game.Player.AudioManager.PlayAudio(boltUp);
+        player.AudioManager.PlayAudio(boltUp);
     }
 
     public void BoltBack()
     {
-        Game.Player.AudioManager.PlayAudio(boltBack);
+        player.AudioManager.PlayAudio(boltBack);
     }
 
     public void BoltForward()
     {
-        Game.Player.AudioManager.PlayAudio(boltForward);
+        player.AudioManager.PlayAudio(boltForward);
     }
 
     public void BoltDown()
     {
-        Game.Player.AudioManager.PlayAudio(boltDown);
+        player.AudioManager.PlayAudio(boltDown);
     }
 
     private AnimatorStateInfo _layer0Info;
@@ -104,7 +110,7 @@ public class Rifle : WeaponManager.Gun
         }
         animator.SetLayerWeight(1, leftHandFactor);
 
-        if (Game.Player.IsOnGround)
+        if (player.IsOnGround)
         {
             shotAvailable = true;
         }
@@ -114,11 +120,11 @@ public class Rifle : WeaponManager.Gun
         if (fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
         if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") 
             && !animator.GetBool("Reload") && !fireInputConsumed && shotAvailable)
-            //&& (Game.Player.IsOnGround || Game.Player.IsOnWall || Game.Player.ApproachingGround || Game.Player.ApproachingWall || Game.Player.IsInCoyoteTime()))
+            //&& (player.IsOnGround || player.IsOnWall || player.ApproachingGround || player.ApproachingWall || player.IsInCoyoteTime()))
         {
             shotAvailable = false;
-            //Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
-            var direction = Game.Player.CrosshairDirection;
+            //Fire(QueryTriggerInteraction.Collide, player.CrosshairDirection);
+            var direction = player.CrosshairDirection;
             var triggerInteraction = QueryTriggerInteraction.Ignore;
             var obj = new GameObject("Tracer");
             obj.AddComponent<TracerDecay>();
@@ -126,22 +132,22 @@ public class Rifle : WeaponManager.Gun
             var positions = new Vector3[2];
             positions[0] = GetTracerStartWorldPosition();
             
-            if (Physics.Raycast(Game.Player.camera.transform.position, direction, out var hit, 200, 1, triggerInteraction))
+            if (Physics.Raycast(player.camera.transform.position, direction, out var hit, 200, 1, triggerInteraction))
             {
                 positions[1] = hit.point;
                 if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
                 {
-                    Game.Player.Teleport(hit.point - direction.normalized / 2);
+                    player.Teleport(hit.point - direction.normalized / 2);
                 }
-            } else positions[1] = Game.Player.camera.transform.position + (direction * 300);
+            } else positions[1] = player.camera.transform.position + (direction * 300);
             line.material = WeaponManager.tracerMaterial;
             line.endWidth = 0.1f;
             line.startWidth = 0.1f;
             line.SetPositions(positions);
             fireInputConsumed = true;
 
-            Game.Player.AudioManager.PlayOneShot(fireSound);
-            //Game.Player.weaponManager.EquipGun(WeaponManager.GunType.None);
+            player.AudioManager.PlayOneShot(fireSound);
+            //player.weaponManager.EquipGun(WeaponManager.GunType.None);
 
             if (animator != null)
             {
@@ -156,9 +162,9 @@ public class Rifle : WeaponManager.Gun
 
     private void LateUpdate()
     {
-        var yawMovement = Game.Player.YawIncrease;
+        var yawMovement = player.YawIncrease;
 
-        var velocityChange = Game.Player.velocity - _prevVelocity;
+        var velocityChange = player.velocity - _prevVelocity;
 
         if (UseSideGun)
         {
@@ -170,7 +176,7 @@ public class Rifle : WeaponManager.Gun
         var crouchAmt = -(Mathf.Cos(Mathf.PI * _crouchFactor) - 1) / 2;
 
         _upChange -= velocityChange.y / 15;
-        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
+        if (!player.IsOnGround && !player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
         else
         {
             _upChange -= velocityChange.y / Mathf.Lerp(25, 50, crouchAmt);
@@ -193,7 +199,7 @@ public class Rifle : WeaponManager.Gun
         }
         _upSoften = Mathf.Clamp(_upSoften, -1.3f, 1.3f);
 
-        _prevVelocity = Game.Player.velocity;
+        _prevVelocity = player.velocity;
 
         _forward += Time.deltaTime / 1.2f;
         _forward = Mathf.Lerp(_forward, 0, Time.deltaTime * 8);
@@ -216,12 +222,12 @@ public class Rifle : WeaponManager.Gun
         localright -= 0.005f * _crouchReloadMod;
         roll -= 5 * _crouchReloadMod;
 
-        roll += Game.Player.CameraRoll / 2;
+        roll += player.CameraRoll / 2;
 
         /*if (closest != null)
         {
             aimFactor = Mathf.Lerp(aimFactor, 1, Time.deltaTime * 10);
-            toTargetVector = closest.transform.position - Game.Player.camera.transform.position;
+            toTargetVector = closest.transform.position - player.camera.transform.position;
         } else
         {
             aimFactor = Mathf.Lerp(aimFactor, 0, Time.deltaTime * 10);
@@ -229,11 +235,11 @@ public class Rifle : WeaponManager.Gun
 
         if (toTargetVector.magnitude > 0)
         {
-            var aimT = Mathf.Atan2(Game.Player.CrosshairDirection.z, Game.Player.CrosshairDirection.x);
+            var aimT = Mathf.Atan2(player.CrosshairDirection.z, player.CrosshairDirection.x);
             var targetT = Mathf.Atan2(toTargetVector.z, toTargetVector.x);
             swing += Mathf.Rad2Deg * ((targetT - aimT) / 3.5f) * aimFactor;
 
-            var aimP = Mathf.Acos(Game.Player.CrosshairDirection.y / Game.Player.CrosshairDirection.magnitude);
+            var aimP = Mathf.Acos(player.CrosshairDirection.y / player.CrosshairDirection.magnitude);
             var targetP = Mathf.Acos(toTargetVector.y / toTargetVector.magnitude);
             tilt += Mathf.Rad2Deg * ((aimP - targetP) / 3.5f) * aimFactor;
             tilt += 1 * aimFactor;

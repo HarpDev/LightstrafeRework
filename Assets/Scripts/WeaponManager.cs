@@ -18,6 +18,7 @@ public class WeaponManager : MonoBehaviour
     public Gun EquippedGun { get; private set; }
     private Quaternion startRotation;
     private GunType? gunToEquip;
+    private Player player;
 
     public enum GunType
     {
@@ -51,6 +52,7 @@ public class WeaponManager : MonoBehaviour
 
     private void Start()
     {
+        player = Game.OnStartResolve<Player>();
         EquipGun(startGun);
         //EquipGun(GunType.Rifle);
     }
@@ -103,7 +105,7 @@ public class WeaponManager : MonoBehaviour
         {
             var rot = EquippedGun.cameraBone.localRotation * Quaternion.Inverse(startRotation);
             var euler = rot.eulerAngles;
-            Game.Player.cameraParent.localRotation = Quaternion.Euler(euler.y, euler.z, euler.x);
+            player.cameraParent.localRotation = Quaternion.Euler(euler.y, euler.z, euler.x);
         }
     }
 
@@ -121,6 +123,12 @@ public class WeaponManager : MonoBehaviour
         public Transform leftHandCenter;
 
         public Animator animator;
+        private Player player;
+
+        private void Start()
+        {
+            player = Game.OnStartResolve<Player>();
+        }
 
         public abstract GunType GetGunType();
 
@@ -128,7 +136,7 @@ public class WeaponManager : MonoBehaviour
         {
             var screen = viewModel.WorldToViewportPoint(tracerStart.position);
             screen.z = 1.2f;
-            var world = Game.Player.camera.ViewportToWorldPoint(screen);
+            var world = player.camera.ViewportToWorldPoint(screen);
             return world;
         }
 

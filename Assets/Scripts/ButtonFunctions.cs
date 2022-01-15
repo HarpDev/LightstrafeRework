@@ -1,28 +1,39 @@
+using System;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class ButtonFunctions : MonoBehaviour
 {
+    private Level level;
+    private Timers timers;
+    private CanvasManager canvasManager;
+    private void Start()
+    {
+        canvasManager = Game.OnStartResolve<CanvasManager>();
+        level = Game.OnStartResolve<Level>();
+        timers = Game.OnStartResolve<Timers>();
+    }
 
     public void RestartLevel()
     {
-        Game.RestartLevel();
+        level.RestartLevel();
     }
 
     public void NextLevel()
     {
-        Game.NextLevel();
+        level.NextLevel();
     }
 
     public void Startlevel(string name)
     {
-        SceneManager.LoadScene(name);
+        Game.StartLevel(name);
     }
 
     public void MainMenu()
     {
         SceneManager.LoadScene(0);
+        timers.ResetFullGameRun();
     }
 
     public void QuitGame()
@@ -32,28 +43,17 @@ public class ButtonFunctions : MonoBehaviour
 
     public void OpenOptions()
     {
-        Game.OpenOptionsMenu();
-        var menu = Game.MenuAnimation;
-        if (menu != null) menu.SendToOptionsPosition();
+        canvasManager.OpenMenu(canvasManager.Options);
     }
 
     public void OpenChapter1Select()
     {
-        Game.OpenChapter1Select();
-        var menu = Game.MenuAnimation;
-        if (menu != null) menu.SendToLevelSelectPosition();
+        canvasManager.OpenMenu(canvasManager.Chapter1Select);
     }
 
     public void ResetTimes()
     {
-        for (var i = 0; i < SceneManager.sceneCountInBuildSettings; i++)
-        {
-            var name = Path.GetFileNameWithoutExtension(SceneUtility.GetScenePathByBuildIndex(i));
-            if (PlayerPrefs.HasKey("BestTime" + name))
-            {
-                PlayerPrefs.DeleteKey("BestTime" + name);
-            }
-        }
+        timers.ResetTimes();
     }
 
     public void ResetBinds()

@@ -7,10 +7,16 @@ public class FollowTransform : MonoBehaviour
 
     public Transform transformToFollow;
     public Camera viewModel;
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
+    }
 
     private void Update()
     {
         var screen = viewModel.WorldToViewportPoint(transformToFollow.position);
-        transform.position = Game.Player.camera.ViewportToWorldPoint(screen);
+        transform.position = player.camera.ViewportToWorldPoint(screen);
     }
 }

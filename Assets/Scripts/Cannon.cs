@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,15 +30,21 @@ public class Cannon : WeaponManager.Gun
 
     private float crouchFactor;
     private float crouchReloadMod;
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
+    }
 
     public bool UseSideGun
     {
         get
         {
-            if (!Game.Player.jumpKitEnabled) return false;
+            if (!player.jumpKitEnabled) return false;
             if (layer0Info.IsName("Unequip")) return false;
 
-            if (Game.Player.IsSliding) return true;
+            if (player.IsSliding) return true;
             return false;
         }
     }
@@ -74,7 +81,7 @@ public class Cannon : WeaponManager.Gun
         }
         animator.SetLayerWeight(1, leftHandFactor);
 
-        if (Game.Player.IsOnGround)
+        if (player.IsOnGround)
         {
             shotAvailable = true;
         }
@@ -83,16 +90,16 @@ public class Cannon : WeaponManager.Gun
         if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") && !fireInputConsumed && shotAvailable)
         {
             shotAvailable = false;
-            //Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
+            //Fire(QueryTriggerInteraction.Collide, player.CrosshairDirection);
             var proj = Instantiate(projectile.gameObject).GetComponent<Projectile>();
             var screen = viewModel.WorldToViewportPoint(barrel.transform.position);
             screen.z = 1.2f;
-            var world = Game.Player.camera.ViewportToWorldPoint(screen);
-            proj.Fire(Game.Player.CrosshairDirection * 100, Game.Player.camera.transform.position, world, 0);
+            var world = player.camera.ViewportToWorldPoint(screen);
+            proj.Fire(player.CrosshairDirection * 100, player.camera.transform.position, world, 0);
 
             fireInputConsumed = true;
 
-            Game.Player.AudioManager.PlayOneShot(fireSound);
+            player.AudioManager.PlayOneShot(fireSound);
 
             if (animator != null)
             {
@@ -103,9 +110,9 @@ public class Cannon : WeaponManager.Gun
 
     private void LateUpdate()
     {
-        var yawMovement = Game.Player.YawIncrease;
+        var yawMovement = player.YawIncrease;
 
-        var velocityChange = Game.Player.velocity - prevVelocity;
+        var velocityChange = player.velocity - prevVelocity;
 
         if (UseSideGun)
         {
@@ -117,7 +124,7 @@ public class Cannon : WeaponManager.Gun
         var crouchAmt = -(Mathf.Cos(Mathf.PI * crouchFactor) - 1) / 2;
 
         upChange -= velocityChange.y / 15;
-        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
+        if (!player.IsOnGround && !player.IsOnWall) upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
         else
         {
             upChange -= velocityChange.y / Mathf.Lerp(25, 50, crouchAmt);
@@ -140,7 +147,7 @@ public class Cannon : WeaponManager.Gun
         }
         upSoften = Mathf.Clamp(upSoften, -1.3f, 1.3f);
 
-        prevVelocity = Game.Player.velocity;
+        prevVelocity = player.velocity;
 
          forward += Time.deltaTime / 1.2f;
         forward = Mathf.Lerp(forward, 0, Time.deltaTime * 8);
@@ -163,12 +170,12 @@ public class Cannon : WeaponManager.Gun
         localright -= 0.005f * crouchReloadMod;
         roll -= 5 * crouchReloadMod;
 
-        roll += Game.Player.CameraRoll / 2;
+        roll += player.CameraRoll / 2;
 
         /*if (closest != null)
         {
             aimFactor = Mathf.Lerp(aimFactor, 1, Time.deltaTime * 10);
-            toTargetVector = closest.transform.position - Game.Player.camera.transform.position;
+            toTargetVector = closest.transform.position - player.camera.transform.position;
         } else
         {
             aimFactor = Mathf.Lerp(aimFactor, 0, Time.deltaTime * 10);
@@ -176,11 +183,11 @@ public class Cannon : WeaponManager.Gun
 
         if (toTargetVector.magnitude > 0)
         {
-            var aimT = Mathf.Atan2(Game.Player.CrosshairDirection.z, Game.Player.CrosshairDirection.x);
+            var aimT = Mathf.Atan2(player.CrosshairDirection.z, player.CrosshairDirection.x);
             var targetT = Mathf.Atan2(toTargetVector.z, toTargetVector.x);
             swing += Mathf.Rad2Deg * ((targetT - aimT) / 3.5f) * aimFactor;
 
-            var aimP = Mathf.Acos(Game.Player.CrosshairDirection.y / Game.Player.CrosshairDirection.magnitude);
+            var aimP = Mathf.Acos(player.CrosshairDirection.y / player.CrosshairDirection.magnitude);
             var targetP = Mathf.Acos(toTargetVector.y / toTargetVector.magnitude);
             tilt += Mathf.Rad2Deg * ((aimP - targetP) / 3.5f) * aimFactor;
             tilt += 1 * aimFactor;

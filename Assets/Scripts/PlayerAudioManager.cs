@@ -31,7 +31,7 @@ public class PlayerAudioManager : MonoBehaviour
 
         var audio = obj.AddComponent<AudioSource>();
         audio.clip = clip;
-        audio.volume = Game.SoundVolume;
+        audio.volume = GameSettings.SoundVolume;
         audio.loop = looping;
         audio.Play();
 
@@ -53,7 +53,7 @@ public class PlayerAudioManager : MonoBehaviour
 
         var audio = obj.AddComponent<AudioSource>();
         audio.clip = clip;
-        audio.volume = Game.SoundVolume * volume;
+        audio.volume = GameSettings.SoundVolume * volume;
         audio.pitch = Time.timeScale;
         audio.loop = looping;
         audio.Play();
@@ -92,7 +92,7 @@ public class PlayerAudioManager : MonoBehaviour
             var playing = e.Value;
             var source = playing.obj.GetComponent<AudioSource>();
             source.pitch = Time.timeScale;
-            source.volume = Game.SoundVolume * playing.volume;
+            source.volume = GameSettings.SoundVolume * playing.volume;
         }
     }
 

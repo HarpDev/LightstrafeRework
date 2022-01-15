@@ -26,6 +26,14 @@ public class Projectile : MonoBehaviour
         d = drop;
         visual.transform.rotation = Quaternion.LookRotation(-velocity);
     }
+    private Player player;
+    private CanvasManager canvasManager;
+
+    private void Start()
+    {
+        canvasManager = Game.OnStartResolve<CanvasManager>();
+        player = Game.OnStartResolve<Player>();
+    }
 
     private void Update()
     {
@@ -46,13 +54,13 @@ public class Projectile : MonoBehaviour
                 {
                     if (explodeSound != null) explodeSound.Play();
                     
-                    var boostVector = Game.Player.transform.position - transform.position;
-                    Game.Player.velocity += Flatten(boostVector).normalized * 10;
+                    var boostVector = player.transform.position - transform.position;
+                    player.velocity += Flatten(boostVector).normalized * 10;
                     
-                    var r = Instantiate(radial.gameObject, Game.Canvas.transform).GetComponent<Radial>();
+                    var r = Instantiate(radial.gameObject, canvasManager.baseCanvas.transform).GetComponent<Radial>();
 
                     var flatBoost = Flatten(boostVector).normalized;
-                    r.position = -(Mathf.Rad2Deg * Mathf.Atan2(flatBoost.x, flatBoost.z) - Game.Player.Yaw + 180);
+                    r.position = -(Mathf.Rad2Deg * Mathf.Atan2(flatBoost.x, flatBoost.z) - player.Yaw + 180);
                     
                     Destroy(this, 3f);
                 }

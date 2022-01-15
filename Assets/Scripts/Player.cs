@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using FullSerializer;
 using UnityEngine;
-using UnityEngine.Assertions.Must;
-using UnityEngine.Rendering.PostProcessing;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
-public class PlayerMovement : MonoBehaviour
+public class Player : MonoBehaviour
 {
+    
     public Collider hitbox;
     public WeaponManager weaponManager;
 
@@ -128,26 +123,6 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip railEnd;
     public AudioClip wow;
 
-    public static bool IsPaused()
-    {
-        return Game.UiTree.Count != 0;
-    }
-
-    public static void Pause()
-    {
-        Time.timeScale = 0;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-        Game.OpenPauseMenu();
-    }
-
-    public static void Unpause()
-    {
-        Time.timeScale = 1;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
-
     /*
 ░█████╗░░██╗░░░░░░░██╗░█████╗░██╗░░██╗███████╗
 ██╔══██╗░██║░░██╗░░██║██╔══██╗██║░██╔╝██╔════╝
@@ -158,10 +133,10 @@ public class PlayerMovement : MonoBehaviour
     */
     private void Awake()
     {
+        Game.OnAwakeBind(this);
         AudioManager = GetComponent<PlayerAudioManager>();
         LookScale = 1;
 
-        //PlayerInput.ReadReplayFile("C:\\Users\\Fzzy\\Desktop\\replay.txt");
         Charges = CHARGE_START;
 
         Yaw += transform.rotation.eulerAngles.y;
@@ -187,6 +162,19 @@ public class PlayerMovement : MonoBehaviour
             currentGround = hit.collider.gameObject;
             groundTickCount = 2;
         }
+    }
+
+    private Level level;
+    private CanvasManager canvasManager;
+    private CrosshairManager crosshairManager;
+    private KickFeedback kickFeedback;
+
+    private void Start()
+    {
+        level = Game.OnStartResolve<Level>();
+        canvasManager = Game.OnStartResolve<CanvasManager>();
+        crosshairManager = Game.OnStartResolve<CrosshairManager>();
+        kickFeedback = Game.OnStartResolve<KickFeedback>();
 
         var notification = "";
         if (DashEnabled)
@@ -199,7 +187,7 @@ public class PlayerMovement : MonoBehaviour
             if (DashEnabled) notification += "\n";
             notification += "Press " + ((KeyCode) PlayerInput.PrimaryInteract) + " to grapple";
         }
-        if (notification.Length > 0) Game.Canvas.SendNotification(notification);
+        if (notification.Length > 0) canvasManager.SendNotification(notification);
     }
 
     /*
@@ -220,15 +208,13 @@ public class PlayerMovement : MonoBehaviour
     {
         jumpBuffered = Mathf.Max(jumpBuffered - Time.deltaTime, 0);
 
-        if (!IsPaused() && Cursor.visible) Unpause();
-
         if (Cursor.visible) return;
 
         // Mouse aim / Controller aim
         if (Time.timeScale > 0)
         {
-            YawIncrease = Input.GetAxis("Mouse X") * (Game.Sensitivity / 10) * LookScale;
-            YawIncrease += Input.GetAxis("Joy 1 X 2") * Game.Sensitivity * LookScale;
+            YawIncrease = Input.GetAxis("Mouse X") * (GameSettings.Sensitivity / 10) * LookScale;
+            YawIncrease += Input.GetAxis("Joy 1 X 2") * GameSettings.Sensitivity * LookScale;
 
             Yaw = (Yaw + YawIncrease) % 360f;
 
@@ -236,8 +222,8 @@ public class PlayerMovement : MonoBehaviour
             Yaw += yawinterpolation;
             YawFutureInterpolation -= yawinterpolation;
 
-            Pitch -= Input.GetAxis("Mouse Y") * (Game.Sensitivity / 10) * LookScale;
-            Pitch += Input.GetAxis("Joy 1 Y 2") * Game.Sensitivity * LookScale;
+            Pitch -= Input.GetAxis("Mouse Y") * (GameSettings.Sensitivity / 10) * LookScale;
+            Pitch += Input.GetAxis("Joy 1 Y 2") * GameSettings.Sensitivity * LookScale;
 
             var pitchinterpolation = Mathf.Lerp(Pitch, Pitch + PitchFutureInterpolation, Time.deltaTime * 10) - Pitch;
             Pitch += pitchinterpolation;
@@ -249,29 +235,11 @@ public class PlayerMovement : MonoBehaviour
 
         if (GrappleCast(out var grappleHit) || DashCast(out var dashHit))
         {
-            Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0,
-                Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 45, Time.deltaTime * 20));
-            crosshairColor = Mathf.Lerp(crosshairColor, 1, Time.deltaTime * 20);
+            crosshairManager.IsActivated = true;
         }
         else
         {
-            Game.Canvas.crosshair.transform.rotation = Quaternion.Euler(0, 0,
-                Mathf.Lerp(Game.Canvas.crosshair.transform.rotation.eulerAngles.z, 0, Time.deltaTime * 20));
-            crosshairColor = Mathf.Lerp(crosshairColor, 100f / 255f, Time.deltaTime * 20);
-        }
-
-        // change rotation and color of the crosshair when dash is used
-        Game.Canvas.crosshair.color = new Color(crosshairColor, crosshairColor, crosshairColor, crosshairColor);
-
-        // Fade out kick feedback
-        if (Game.Canvas.kickFeedback != null && Game.Canvas.kickFeedback.color.a > 0)
-        {
-            var color = Game.Canvas.kickFeedback.color;
-            if (Game.UseTimingDisplay)
-                color.a -= Time.deltaTime * (1.03f - color.a) * 4f;
-            else
-                color.a = 0;
-            Game.Canvas.kickFeedback.color = color;
+            crosshairManager.IsActivated = false;
         }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
@@ -336,11 +304,6 @@ public class PlayerMovement : MonoBehaviour
         var lerpSpeed = 5;
         if (IsDashing) lerpSpeed += 5;
         camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, targetFOV, Time.deltaTime * lerpSpeed);
-
-        if (Input.GetKeyDown((KeyCode) PlayerInput.Pause) && !IsPaused())
-        {
-            pauseOnNextTick = true;
-        }
     }
 
     /*
@@ -352,20 +315,12 @@ public class PlayerMovement : MonoBehaviour
 ╚═╝░░░░░╚═╝╚═╝░░╚═╝╚══════╝╚═════╝░░╚═════╝░╚═╝░░░░░╚═════╝░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝
     */
 
-    private bool pauseOnNextTick;
-
     private void FixedUpdate()
     {
         wallRecovery -= Mathf.Min(wallRecovery, Time.fixedDeltaTime);
 
-        if (pauseOnNextTick)
-        {
-            pauseOnNextTick = false;
-            if (!IsPaused()) Pause();
-        }
-
         // Check for level restart
-        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0) Game.RestartLevel();
+        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0) level.RestartLevel();
 
         // Set Wishdir
         Wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() +
@@ -789,7 +744,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (other.CompareTag("Kill Block"))
         {
-            Game.RestartLevel();
+            level.RestartLevel();
         }
 
         var collectible = other.gameObject.GetComponent<Collectible>();
@@ -1405,6 +1360,7 @@ public class PlayerMovement : MonoBehaviour
     private float wallRecovery;
     private float wallLeanAmount;
     private float wallLeanLerp;
+    private int wallFrictionTicks;
 
     public void WallMove(float f)
     {
@@ -1412,7 +1368,11 @@ public class PlayerMovement : MonoBehaviour
         lastGround = null;
         if (IsDashing) wallTickCount = -1;
 
-        if (wallTickCount == 0) AudioManager.PlayAudio(wallRun, true);
+        if (wallTickCount == 0)
+        {
+            AudioManager.PlayAudio(wallRun, true);
+            wallFrictionTicks = 0;
+        }
 
         // Fade in wall run sound so if you jump off right away its silent
         AudioManager.SetVolume(wallRun, Mathf.Clamp01(wallTickCount / 10f));
@@ -1422,6 +1382,7 @@ public class PlayerMovement : MonoBehaviour
         if (wallTickCount is > 0 and <= WALL_FRICTION_TICKS)
         {
             ApplyFriction(f * WALL_FRICTION, BASE_SPEED);
+            wallFrictionTicks++;
         }
 
         // Apply camera roll from the wall
@@ -1450,6 +1411,7 @@ public class PlayerMovement : MonoBehaviour
                 .normalized;
             Accelerate(alongView, WALL_SPEED, WALL_ACCELERATION * 4, f);
             ApplyFriction(f * WALL_FRICTION);
+            wallFrictionTicks++;
         }
         else
         {
@@ -1476,7 +1438,7 @@ public class PlayerMovement : MonoBehaviour
 
         // Push you into the wall, holding you against it a bit
         Accelerate(-wallNormal, 1, Gravity, f);
-        PlayerJump();
+        PlayerJump(wallFrictionTicks);
     }
 
     /*
@@ -1516,16 +1478,10 @@ public class PlayerMovement : MonoBehaviour
     private GameObject currentGround;
     private GameObject lastGround;
     private GameObject lastRefreshGround;
-
-    private int frictionTicks;
+    private int groundFrictionTicks;
 
     public void GroundMove(float f)
     {
-        if (currentGround.CompareTag("Finish"))
-        {
-            Game.EndTimer();
-        }
-
         DoubleJumpAvailable = true;
         GravityTick(f);
         wallLeanAmount = 0;
@@ -1546,8 +1502,10 @@ public class PlayerMovement : MonoBehaviour
 
         if (groundTickCount == 1)
         {
+            groundFrictionTicks = 0;
             if (!IsSliding) AudioManager.PlayAudio(groundLand);
             ApplyFriction(f * LANDING_FRICTION_TAX, 0, BASE_SPEED / 2);
+            groundFrictionTicks++;
         }
 
         // Stop sliding if you slow down enough
@@ -1584,7 +1542,7 @@ public class PlayerMovement : MonoBehaviour
                 if (groundTickCount is > GROUND_JUMP_BUFFERING and <= SLIDE_FRICTION_TICKS + GROUND_JUMP_BUFFERING)
                 {
                     ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
-                    frictionTicks++;
+                    groundFrictionTicks++;
                 }
                 AirAccelerate(ref velocity, f, 1, 0);
 
@@ -1593,11 +1551,12 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 3);
+                groundFrictionTicks++;
                 Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
             }
         }
 
-        PlayerJump();
+        PlayerJump(groundFrictionTicks);
     }
 
     // Returns speed gain
@@ -1958,7 +1917,7 @@ public class PlayerMovement : MonoBehaviour
     private float jumpBuffered;
     private int jumpTimestamp;
 
-    public bool PlayerJump()
+    public bool PlayerJump(int friction = 0)
     {
         int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
         if (sinceJump <= Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) || jumpBuffered > 0)
@@ -2012,31 +1971,24 @@ public class PlayerMovement : MonoBehaviour
                 wallLeanCancelled = false;
 
                 var negativeFrictionTicks = Mathf.Min(sinceJump, WALL_JUMP_BUFFERING);
-                var frictionTicks = Mathf.Max(0, wallTickCount);
                 var speedGain = WALL_JUMP_SPEED;
 
                 if (CancelDash(false))
                 {
                     speedGain = 0;
-                    if (Game.Canvas.kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
-                    {
-                        Game.Canvas.kickFeedback.text = "" + frictionTicks;
-                        Game.Canvas.kickFeedback.color = Color.cyan;
-                    }
+                    if (!coyoteJump && wallTickCount <= WALL_FRICTION_TICKS) kickFeedback.Display(friction, Color.cyan);
                 }
                 else
                 {
                     for (var i = 0; i < negativeFrictionTicks; i++)
                     {
                         ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
-                        frictionTicks++;
+                        friction++;
                     }
+                    if (negativeFrictionTicks > 0) friction *= -1;
 
-                    if (Game.Canvas.kickFeedback != null && !coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
-                    {
-                        Game.Canvas.kickFeedback.text = (negativeFrictionTicks > 0 ? "-" : "+") + frictionTicks;
-                        Game.Canvas.kickFeedback.color = frictionTicks == 1 ? Color.green : Color.white;
-                    }
+                    if (!coyoteJump && wallTickCount <= WALL_FRICTION_TICKS) 
+                        kickFeedback.Display(friction, friction == 1 ? Color.green : Color.white);
                 }
 
                 lastWall = currentWall;
@@ -2079,24 +2031,15 @@ public class PlayerMovement : MonoBehaviour
                     AudioManager.PlayOneShot(jump);
                     IsOnGround = false;
                     var height = jumpHeight;
-                    var frictionTicks = Mathf.Max(0, groundTickCount - GROUND_JUMP_BUFFERING) + 1;
 
                     if (CancelDash(true))
                     {
-                        if (Game.Canvas.kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
-                        {
-                            Game.Canvas.kickFeedback.text = "" + frictionTicks;
-                            Game.Canvas.kickFeedback.color = Color.cyan;
-                        }
+                        if (!coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS) kickFeedback.Display(friction, Color.cyan);
                     }
                     else
                     {
-
-                        if (Game.Canvas.kickFeedback != null && !coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS)
-                        {
-                            Game.Canvas.kickFeedback.text = "+" + frictionTicks;
-                            Game.Canvas.kickFeedback.color = frictionTicks == 1 ? Color.green : Color.white;
-                        }
+                        if (!coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS) 
+                            kickFeedback.Display(friction, friction == 1 ? Color.green : Color.white);
                     }
 
                     velocity.y = Mathf.Max(height, velocity.y);

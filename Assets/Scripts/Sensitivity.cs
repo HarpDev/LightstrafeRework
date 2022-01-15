@@ -10,7 +10,7 @@ public class Sensitivity : MonoBehaviour
 
     private void Start()
     {
-        sensitivity.text = Game.Sensitivity + "";
+        sensitivity.text = GameSettings.Sensitivity + "";
     }
 
     public void InputUpdated()
@@ -19,6 +19,6 @@ public class Sensitivity : MonoBehaviour
         
         float result;
         if (float.TryParse(sensitivity.text, out result))
-            Game.Sensitivity = result;
+            GameSettings.Sensitivity = result;
     }
 }

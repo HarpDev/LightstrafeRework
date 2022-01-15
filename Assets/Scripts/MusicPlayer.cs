@@ -7,13 +7,19 @@ public class MusicPlayer : MonoBehaviour
     private AudioSource audio;
 
     private static MusicPlayer I;
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
+    }
 
     public void PlayMusic()
     {
         if (audio.isPlaying) audio.Stop();
 
         audio.clip = musicLoop;
-        audio.volume = Game.MusicVolume;
+        audio.volume = GameSettings.MusicVolume;
         audio.pitch = 1;
         audio.loop = true;
         audio.Play();
@@ -51,8 +57,8 @@ public class MusicPlayer : MonoBehaviour
             audio.Play();
         }
 
-        audio.volume = Game.MusicVolume;
+        audio.volume = GameSettings.MusicVolume;
 
-        if (Game.Player != null) transform.position = Game.Player.camera.transform.position;
+        if (player != null) transform.position = player.camera.transform.position;
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using UnityEngine;
 
 public class Collectible : MonoBehaviour
@@ -22,6 +23,17 @@ public class Collectible : MonoBehaviour
         chaseTimeStart = chaseTime;
     }
 
+    private Player player;
+    private CanvasManager canvasManager;
+    private Level level;
+
+    private void Start()
+    {
+        canvasManager = Game.OnStartResolve<CanvasManager>();
+        level = Game.OnStartResolve<Level>();
+        player = Game.OnStartResolve<Player>();
+    }
+
     private Vector3 adjust;
     private float chaseTime = 0.5f;
     private float chaseTimeStart;
@@ -30,13 +42,13 @@ public class Collectible : MonoBehaviour
     {
         if (RequirementsMet() && !chasingPlayer)
         {
-            var target = Game.Player.camera.transform.position;
+            var target = player.camera.transform.position;
             var towardTarget = target - start;
             var adjustVector = towardTarget.normalized *
                                Mathf.Min(Mathf.Max(0, 15 - towardTarget.magnitude), towardTarget.magnitude);
 
-            adjustVector -= Game.Player.velocity.normalized *
-                            Vector3.Dot(Game.Player.velocity.normalized, adjustVector);
+            adjustVector -= player.velocity.normalized *
+                            Vector3.Dot(player.velocity.normalized, adjustVector);
 
             adjustVector = adjustVector.normalized * Mathf.Min(adjustVector.magnitude, 5);
             
@@ -46,7 +58,7 @@ public class Collectible : MonoBehaviour
 
         if (chasingPlayer)
         {
-            transform.position = Vector3.Lerp(Game.Player.camera.transform.position, start, chaseTime / chaseTimeStart);
+            transform.position = Vector3.Lerp(player.camera.transform.position, start, chaseTime / chaseTimeStart);
             chaseTime -= Time.deltaTime;
         }
 
@@ -55,19 +67,19 @@ public class Collectible : MonoBehaviour
         {
             if (gemsprite == null)
             {
-                gemsprite = Instantiate(GemSprite, Game.Canvas.transform);
+                gemsprite = Instantiate(GemSprite, canvasManager.baseCanvas.transform);
                 gemsprite.transform.SetAsFirstSibling();
             }
 
             if (nosprite != null) Destroy(nosprite);
 
-            var toScreen = Game.Player.camera.WorldToScreenPoint(transform.position);
+            var toScreen = player.camera.WorldToScreenPoint(transform.position);
             gemsprite.transform.position = toScreen;
             var scale = Mathf.Clamp01(1 -
-                                      (Vector3.Distance(transform.position, Game.Player.camera.transform.position) -
+                                      (Vector3.Distance(transform.position, player.camera.transform.position) -
                                        20) / 20);
             scale = 1 - scale;
-            if (Game.Player.camera.WorldToViewportPoint(transform.position).z < 0)
+            if (player.camera.WorldToViewportPoint(transform.position).z < 0)
             {
                 scale = 0;
             }
@@ -80,17 +92,17 @@ public class Collectible : MonoBehaviour
         {
             if (nosprite == null)
             {
-                nosprite = Instantiate(NoSprite, Game.Canvas.transform);
+                nosprite = Instantiate(NoSprite, canvasManager.baseCanvas.transform);
                 nosprite.transform.SetAsFirstSibling();
             }
 
             if (gemsprite != null) Destroy(gemsprite);
 
-            var toScreen = Game.Player.camera.WorldToScreenPoint(transform.position);
+            var toScreen = player.camera.WorldToScreenPoint(transform.position);
             nosprite.transform.position = toScreen;
-            var scale = Mathf.Clamp01(1 - Vector3.Distance(transform.position, Game.Player.camera.transform.position) /
+            var scale = Mathf.Clamp01(1 - Vector3.Distance(transform.position, player.camera.transform.position) /
                 30);
-            if (Game.Player.camera.WorldToViewportPoint(transform.position).z < 0)
+            if (player.camera.WorldToViewportPoint(transform.position).z < 0)
             {
                 scale = 0;
             }
@@ -119,10 +131,10 @@ public class Collectible : MonoBehaviour
 
             if (objects.Length == 1)
             {
-                Game.EndTimer();
+                level.LevelFinished();
             }
 
-            Game.Player.AudioManager.PlayOneShot(Game.Player.wow, false, 0.4f);
+            player.AudioManager.PlayOneShot(player.wow, false, 0.4f);
 
             Destroy(gameObject);
         }

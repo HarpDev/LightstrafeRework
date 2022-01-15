@@ -1,152 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.SceneManagement;
 
 public class Game : MonoBehaviour
 {
-
     private static Game I;
 
-    public Canvas Chapter1Select;
-    public Canvas Options;
-    public Canvas Pause;
-    public Canvas LevelCompleted;
+    private static List<object> bindings = new();
 
-    public static bool UseTimingDisplay
+    public static void OnAwakeBind<T>(T obj)
     {
-        get => PlayerPrefs.GetInt("UseTimingDisplay", 0) != 0;
-        set => PlayerPrefs.SetInt("UseTimingDisplay", value ? 1 : 0);
-    }
-
-    public static float SoundVolume { get => PlayerPrefs.GetFloat("SoundVolume", 1); set => PlayerPrefs.SetFloat("SoundVolume", value); }
-    public static float MusicVolume { get => PlayerPrefs.GetFloat("MusicVolume", 1); set => PlayerPrefs.SetFloat("MusicVolume", value); }
-
-    public static readonly Color green = new Color(19f / 255f, 176f / 255f, 65f / 255f);
-    public static readonly Color gold = new Color(255f / 255f, 226f / 255f, 0);
-
-    public static string CurrentLevel { get; private set; }
-    public static int CurrentLevelTickCount { get; private set; }
-    public static bool TimerRunning { get; set; }
-    public static bool LevelFinished { get; private set; }
-
-    public static float Sensitivity
-    {
-        get
+        for (var i = bindings.Count - 1; i >= 0; i--)
         {
-            if (!PlayerPrefs.HasKey("Sensitivity")) PlayerPrefs.SetFloat("Sensitivity", 1);
-            return PlayerPrefs.GetFloat("Sensitivity");
-        }
-        set { PlayerPrefs.SetFloat("Sensitivity", value); }
-    }
-    public static void SetBestLevelTime(string level, float time)
-    {
-        PlayerPrefs.SetFloat("BestTime" + level, time);
-    }
-
-    public static float GetBestLevelTime(string level)
-    {
-        return PlayerPrefs.HasKey("BestTime" + level) ? PlayerPrefs.GetFloat("BestTime" + level) : -1f;
-    }
-
-    private static PlayerMovement player;
-    public static PlayerMovement Player
-    {
-        get
-        {
-            if (player == null)
+            var b = bindings[i];
+            if (b.GetType() == typeof(T))
             {
-                var levelObj = GameObject.Find("Player");
-                if (levelObj != null) player = levelObj.GetComponent<PlayerMovement>();
-            }
-            return player;
-        }
-        private set { player = value; }
-    }
-
-    private static CanvasContainer canvas;
-    public static CanvasContainer Canvas
-    {
-        get
-        {
-            if (canvas == null)
-            {
-                var canvasObj = GameObject.Find("Canvas");
-                if (canvasObj != null) canvas = canvasObj.GetComponent<CanvasContainer>();
-            }
-            return canvas;
-        }
-    }
-
-    private static MenuAnimation menuAnimation;
-    public static MenuAnimation MenuAnimation
-    {
-        get
-        {
-            if (menuAnimation == null)
-            {
-                var menuObj = GameObject.Find("MenuAnimation");
-                if (menuObj != null) menuAnimation = menuObj.GetComponent<MenuAnimation>();
-            }
-            return menuAnimation;
-        }
-    }
-
-    public static List<Canvas> UiTree { get; private set; }
-
-    private static bool _inputAlreadyTaken;
-
-    private void LateUpdate()
-    {
-        _inputAlreadyTaken = false;
-    }
-
-    private void FixedUpdate()
-    {
-        if (!LevelFinished)
-        {
-            if (TimerRunning) CurrentLevelTickCount++;
-            else
-            {
-                if (Player != null)
-                {
-                    if (Player.velocity.magnitude > 0.01f)
-                    {
-                        CurrentLevelTickCount++;
-                        TimerRunning = true;
-                    }
-                }
+                bindings.RemoveAt(i);
+                break;
             }
         }
 
-        if (LevelFinished)
+        bindings.Add(obj);
+    }
+
+    public static T OnStartResolve<T>()
+    {
+        T bound = default;
+        for (var i = bindings.Count - 1; i >= 0; i--)
         {
-            if (Time.timeScale > 0.1f)
-                Time.timeScale -= Mathf.Min(Time.fixedUnscaledDeltaTime * Time.timeScale, Time.timeScale);
-            else
+            var b = bindings[i];
+            if (b == null)
             {
-                Time.timeScale = 0;
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-                OpenMenu(LevelCompleted);
+                bindings.RemoveAt(i);
+                continue;
+            }
+            if (b.GetType() == typeof(T))
+            {
+                bound = (T) b;
             }
         }
 
-        var level = SceneManager.GetActiveScene().name;
-        if (level != CurrentLevel)
-        {
-            TimerRunning = false;
-            LevelFinished = false;
-            CurrentLevelTickCount = 0;
-            CurrentLevel = level;
-        }
+        return bound;
     }
 
-    private void Awake()
+    private void Start()
     {
-        UiTree = new List<Canvas>();
-        Time.timeScale = 1;
         if (I == null)
         {
             DontDestroyOnLoad(gameObject);
@@ -155,122 +54,13 @@ public class Game : MonoBehaviour
         }
         else if (I != this)
         {
+            I.Start();
             Destroy(gameObject);
         }
     }
 
-    public static void EndTimer()
+    public static void StartLevel(string level)
     {
-        if (TimerRunning)
-        {
-            TimerRunning = false;
-            LevelFinished = true;
-            var level = SceneManager.GetActiveScene().name;
-            if (CurrentLevelTickCount < Game.GetBestLevelTime(level) || Game.GetBestLevelTime(level) < 0f)
-            {
-                Game.SetBestLevelTime(level, CurrentLevelTickCount);
-                TimerDisplay.color = Color.yellow;
-            }
-            else
-            {
-                TimerDisplay.color = Color.green;
-            }
-        }
-    }
-
-    public static void CloseMenu()
-    {
-        if (_inputAlreadyTaken) return;
-        _inputAlreadyTaken = true;
-        if (UiTree.Count > 0)
-        {
-            if (UiTree.Count == 1)
-            {
-                var menu = MenuAnimation;
-                if (menu != null) menu.SendToStartPosition();
-            }
-            if (UiTree.Count == 1 && player != null && PlayerMovement.IsPaused() && LevelFinished) return;
-            var obj = UiTree[^1];
-            UiTree.RemoveAt(UiTree.Count - 1);
-            Destroy(obj.gameObject);
-            if (UiTree.Count > 0)
-            {
-                UiTree[^1].gameObject.SetActive(true);
-            }
-            else
-            {
-                Canvas.gameObject.SetActive(true);
-            }
-        }
-    }
-
-    private static void OpenMenu(Canvas canvas)
-    {
-        if (_inputAlreadyTaken) return;
-        _inputAlreadyTaken = true;
-        foreach (var c in UiTree)
-        {
-            c.gameObject.SetActive(false);
-        }
-        Canvas.gameObject.SetActive(false);
-        UiTree.Add(Instantiate(canvas));
-    }
-
-    public static void OpenPauseMenu()
-    {
-        OpenMenu(I.Pause);
-    }
-
-    public static void OpenChapter1Select()
-    {
-        OpenMenu(I.Chapter1Select);
-    }
-
-    public static void OpenOptionsMenu()
-    {
-        OpenMenu(I.Options);
-    }
-
-    public static void RestartLevel()
-    {
-        TimerRunning = false;
-        LevelFinished = false;
-        CurrentLevelTickCount = 0;
-        Time.timeScale = 1;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    }
-
-    public static void NextLevel()
-    {
-        if (SceneManager.GetActiveScene().buildIndex + 1 >= SceneManager.sceneCountInBuildSettings)
-        {
-            if (SceneManager.GetActiveScene().buildIndex == 0)
-            {
-                RestartLevel();
-            }
-            else
-            {
-                TimerRunning = false;
-                LevelFinished = false;
-                CurrentLevelTickCount = 0;
-                Time.timeScale = 1;
-                SceneManager.LoadScene(0);
-            }
-        }
-        else
-        {
-            TimerRunning = false;
-            LevelFinished = false;
-            CurrentLevelTickCount = 0;
-            Time.timeScale = 1;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-        }
-    }
-
-    public static void StartMenu()
-    {
-        SceneManager.LoadScene("LevelSelect");
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        SceneManager.LoadScene(level);
     }
 }

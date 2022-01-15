@@ -10,10 +10,16 @@ public class SpeedChangeDisplay : MonoBehaviour
 
     private float prevSpeed;
     public float interpolation { get; set; }
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
+    }
 
     private void Update()
     {
-        var speed = Flatten(Game.Player.velocity).magnitude;
+        var speed = Flatten(player.velocity).magnitude;
         var change = speed - prevSpeed;
         interpolation += change;
 

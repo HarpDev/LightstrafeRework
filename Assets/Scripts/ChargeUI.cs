@@ -8,18 +8,21 @@ public class ChargeUI : MonoBehaviour
     private GameObject[] bars;
     private float[] fillAmounts;
 
+    private Player player;
+
     private void Start()
     {
-        bars = new GameObject[PlayerMovement.CHARGES];
-        fillAmounts = new float[PlayerMovement.CHARGES];
+        player = Game.OnStartResolve<Player>();
+        bars = new GameObject[Player.CHARGES];
+        fillAmounts = new float[Player.CHARGES];
         var spacing = 5;
 
-        for (var i = 0; i < PlayerMovement.CHARGES; i++)
+        for (var i = 0; i < Player.CHARGES; i++)
         {
             bars[i] = Instantiate(UiBar, transform);
 
             var spaceBetween = spacing + bars[i].GetComponent<RectTransform>().rect.width;
-            var offset = (PlayerMovement.CHARGES - 1) * spaceBetween / 2;
+            var offset = (Player.CHARGES - 1) * spaceBetween / 2;
             
             bars[i].transform.localPosition = new Vector3(i * spaceBetween - offset, 0, 0);
         }
@@ -27,10 +30,10 @@ public class ChargeUI : MonoBehaviour
 
     private void Update()
     {
-        var shouldShow = Game.Player.GrappleEnabled || Game.Player.DashEnabled;
-        for (var i = 0; i < PlayerMovement.CHARGES; i++)
+        var shouldShow = player.GrappleEnabled || player.DashEnabled;
+        for (var i = 0; i < Player.CHARGES; i++)
         {
-            var amt = Mathf.Clamp01(Game.Player.Charges - i);
+            var amt = Mathf.Clamp01(player.Charges - i);
             var img = bars[i].GetComponent<Image>();
             img.fillAmount = amt;
             if (amt >= 1 && fillAmounts[i] < 1)

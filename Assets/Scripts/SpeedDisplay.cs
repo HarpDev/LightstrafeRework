@@ -7,6 +7,12 @@ public class SpeedDisplay : MonoBehaviour
     public string prefix;
     public string suffix;
     public bool potential;
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
+    }
 
     private void Awake()
     {
@@ -15,7 +21,7 @@ public class SpeedDisplay : MonoBehaviour
 
     private void Update()
     {
-        var display = Mathf.RoundToInt(potential ? Mathf.Abs(Game.Player.velocity.y) : Flatten(Game.Player.velocity).magnitude);
+        var display = Mathf.RoundToInt(potential ? Mathf.Abs(player.velocity.y) : Flatten(player.velocity).magnitude);
         speedText.text = prefix + display + suffix;
     }
 

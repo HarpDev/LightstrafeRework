@@ -12,14 +12,14 @@ public class VolumeSlider : MonoBehaviour
     private void Start()
     {
         slider = GetComponent<Slider>();
-        slider.value = music ? Game.MusicVolume : Game.SoundVolume;
+        slider.value = music ? GameSettings.MusicVolume : GameSettings.SoundVolume;
     }
 
     public void VolumeChanged()
     {
         if (music)
-            Game.MusicVolume = slider.value;
+            GameSettings.MusicVolume = slider.value;
         else
-            Game.SoundVolume = slider.value;
+            GameSettings.SoundVolume = slider.value;
     }
 }

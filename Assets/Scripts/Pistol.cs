@@ -29,6 +29,7 @@ public class Pistol : WeaponManager.Gun
     private const float FIRE_RATE = 0.1f;
     private const float EQUIP_TIME = 1.1f;
     private float _fireDelay = EQUIP_TIME;
+    private Player player;
 
     public int Shots { get; set; }
 
@@ -36,12 +37,12 @@ public class Pistol : WeaponManager.Gun
     {
         get
         {
-            if (!Game.Player.jumpKitEnabled) return false;
-            if (Game.Player.ApproachingWall) return false;
+            if (!player.jumpKitEnabled) return false;
+            if (player.ApproachingWall) return false;
             if (_layer0Info.IsName("Unequip")) return false;
             if (_layer0Info.IsName("Equip")) return false;
 
-            if (Game.Player.IsSliding) return true;
+            if (player.IsSliding) return true;
             return false;
         }
     }
@@ -49,6 +50,7 @@ public class Pistol : WeaponManager.Gun
     private void Start()
     {
         Shots = 3;
+        player = Game.OnStartResolve<Player>();
     }
 
     private void FixedUpdate()
@@ -89,9 +91,9 @@ public class Pistol : WeaponManager.Gun
         {
             _fireDelay = FIRE_RATE;
 
-            //Fire(QueryTriggerInteraction.Collide, Game.Player.CrosshairDirection);
+            //Fire(QueryTriggerInteraction.Collide, player.CrosshairDirection);
 
-            Game.Player.AudioManager.PlayOneShot(fireSound);
+            player.AudioManager.PlayOneShot(fireSound);
             _fireInputConsumed = true;
 
             if (animator != null)
@@ -107,9 +109,9 @@ public class Pistol : WeaponManager.Gun
 
     private void LateUpdate()
     {
-        var yawMovement = Game.Player.YawIncrease;
+        var yawMovement = player.YawIncrease;
 
-        var velocityChange = Game.Player.velocity - _prevVelocity;
+        var velocityChange = player.velocity - _prevVelocity;
 
         if (UseSideGun)
         {
@@ -120,7 +122,7 @@ public class Pistol : WeaponManager.Gun
 
         var crouchAmt = -(Mathf.Cos(Mathf.PI * _crouchFactor) - 1) / 2;
         _upChange -= velocityChange.y / 15;
-        if (!Game.Player.IsOnGround && !Game.Player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
+        if (!player.IsOnGround && !player.IsOnWall) _upChange += Time.deltaTime * Mathf.Lerp(2, 1, crouchAmt);
         else
         {
             _upChange -= velocityChange.y / Mathf.Lerp(25, 50, crouchAmt);
@@ -143,7 +145,7 @@ public class Pistol : WeaponManager.Gun
         }
         _upSoften = Mathf.Clamp(_upSoften, -1.3f, 1.3f);
 
-        _prevVelocity = Game.Player.velocity;
+        _prevVelocity = player.velocity;
 
         var forward = 0;
         var right = -0.02f * crouchAmt;
@@ -163,7 +165,7 @@ public class Pistol : WeaponManager.Gun
         right -= 0.005f * _crouchReloadMod;
         roll -= 5 * _crouchReloadMod;
 
-        roll += Game.Player.CameraRoll / 2;
+        roll += player.CameraRoll / 2;
 
         var rollPosition = rollTransform.position;
         var swingPosition = swingTransform.position;

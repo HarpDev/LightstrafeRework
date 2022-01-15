@@ -10,10 +10,16 @@ public class Speedometer : MonoBehaviour
     public Image rightLayer1;
 
     private float _layer1Lerp;
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
+    }
 
     private void Update()
     {
-        var speed = Flatten(Game.Player.velocity).magnitude / PlayerMovement.BASE_SPEED;
+        var speed = Flatten(player.velocity).magnitude / Player.BASE_SPEED;
 
         var layer1 = Mathf.Min(1, Mathf.Max(0, speed));
         _layer1Lerp = Mathf.Lerp(_layer1Lerp, layer1, Time.deltaTime * 5);

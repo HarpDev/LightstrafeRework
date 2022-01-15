@@ -151,18 +151,12 @@ public class PlayerInput : MonoBehaviour
 
     public static void ConsumeBuffer(int key)
     {
-        if (playing) return;
         keyPressTimestamps[key] = -1;
         keyReleaseTimestamps[key] = -1;
     }
 
     public static float GetAxisStrafeRight()
     {
-        if (playing)
-        {
-            return replay[tickCount].axisRight;
-        }
-
         float v;
         if (Input.GetKey((KeyCode) MoveRight))
             v = Input.GetKey((KeyCode) MoveLeft) ? 0 : 1;
@@ -179,11 +173,6 @@ public class PlayerInput : MonoBehaviour
 
     public static float GetAxisStrafeForward()
     {
-        if (playing)
-        {
-            return replay[tickCount].axisForward;
-        }
-
         float v;
         if (Input.GetKey((KeyCode) MoveForward))
             v = Input.GetKey((KeyCode) MoveBackward) ? 0 : 1;
@@ -200,95 +189,14 @@ public class PlayerInput : MonoBehaviour
 
     public static void SimulateKeyPress(int key)
     {
-        if (playing) return;
         keyPressTimestamps[key] = tickCount;
         keyReleaseTimestamps[key] = tickCount;
     }
-
-    private struct ReplayTick
-    {
-        public Dictionary<int, int> keyPressTicks;
-        public Dictionary<int, int> keyReleaseTicks;
-        public float axisRight;
-        public float axisForward;
-        public float yaw;
-        public float pitch;
-        public Vector3 position;
-        public Vector3 velocity;
-    }
-
-    private static bool recording = false;
-    private static bool playing = false;
-    private static Dictionary<int, ReplayTick> replay = new Dictionary<int, ReplayTick>();
-    private float replayLastYaw;
-    private float replayLastPitch;
-    private float replayMouseInterpolation;
 
     private void FixedUpdate()
     {
         usingAnalog = Mathf.Abs(Input.GetAxis("Joy 1 Y")) > 0.1f || Mathf.Abs(Input.GetAxis("Joy 1 X")) > 0.1f;
         tickCount++;
-        if (recording)
-        {
-            var presses = new Dictionary<int, int>(keyPressTimestamps);
-            var releases = new Dictionary<int, int>(keyReleaseTimestamps);
-            var tick = new ReplayTick
-            {
-                keyPressTicks = presses,
-                keyReleaseTicks = releases,
-                axisForward = GetAxisStrafeForward(),
-                axisRight = GetAxisStrafeRight(),
-                yaw = Game.Player.Yaw,
-                pitch = Game.Player.Pitch,
-                position = Game.Player.transform.position,
-                velocity = Game.Player.velocity
-            };
-            replay[tickCount] = tick;
-        }
-
-        if (playing)
-        {
-            if (replay.Count < tickCount)
-            {
-                Debug.Log("replay stopped");
-                Time.timeScale = 0;
-                playing = false;
-            }
-
-            if (replay.ContainsKey(tickCount))
-            {
-                keyPressTimestamps = replay[tickCount].keyPressTicks;
-                keyReleaseTimestamps = replay[tickCount].keyReleaseTicks;
-                replayLastYaw = replay[tickCount].yaw;
-                replayLastPitch = replay[tickCount].pitch;
-                Game.Player.transform.position = replay[tickCount].position;
-                Game.Player.velocity = replay[tickCount].velocity;
-                replayMouseInterpolation = 0;
-            }
-        }
-    }
-
-    public static void WriteReplayToFile()
-    {
-        if (!recording) return;
-        Debug.Log("replay saved to file");
-        var s = new fsSerializer();
-        recording = false;
-        s.TrySerialize(replay, out var serial).AssertSuccessWithoutWarnings();
-        File.WriteAllText("C:\\Users\\Fzzy\\Desktop\\replay.txt", fsJsonPrinter.CompressedJson(serial));
-    }
-
-    public static void ReadReplayFile(string path)
-    {
-        var s = new fsSerializer();
-        var serial = File.ReadAllText(path);
-        var json = fsJsonParser.Parse(serial);
-        object deserialized = null;
-        s.TryDeserialize(json, replay.GetType(), ref deserialized).AssertSuccessWithoutWarnings();
-        recording = false;
-        playing = true;
-        replay = (Dictionary<int, ReplayTick>) deserialized;
-        Debug.Log("reading replay from file\ntickCount: " + replay.Count);
     }
 
     public static int GetBindByName(string name)
@@ -351,21 +259,12 @@ public class PlayerInput : MonoBehaviour
                                                            System.Reflection.BindingFlags.DeclaredOnly);
         foreach (var prop in properties)
         {
-            var name = nameof(prop);
             PlayerPrefs.DeleteKey(prop.Name);
         }
     }
 
     private void Update()
     {
-        if (playing)
-        {
-            Game.Player.Yaw = Mathf.Lerp(replayLastYaw, replay[tickCount].yaw, replayMouseInterpolation);
-            Game.Player.Pitch = Mathf.Lerp(replayLastPitch, replay[tickCount].pitch, replayMouseInterpolation);
-            replayMouseInterpolation += Time.deltaTime;
-            return;
-        }
-
         var properties = typeof(PlayerInput).GetProperties(System.Reflection.BindingFlags.Public |
                                                            System.Reflection.BindingFlags.Static |
                                                            System.Reflection.BindingFlags.DeclaredOnly);

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7660217558146798251}
   - component: {fileID: 7660217558146798248}
   - component: {fileID: 8991683021963131855}
+  - component: {fileID: 4023632198861207219}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -28,6 +29,7 @@ Transform:
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 12.26, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -44,12 +46,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dae34012924094c4da23a1ca0f1122bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Chapter1Select: {fileID: 7484984044273567661, guid: 41a7520901beff84a92b30cf88994946,
-    type: 3}
-  Options: {fileID: 4309353180070072282, guid: edb926fe685cd94448d327c8d7cfd5a1, type: 3}
-  Pause: {fileID: 9006977559953201106, guid: 698f0c72e9b6d6144927fa14235c870a, type: 3}
-  LevelCompleted: {fileID: 9006977559953201106, guid: 1d01f4b812a621a47add617f54733f24,
-    type: 3}
 --- !u!114 &8991683021963131855
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60,5 +56,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 77700910200105a4cb74b24ad2829d3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &4023632198861207219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7660217558146798246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 829577222ca74feabebbcffaebd943ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
