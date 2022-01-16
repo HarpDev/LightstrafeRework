@@ -54,11 +54,27 @@ public class Player : MonoBehaviour
     private float crouchAmount;
 
     public const int CHARGES = 2;
-    public const float CHARGE_START = 0f;
+    public const float CHARGE_START = 1f;
     public const float CHARGE_TOUCH_RECHARGE = 0.5f;
     public const float CHARGE_RECHARGE_RATE = 0f;
     private bool surfaceTouched = true;
+    private int rechargeCooldownTimestamp;
+    private int rechargeCooldown;
     public float Charges { get; set; }
+
+    public void ChargeRefreshCooldown(int ticks)
+    {
+        rechargeCooldown = ticks;
+        rechargeCooldownTimestamp = PlayerInput.tickCount;
+    }
+
+    public void Recharge()
+    {
+        var sinceLastRecharge = PlayerInput.tickCount - rechargeCooldownTimestamp;
+        if (sinceLastRecharge <= rechargeCooldown) return;
+        Charges += CHARGE_TOUCH_RECHARGE;
+        if (Charges > CHARGES) Charges = Charges;
+    }
     public bool DashAvailable => Charges >= 1;
 
     public bool GrappleEnabled;
@@ -341,7 +357,7 @@ public class Player : MonoBehaviour
             if (!surfaceTouched)
             {
                 surfaceTouched = true;
-                Charges += CHARGE_TOUCH_RECHARGE;
+                Recharge();
             }
         }
         else surfaceTouched = false;
@@ -1099,7 +1115,7 @@ public class Player : MonoBehaviour
             railDirection = 1;
         }
 
-        Charges += CHARGE_TOUCH_RECHARGE;
+        Recharge();
 
         if (GrappleHooked) DetachGrapple();
     }
@@ -1913,6 +1929,7 @@ public class Player : MonoBehaviour
     public const int COYOTE_TICKS = 20;
     public const int GROUND_JUMP_BUFFERING = 4;
     public const int WALL_JUMP_BUFFERING = 4;
+    public const int JUMP_RECHARGE_COOLDOWN = 40;
 
     private float jumpBuffered;
     private int jumpTimestamp;
@@ -1960,6 +1977,7 @@ public class Player : MonoBehaviour
             var jumpStamina = Mathf.Clamp01(Mathf.Max(groundTickCount, wallTickCount) / JUMP_STAMINA_RECOVERY_TICKS);
             var jumpHeight = Mathf.Lerp(MIN_JUMP_HEIGHT, MAX_JUMP_HEIGHT, jumpStamina);
 
+            ChargeRefreshCooldown(JUMP_RECHARGE_COOLDOWN);
             AudioManager.StopAudio(slide);
             AudioManager.StopAudio(groundLand);
             if (wallJump)
@@ -2032,15 +2050,7 @@ public class Player : MonoBehaviour
                     IsOnGround = false;
                     var height = jumpHeight;
 
-                    if (CancelDash(true))
-                    {
-                        if (!coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS) kickFeedback.Display(friction, Color.cyan);
-                    }
-                    else
-                    {
-                        if (!coyoteJump && groundTickCount <= SLIDE_FRICTION_TICKS) 
-                            kickFeedback.Display(friction, friction == 1 ? Color.green : Color.white);
-                    }
+                    CancelDash(true);
 
                     velocity.y = Mathf.Max(height, velocity.y);
                 }

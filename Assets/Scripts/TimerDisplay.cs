@@ -11,7 +11,8 @@ public class TimerDisplay : MonoBehaviour
         CURRENT_LEVEL,
         LEVEL_BEST,
         SUM_OF_BEST,
-        FULL_GAME_PB
+        FULL_GAME_PB,
+        FULL_GAME
     }
 
     public Text timerText;
@@ -51,8 +52,14 @@ public class TimerDisplay : MonoBehaviour
                 ticks = timers.GetBestLevelTime(currentLevel ? SceneManager.GetActiveScene().name : levelName);
                 break;
             case TimerType.CURRENT_LEVEL:
-                ticks = GameSettings.FullGameTimer && timers.CurrentFullRunTickCount >= 0 ? timers.CurrentFullRunTickCount : timers.CurrentLevelTickCount;
+                ticks = timers.CurrentLevelTickCount;
                 timerText.color = color;
+                break;
+            case TimerType.FULL_GAME:
+                ticks = GameSettings.FullGameTimer && timers.CurrentFullRunTickCount >= 0 &&
+                        timers.CurrentFullRunTickCount != timers.CurrentLevelTickCount
+                    ? timers.CurrentFullRunTickCount
+                    : -1;
                 break;
             case TimerType.SUM_OF_BEST:
                 ticks = 0;

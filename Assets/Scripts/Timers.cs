@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -28,6 +27,7 @@ public class Timers : MonoBehaviour
         {
             DontDestroyOnLoad(gameObject);
             I = this;
+            ResetFullGameRun();
         }
         else if (I != this)
         {
@@ -40,25 +40,13 @@ public class Timers : MonoBehaviour
         level = Game.OnStartResolve<Level>();
         player = Game.OnStartResolve<Player>();
         CurrentLevelTickCount = 0;
+        TimerRunning = false;
     }
 
     private void FixedUpdate()
     {
         if (level == null) ResetFullGameRun();
-        if (TimerRunning)
-        {
-            CurrentLevelTickCount++;
-            if (CurrentFullRunTickCount >= 0)
-            {
-                CurrentFullRunTickCount++;
-            }
-            
-            if (level.IsLevelFinished)
-            {
-                EndTimer();
-            }
-        }
-        else if (level != null && !level.IsLevelFinished)
+        if (level != null && !level.IsLevelFinished && !TimerRunning)
         {
             if (player != null && player.velocity.magnitude > 0.01f)
             {
@@ -70,6 +58,19 @@ public class Timers : MonoBehaviour
                 CurrentLevelTickCount++;
                 if (CurrentFullRunTickCount >= 0) CurrentFullRunTickCount++;
                 TimerRunning = true;
+            }
+        }
+        if (TimerRunning)
+        {
+            CurrentLevelTickCount++;
+            if (CurrentFullRunTickCount >= 0)
+            {
+                CurrentFullRunTickCount++;
+            }
+            
+            if (level.IsLevelFinished)
+            {
+                EndTimer();
             }
         }
     }

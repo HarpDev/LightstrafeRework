@@ -18,6 +18,16 @@ public class CanvasManager : MonoBehaviour
     private List<Canvas> UiTree { get; set; }
     public int MenuLayerCount => UiTree.Count;
 
+    public Canvas GetCanvasAtLayer(int layer)
+    {
+        return layer >= MenuLayerCount ? null : UiTree[layer];
+    }
+
+    public Canvas GetActiveCanvas()
+    {
+        return MenuLayerCount > 0 ? UiTree[MenuLayerCount - 1] : baseCanvas;
+    }
+
     private void Awake()
     {
         UiTree = new List<Canvas>();
@@ -26,7 +36,7 @@ public class CanvasManager : MonoBehaviour
 
     public void SendNotification(string text, float duration = 5f, int fontSize = 40)
     {
-        var notif = Instantiate(textNotificationPrefab, transform).GetComponent<TextNotification>();
+        var notif = Instantiate(textNotificationPrefab, baseCanvas.transform).GetComponent<TextNotification>();
         fontSize *= Screen.width / 1600;
         notif.SetText(text, duration, fontSize);
     }

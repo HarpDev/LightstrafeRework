@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class MenuAnimation : MonoBehaviour
@@ -23,8 +20,11 @@ public class MenuAnimation : MonoBehaviour
 
     private float currentLerpValue;
 
+    private CanvasManager canvasManager;
+
     private void Start()
     {
+        canvasManager = Game.OnStartResolve<CanvasManager>();
         var trans = MenuCamera.transform;
         startPosition = new PosRot
         {
@@ -72,12 +72,33 @@ public class MenuAnimation : MonoBehaviour
         nextPosition = posRot;
     }
 
+    private string previousCanvas;
+
     private void Update()
     {
+        var currentCanvas = canvasManager.GetActiveCanvas().name;
+
+        if (currentCanvas != previousCanvas)
+        {
+            if (currentCanvas.ToLower().Contains("options"))
+            {
+                SendToOptionsPosition();
+            }
+            else if (currentCanvas.ToLower().Contains("chapter"))
+            {
+                SendToLevelSelectPosition();
+            }
+            else
+            {
+                SendToStartPosition();
+            }
+        }
+
+        previousCanvas = currentCanvas;
+
         var x = currentLerpValue;
-        //var ease = x < 0.5 ? 4 * x * x * x : 1 - Mathf.Pow(-2 * x + 2, 3) / 2;
         var ease = 1 - Mathf.Pow(1 - x, 3);
-        
+
         MenuCamera.transform.position =
             Vector3.Lerp(previousPosition.position, nextPosition.position, ease);
         MenuCamera.transform.rotation =
