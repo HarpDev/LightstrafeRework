@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEditor.Search;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -15,24 +14,25 @@ public class Player : MonoBehaviour
     public Vector3 cameraPosition;
     public Vector3 velocity;
 
-    private Vector3 deathLocation;
-    private float deathYaw;
-    private Vector3 quickDeathLocation;
-    private float quickDeathYaw;
+    private Vector3 quickDeathFromLocation;
+    private float quickDeathFromYaw;
+    private Vector3 quickDeathToLocation;
+    private float quickDeathToYaw;
     private float quickDeathLerp = 1;
     private const float QUICKDEATH_SPEED = 1;
 
-    public void SetQuickDeathPosition(Vector3 location, float yaw)
+    public void SetQuickDeathPosition()
     {
-        quickDeathLocation = location;
-        quickDeathYaw = yaw;
+        if (quickDeathLerp < 1) return;
+        quickDeathToLocation = transform.position;
+        quickDeathToYaw = Yaw;
     }
 
     public void DoQuickDeath()
     {
         if (quickDeathLerp < 1) return;
-        deathLocation = transform.position;
-        deathYaw = Yaw;
+        quickDeathFromLocation = camera.transform.position;
+        quickDeathFromYaw = Yaw;
         quickDeathLerp = 0;
     }
 
@@ -200,7 +200,7 @@ public class Player : MonoBehaviour
             IsOnGround = true;
             currentGround = hit.collider.gameObject;
             groundTickCount = 2;
-            SetQuickDeathPosition(transform.position, Yaw);
+            SetQuickDeathPosition();
         }
     }
 
@@ -257,7 +257,10 @@ public class Player : MonoBehaviour
             YawIncrease = Input.GetAxis("Mouse X") * (GameSettings.Sensitivity / 10) * LookScale;
             YawIncrease += Input.GetAxis("Joy 1 X 2") * GameSettings.Sensitivity * LookScale;
 
-            Yaw = (Yaw + YawIncrease) % 360f;
+            if (quickDeathLerp < 1)
+                quickDeathToYaw += YawIncrease;
+            else
+                Yaw = (Yaw + YawIncrease) % 360f;
 
             var yawinterpolation = Mathf.Lerp(Yaw, Yaw + YawFutureInterpolation, Time.deltaTime * 10) - Yaw;
             Yaw += yawinterpolation;
@@ -309,7 +312,32 @@ public class Player : MonoBehaviour
         position.y += 0.3f * (1 - ease);
 
         // Camera position is interpolated between ticks
-        camera.transform.position = InterpolatedPosition + position;
+        var cameraTargetPos = InterpolatedPosition + position;
+        if (quickDeathLerp < 1)
+        {
+            quickDeathLerp += Time.deltaTime * QUICKDEATH_SPEED;
+            var x = quickDeathLerp;
+            var quickSpawnEase = x < 0.5f ? 16 * x * x * x * x * x : 1 - Mathf.Pow(-2 * x + 2, 5) / 2;
+            var verticalAmt = 0f;
+            if (x < 0.5f)
+            {
+                var upEase = 1 - Mathf.Pow(1 - (x * 2), 3);
+                verticalAmt = upEase;
+            }
+            else
+            {
+                var downEase = Mathf.Pow(2 - (x * 2), 3);
+                verticalAmt = downEase;
+            }
+
+            camera.transform.position = Vector3.Lerp(quickDeathFromLocation, cameraTargetPos, quickSpawnEase) +
+                                        Vector3.up * verticalAmt * 50;
+            Yaw = Mathf.Lerp(quickDeathFromYaw, quickDeathToYaw, quickSpawnEase);
+        }
+        else
+        {
+            camera.transform.position = InterpolatedPosition + position;
+        }
 
         // Grapple tether visual
         if (GrappleHooked)
@@ -412,39 +440,21 @@ public class Player : MonoBehaviour
 
         // Movement happens here
         var factor = Time.fixedDeltaTime;
-        if (quickDeathLerp < 1)
-        {
-            quickDeathLerp += Time.fixedDeltaTime * QUICKDEATH_SPEED;
-            var x = quickDeathLerp;
-            var ease = x < 0.5f ? 16 * x * x * x * x * x : 1 - Mathf.Pow(-2 * x + 2, 5) / 2;
-            var verticalAmt = 0f;
-            if (x < 0.5f)
-            {
-                var upEase = 1 - Mathf.Pow(1 - (x * 2), 3);
-                verticalAmt = upEase;
-            }
-            else
-            {
-                var downEase = Mathf.Pow(2 - (x * 2), 3);
-                verticalAmt = downEase;
-            }
-            transform.position = Vector3.Lerp(deathLocation, quickDeathLocation, ease) + Vector3.up * verticalAmt * 50;
-            Yaw = Mathf.Lerp(deathYaw, quickDeathYaw, ease);
-            velocity = Vector3.zero;
-        }
+        if (GrappleHooked)
+            GrappleMove(factor);
+        else if (IsOnRail)
+            RailMove(factor);
+        else if (IsOnWall)
+            WallMove(factor);
+        else if (IsOnGround)
+            GroundMove(factor);
         else
+            AirMove(ref velocity, factor);
+
+        if (quickDeathLerp < 0.8f)
         {
-            quickDeathLerp = 1;
-            if (GrappleHooked)
-                GrappleMove(factor);
-            else if (IsOnRail)
-                RailMove(factor);
-            else if (IsOnWall)
-                WallMove(factor);
-            else if (IsOnGround)
-                GroundMove(factor);
-            else
-                AirMove(ref velocity, factor);
+            velocity = Vector3.zero;
+            transform.position = quickDeathToLocation;
         }
 
         if (dashTime > 0)
@@ -496,158 +506,155 @@ public class Player : MonoBehaviour
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         motionInterpolationDelta = 0;
 
-        if (quickDeathLerp <= 1)
+        // This variable is the total movement that will occur in this tick
+        var movement = (IsDashing ? dashVector : velocity) * Time.fixedDeltaTime;
+        movement += Flatten(movement).normalized * dashCancelTempSpeed * Time.fixedDeltaTime;
+        previousPosition = transform.position;
+
+        if (IsOnGround)
         {
-            // This variable is the total movement that will occur in this tick
-            var movement = (IsDashing ? dashVector : velocity) * Time.fixedDeltaTime;
-            movement += Flatten(movement).normalized * dashCancelTempSpeed * Time.fixedDeltaTime;
-            previousPosition = transform.position;
-
-            if (IsOnGround)
+            groundLevel--;
+            if (!IsOnGround)
             {
-                groundLevel--;
-                if (!IsOnGround)
-                {
-                    SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
-                    AudioManager.StopAudio(slide);
-                    AudioManager.StopAudio(groundLand);
-                }
+                SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
+                AudioManager.StopAudio(slide);
+                AudioManager.StopAudio(groundLand);
+            }
+        }
+
+        if (IsOnWall)
+        {
+            wallLevel--;
+            if (!IsOnWall)
+            {
+                AudioManager.StopAudio(slide);
+            }
+        }
+
+        var iterations = 0;
+
+        // Hold helps collision hold you against walls/ground even if they get a little bumpy
+        var hold = 0.1f;
+        if (IsOnGround)
+        {
+            movement += Vector3.down * hold;
+        }
+
+        if (IsOnWall)
+        {
+            movement -= wallNormal * hold;
+        }
+
+        if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
+
+        while (movement.magnitude > 0f && iterations < 5)
+        {
+            iterations++;
+
+            // this is fucked lol
+            // good luck
+            if (Math.Abs(hitbox.transform.localScale.y - 1) < 0.05f && !IsSliding)
+            {
+                hitbox.transform.localScale = new Vector3(1, 2, 1);
+                hitbox.transform.position += Vector3.up;
             }
 
-            if (IsOnWall)
+            if (Math.Abs(hitbox.transform.localScale.y - 2) < 0.05f && IsSliding)
             {
-                wallLevel--;
-                if (!IsOnWall)
-                {
-                    AudioManager.StopAudio(slide);
-                }
+                hitbox.transform.localScale = new Vector3(1, 1, 1);
+                hitbox.transform.position -= Vector3.up;
             }
 
-            var iterations = 0;
+            var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
+            reducedscale.y = IsSliding ? reducedscale.y : 2f - hitbox.contactOffset * 2;
+            var realscale = hitbox.transform.localScale;
+            if (!IsSliding) realscale.y = 2;
+            hitbox.transform.localScale = reducedscale;
 
-            // Hold helps collision hold you against walls/ground even if they get a little bumpy
-            var hold = 0.1f;
-            if (IsOnGround)
+            // a lot of these numbers are really particular and finnicky
+            transform.position -= movement.normalized * 0.2f;
+            movement += movement.normalized * 0.2f;
+            var collided = false;
+            if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
+                QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
             {
-                movement += Vector3.down * hold;
-            }
-
-            if (IsOnWall)
-            {
-                movement -= wallNormal * hold;
-            }
-
-            if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
-
-            while (movement.magnitude > 0f && iterations < 5)
-            {
-                iterations++;
-
-                // this is fucked lol
-                // good luck
-                if (Math.Abs(hitbox.transform.localScale.y - 1) < 0.05f && !IsSliding)
+                hitbox.transform.localScale = realscale;
+                transform.position += movement.normalized * (hit.distance + 0.05f);
+                if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation,
+                    hit.collider, hit.collider.gameObject.transform.position,
+                    hit.collider.gameObject.transform.rotation,
+                    out var direction, out var distance))
                 {
-                    hitbox.transform.localScale = new Vector3(1, 2, 1);
-                    hitbox.transform.position += Vector3.up;
-                }
-
-                if (Math.Abs(hitbox.transform.localScale.y - 2) < 0.05f && IsSliding)
-                {
-                    hitbox.transform.localScale = new Vector3(1, 1, 1);
-                    hitbox.transform.position -= Vector3.up;
-                }
-
-                var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
-                reducedscale.y = IsSliding ? reducedscale.y : 2f - hitbox.contactOffset * 2;
-                var realscale = hitbox.transform.localScale;
-                if (!IsSliding) realscale.y = 2;
-                hitbox.transform.localScale = reducedscale;
-
-                // a lot of these numbers are really particular and finnicky
-                transform.position -= movement.normalized * 0.2f;
-                movement += movement.normalized * 0.2f;
-                var collided = false;
-                if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
-                    QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
-                {
-                    hitbox.transform.localScale = realscale;
-                    transform.position += movement.normalized * (hit.distance + 0.05f);
-                    if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation,
-                        hit.collider, hit.collider.gameObject.transform.position,
-                        hit.collider.gameObject.transform.rotation,
-                        out var direction, out var distance))
+                    if (Vector3.Dot(hit.normal, direction) <= 0.01f)
                     {
-                        if (Vector3.Dot(hit.normal, direction) <= 0.01f)
-                        {
-                            hitbox.transform.localScale = reducedscale;
-                            transform.position -= movement.normalized * (hit.distance + 0.05f);
-                            continue;
-                        }
-
-                        collided = true;
-                        movement -= movement.normalized * hit.distance;
-
-                        if (hit.collider.isTrigger)
-                        {
-                            ContactTrigger(direction, hit.collider);
-                            continue;
-                        }
-
-                        if (CanCollide(hit.collider))
-                        {
-                            // Collide
-                            ContactCollider(hit.collider, ref direction, ref distance);
-
-                            // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
-                            // So we treat all slanted ground as perfectly flat when not sliding
-                            var angle = Vector3.Angle(Vector3.up, direction);
-                            if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
-
-                            // Depenetrate
-                            transform.position += direction * distance;
-
-                            // Apply this collision to the movement for this tick
-                            var movementProjection = Vector3.Dot(movement, -direction);
-                            if (movementProjection > 0) movement += direction * movementProjection;
-                        }
-                    }
-                }
-
-                if (!collided)
-                {
-                    hitbox.transform.localScale = realscale;
-                    transform.position += movement;
-                    movement = Vector3.zero;
-                }
-            }
-
-            // After doing sweep tests, use ComputePenetration() to ensure that the player is not intersecting with anything
-            // Apply collision function to everything touching the player
-            var bounds = hitbox.bounds;
-            var overlap = Physics.OverlapBox(bounds.center, bounds.extents);
-            foreach (var other in overlap)
-            {
-                if (!CanCollide(other)) continue;
-                if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation, other,
-                    other.transform.position, other.transform.rotation, out var direction, out var distance))
-                {
-                    if (other.isTrigger)
-                    {
-                        ContactTrigger(direction, other);
+                        hitbox.transform.localScale = reducedscale;
+                        transform.position -= movement.normalized * (hit.distance + 0.05f);
                         continue;
                     }
 
-                    if (CanCollide(other))
+                    collided = true;
+                    movement -= movement.normalized * hit.distance;
+
+                    if (hit.collider.isTrigger)
                     {
-                        ContactCollider(other, ref direction, ref distance);
+                        ContactTrigger(direction, hit.collider);
+                        continue;
                     }
 
-                    // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
-                    // So we treat all slanted ground as perfectly flat when not sliding
-                    var angle = Vector3.Angle(Vector3.up, direction);
-                    if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
-                    transform.position += direction * distance;
+                    if (CanCollide(hit.collider))
+                    {
+                        // Collide
+                        ContactCollider(hit.collider, ref direction, ref distance);
+
+                        // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                        // So we treat all slanted ground as perfectly flat when not sliding
+                        var angle = Vector3.Angle(Vector3.up, direction);
+                        if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+
+                        // Depenetrate
+                        transform.position += direction * distance;
+
+                        // Apply this collision to the movement for this tick
+                        var movementProjection = Vector3.Dot(movement, -direction);
+                        if (movementProjection > 0) movement += direction * movementProjection;
+                    }
                 }
+            }
+
+            if (!collided)
+            {
+                hitbox.transform.localScale = realscale;
+                transform.position += movement;
+                movement = Vector3.zero;
+            }
+        }
+
+        // After doing sweep tests, use ComputePenetration() to ensure that the player is not intersecting with anything
+        // Apply collision function to everything touching the player
+        var bounds = hitbox.bounds;
+        var overlap = Physics.OverlapBox(bounds.center, bounds.extents);
+        foreach (var other in overlap)
+        {
+            if (!CanCollide(other)) continue;
+            if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation, other,
+                other.transform.position, other.transform.rotation, out var direction, out var distance))
+            {
+                if (other.isTrigger)
+                {
+                    ContactTrigger(direction, other);
+                    continue;
+                }
+
+                if (CanCollide(other))
+                {
+                    ContactCollider(other, ref direction, ref distance);
+                }
+
+                // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                // So we treat all slanted ground as perfectly flat when not sliding
+                var angle = Vector3.Angle(Vector3.up, direction);
+                if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+                transform.position += direction * distance;
             }
         }
 
@@ -1305,7 +1312,7 @@ public class Player : MonoBehaviour
         var crosshairAngle = Vector3.Angle(CrosshairDirection, Vector3.up);
         var towardPointAngle = Vector3.Angle(towardPoint, Vector3.up);
         var velocityAngle = Vector3.Angle(velocity, Vector3.up);
-        if (crosshairAngle < towardPointAngle && velocityAngle > towardPointAngle)
+        if (crosshairAngle + 10 < towardPointAngle && velocityAngle > towardPointAngle)
         {
             var flatProjection = Vector3.Dot(velocity, Flatten(towardPoint).normalized);
             if (flatProjection > 0)
@@ -1454,7 +1461,11 @@ public class Player : MonoBehaviour
     {
         DoubleJumpAvailable = true;
         lastGround = null;
-        if (IsDashing) wallTickCount = -1;
+        if (IsDashing)
+        {
+            wallTickCount = -1;
+            wallFrictionTicks = 0;
+        }
 
         if (wallTickCount == 0)
         {
@@ -1587,7 +1598,7 @@ public class Player : MonoBehaviour
         if (IsDashing)
         {
             groundTickCount = -1;
-            SetQuickDeathPosition(transform.position, Yaw);
+            SetQuickDeathPosition();
         }
 
         groundTickCount++;
@@ -1597,7 +1608,7 @@ public class Player : MonoBehaviour
             groundFrictionTicks = 0;
             if (!IsSliding) AudioManager.PlayAudio(groundLand);
             ApplyFriction(f * LANDING_FRICTION_TAX, 0, BASE_SPEED / 2);
-            SetQuickDeathPosition(transform.position, Yaw);
+            SetQuickDeathPosition();
             groundFrictionTicks++;
         }
 

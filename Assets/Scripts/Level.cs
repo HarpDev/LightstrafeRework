@@ -12,14 +12,18 @@ public class Level : MonoBehaviour
     public Canvas LevelCompletedUIPrefab;
 
     private CanvasManager canvasManager;
+    private const float KILL_LEVEL = -10f;
 
     private void Awake()
     {
         Game.OnAwakeBind(this);
     }
 
+    private Player player;
+
     private void Start()
     {
+        player = Game.OnStartResolve<Player>();
         canvasManager = Game.OnStartResolve<CanvasManager>();
         Time.timeScale = 1;
     }
@@ -45,6 +49,11 @@ public class Level : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (player.transform.position.y <= KILL_LEVEL)
+        {
+            player.DoQuickDeath();
+        }
+        
         if (togglePauseOnNextTick)
         {
             togglePauseOnNextTick = false;
