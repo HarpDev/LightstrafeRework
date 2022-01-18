@@ -18,7 +18,8 @@ public class KillPlane : MonoBehaviour
     {
         if (player.transform.position.y <= killLevel)
         {
-            level.RestartLevel();
+            player.DoQuickDeath();
+            //level.RestartLevel();
         }
     }
 }

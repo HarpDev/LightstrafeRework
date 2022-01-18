@@ -48,10 +48,17 @@ public class Level : MonoBehaviour
         if (togglePauseOnNextTick)
         {
             togglePauseOnNextTick = false;
-            if (canvasManager.MenuLayerCount == 0)
+            if (IsLevelFinished)
             {
                 Time.timeScale = 0;
-                canvasManager.OpenMenu(canvasManager.Pause);
+            }
+            else
+            {
+                if (canvasManager.MenuLayerCount == 0)
+                {
+                    Time.timeScale = 0;
+                    canvasManager.OpenMenu(canvasManager.Pause);
+                }
             }
         }
         

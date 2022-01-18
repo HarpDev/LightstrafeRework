@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEditor.Search;
 using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    
     public Collider hitbox;
     public WeaponManager weaponManager;
 
@@ -14,6 +14,27 @@ public class Player : MonoBehaviour
 
     public Vector3 cameraPosition;
     public Vector3 velocity;
+
+    private Vector3 deathLocation;
+    private float deathYaw;
+    private Vector3 quickDeathLocation;
+    private float quickDeathYaw;
+    private float quickDeathLerp = 1;
+    private const float QUICKDEATH_SPEED = 1;
+
+    public void SetQuickDeathPosition(Vector3 location, float yaw)
+    {
+        quickDeathLocation = location;
+        quickDeathYaw = yaw;
+    }
+
+    public void DoQuickDeath()
+    {
+        if (quickDeathLerp < 1) return;
+        deathLocation = transform.position;
+        deathYaw = Yaw;
+        quickDeathLerp = 0;
+    }
 
     public int ExcludePlayerMask => ~(1 << 10);
 
@@ -75,6 +96,7 @@ public class Player : MonoBehaviour
         Charges += CHARGE_TOUCH_RECHARGE;
         if (Charges > CHARGES) Charges = Charges;
     }
+
     public bool DashAvailable => Charges >= 1;
 
     public bool GrappleEnabled;
@@ -170,13 +192,15 @@ public class Player : MonoBehaviour
         }
 
         // Try to start the player on ground so it doesnt play the stupid ground land sound frame 1
-        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask, QueryTriggerInteraction.Ignore) &&
+        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
+                QueryTriggerInteraction.Ignore) &&
             Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
         {
             transform.position = hit.point + Vector3.up * 0.8f;
             IsOnGround = true;
             currentGround = hit.collider.gameObject;
             groundTickCount = 2;
+            SetQuickDeathPosition(transform.position, Yaw);
         }
     }
 
@@ -203,6 +227,7 @@ public class Player : MonoBehaviour
             if (DashEnabled) notification += "\n";
             notification += "Press " + ((KeyCode) PlayerInput.PrimaryInteract) + " to grapple";
         }
+
         if (notification.Length > 0) canvasManager.SendNotification(notification);
     }
 
@@ -247,15 +272,6 @@ public class Player : MonoBehaviour
 
             Pitch = Mathf.Max(Pitch, -90);
             Pitch = Mathf.Min(Pitch, 90);
-        }
-
-        if (GrappleCast(out var grappleHit) || DashCast(out var dashHit))
-        {
-            crosshairManager.IsActivated = true;
-        }
-        else
-        {
-            crosshairManager.IsActivated = false;
         }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
@@ -396,16 +412,40 @@ public class Player : MonoBehaviour
 
         // Movement happens here
         var factor = Time.fixedDeltaTime;
-        if (GrappleHooked)
-            GrappleMove(factor);
-        else if (IsOnRail)
-            RailMove(factor);
-        else if (IsOnWall)
-            WallMove(factor);
-        else if (IsOnGround)
-            GroundMove(factor);
+        if (quickDeathLerp < 1)
+        {
+            quickDeathLerp += Time.fixedDeltaTime * QUICKDEATH_SPEED;
+            var x = quickDeathLerp;
+            var ease = x < 0.5f ? 16 * x * x * x * x * x : 1 - Mathf.Pow(-2 * x + 2, 5) / 2;
+            var verticalAmt = 0f;
+            if (x < 0.5f)
+            {
+                var upEase = 1 - Mathf.Pow(1 - (x * 2), 3);
+                verticalAmt = upEase;
+            }
+            else
+            {
+                var downEase = Mathf.Pow(2 - (x * 2), 3);
+                verticalAmt = downEase;
+            }
+            transform.position = Vector3.Lerp(deathLocation, quickDeathLocation, ease) + Vector3.up * verticalAmt * 50;
+            Yaw = Mathf.Lerp(deathYaw, quickDeathYaw, ease);
+            velocity = Vector3.zero;
+        }
         else
-            AirMove(ref velocity, factor);
+        {
+            quickDeathLerp = 1;
+            if (GrappleHooked)
+                GrappleMove(factor);
+            else if (IsOnRail)
+                RailMove(factor);
+            else if (IsOnWall)
+                WallMove(factor);
+            else if (IsOnGround)
+                GroundMove(factor);
+            else
+                AirMove(ref velocity, factor);
+        }
 
         if (dashTime > 0)
         {
@@ -456,155 +496,158 @@ public class Player : MonoBehaviour
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         motionInterpolationDelta = 0;
 
-        // This variable is the total movement that will occur in this tick
-        var movement = (IsDashing ? dashVector : velocity) * Time.fixedDeltaTime;
-        movement += Flatten(movement).normalized * dashCancelTempSpeed * Time.fixedDeltaTime;
-        previousPosition = transform.position;
-
-        if (IsOnGround)
+        if (quickDeathLerp <= 1)
         {
-            groundLevel--;
-            if (!IsOnGround)
+            // This variable is the total movement that will occur in this tick
+            var movement = (IsDashing ? dashVector : velocity) * Time.fixedDeltaTime;
+            movement += Flatten(movement).normalized * dashCancelTempSpeed * Time.fixedDeltaTime;
+            previousPosition = transform.position;
+
+            if (IsOnGround)
             {
-                SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
-                AudioManager.StopAudio(slide);
-                AudioManager.StopAudio(groundLand);
-            }
-        }
-
-        if (IsOnWall)
-        {
-            wallLevel--;
-            if (!IsOnWall)
-            {
-                AudioManager.StopAudio(slide);
-            }
-        }
-
-        var iterations = 0;
-
-        // Hold helps collision hold you against walls/ground even if they get a little bumpy
-        var hold = 0.1f;
-        if (IsOnGround)
-        {
-            movement += Vector3.down * hold;
-        }
-
-        if (IsOnWall)
-        {
-            movement -= wallNormal * hold;
-        }
-
-        if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
-
-        while (movement.magnitude > 0f && iterations < 5)
-        {
-            iterations++;
-
-            // this is fucked lol
-            // good luck
-            if (Math.Abs(hitbox.transform.localScale.y - 1) < 0.05f && !IsSliding)
-            {
-                hitbox.transform.localScale = new Vector3(1, 2, 1);
-                hitbox.transform.position += Vector3.up;
-            }
-
-            if (Math.Abs(hitbox.transform.localScale.y - 2) < 0.05f && IsSliding)
-            {
-                hitbox.transform.localScale = new Vector3(1, 1, 1);
-                hitbox.transform.position -= Vector3.up;
-            }
-
-            var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
-            reducedscale.y = IsSliding ? reducedscale.y : 2f - hitbox.contactOffset * 2;
-            var realscale = hitbox.transform.localScale;
-            if (!IsSliding) realscale.y = 2;
-            hitbox.transform.localScale = reducedscale;
-
-            // a lot of these numbers are really particular and finnicky
-            transform.position -= movement.normalized * 0.2f;
-            movement += movement.normalized * 0.2f;
-            var collided = false;
-            if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
-                QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
-            {
-                hitbox.transform.localScale = realscale;
-                transform.position += movement.normalized * (hit.distance + 0.05f);
-                if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation,
-                    hit.collider, hit.collider.gameObject.transform.position,
-                    hit.collider.gameObject.transform.rotation,
-                    out var direction, out var distance))
+                groundLevel--;
+                if (!IsOnGround)
                 {
-                    if (Vector3.Dot(hit.normal, direction) <= 0.01f)
+                    SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
+                    AudioManager.StopAudio(slide);
+                    AudioManager.StopAudio(groundLand);
+                }
+            }
+
+            if (IsOnWall)
+            {
+                wallLevel--;
+                if (!IsOnWall)
+                {
+                    AudioManager.StopAudio(slide);
+                }
+            }
+
+            var iterations = 0;
+
+            // Hold helps collision hold you against walls/ground even if they get a little bumpy
+            var hold = 0.1f;
+            if (IsOnGround)
+            {
+                movement += Vector3.down * hold;
+            }
+
+            if (IsOnWall)
+            {
+                movement -= wallNormal * hold;
+            }
+
+            if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
+
+            while (movement.magnitude > 0f && iterations < 5)
+            {
+                iterations++;
+
+                // this is fucked lol
+                // good luck
+                if (Math.Abs(hitbox.transform.localScale.y - 1) < 0.05f && !IsSliding)
+                {
+                    hitbox.transform.localScale = new Vector3(1, 2, 1);
+                    hitbox.transform.position += Vector3.up;
+                }
+
+                if (Math.Abs(hitbox.transform.localScale.y - 2) < 0.05f && IsSliding)
+                {
+                    hitbox.transform.localScale = new Vector3(1, 1, 1);
+                    hitbox.transform.position -= Vector3.up;
+                }
+
+                var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
+                reducedscale.y = IsSliding ? reducedscale.y : 2f - hitbox.contactOffset * 2;
+                var realscale = hitbox.transform.localScale;
+                if (!IsSliding) realscale.y = 2;
+                hitbox.transform.localScale = reducedscale;
+
+                // a lot of these numbers are really particular and finnicky
+                transform.position -= movement.normalized * 0.2f;
+                movement += movement.normalized * 0.2f;
+                var collided = false;
+                if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
+                    QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
+                {
+                    hitbox.transform.localScale = realscale;
+                    transform.position += movement.normalized * (hit.distance + 0.05f);
+                    if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation,
+                        hit.collider, hit.collider.gameObject.transform.position,
+                        hit.collider.gameObject.transform.rotation,
+                        out var direction, out var distance))
                     {
-                        hitbox.transform.localScale = reducedscale;
-                        transform.position -= movement.normalized * (hit.distance + 0.05f);
+                        if (Vector3.Dot(hit.normal, direction) <= 0.01f)
+                        {
+                            hitbox.transform.localScale = reducedscale;
+                            transform.position -= movement.normalized * (hit.distance + 0.05f);
+                            continue;
+                        }
+
+                        collided = true;
+                        movement -= movement.normalized * hit.distance;
+
+                        if (hit.collider.isTrigger)
+                        {
+                            ContactTrigger(direction, hit.collider);
+                            continue;
+                        }
+
+                        if (CanCollide(hit.collider))
+                        {
+                            // Collide
+                            ContactCollider(hit.collider, ref direction, ref distance);
+
+                            // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                            // So we treat all slanted ground as perfectly flat when not sliding
+                            var angle = Vector3.Angle(Vector3.up, direction);
+                            if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+
+                            // Depenetrate
+                            transform.position += direction * distance;
+
+                            // Apply this collision to the movement for this tick
+                            var movementProjection = Vector3.Dot(movement, -direction);
+                            if (movementProjection > 0) movement += direction * movementProjection;
+                        }
+                    }
+                }
+
+                if (!collided)
+                {
+                    hitbox.transform.localScale = realscale;
+                    transform.position += movement;
+                    movement = Vector3.zero;
+                }
+            }
+
+            // After doing sweep tests, use ComputePenetration() to ensure that the player is not intersecting with anything
+            // Apply collision function to everything touching the player
+            var bounds = hitbox.bounds;
+            var overlap = Physics.OverlapBox(bounds.center, bounds.extents);
+            foreach (var other in overlap)
+            {
+                if (!CanCollide(other)) continue;
+                if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation, other,
+                    other.transform.position, other.transform.rotation, out var direction, out var distance))
+                {
+                    if (other.isTrigger)
+                    {
+                        ContactTrigger(direction, other);
                         continue;
                     }
 
-                    collided = true;
-                    movement -= movement.normalized * hit.distance;
-
-                    if (hit.collider.isTrigger)
+                    if (CanCollide(other))
                     {
-                        ContactTrigger(direction, hit.collider);
-                        continue;
+                        ContactCollider(other, ref direction, ref distance);
                     }
 
-                    if (CanCollide(hit.collider))
-                    {
-                        // Collide
-                        ContactCollider(hit.collider, ref direction, ref distance);
-
-                        // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
-                        // So we treat all slanted ground as perfectly flat when not sliding
-                        var angle = Vector3.Angle(Vector3.up, direction);
-                        if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
-
-                        // Depenetrate
-                        transform.position += direction * distance;
-
-                        // Apply this collision to the movement for this tick
-                        var movementProjection = Vector3.Dot(movement, -direction);
-                        if (movementProjection > 0) movement += direction * movementProjection;
-                    }
+                    // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
+                    // So we treat all slanted ground as perfectly flat when not sliding
+                    var angle = Vector3.Angle(Vector3.up, direction);
+                    if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
+                    transform.position += direction * distance;
                 }
-            }
-
-            if (!collided)
-            {
-                hitbox.transform.localScale = realscale;
-                transform.position += movement;
-                movement = Vector3.zero;
-            }
-        }
-
-        // After doing sweep tests, use ComputePenetration() to ensure that the player is not intersecting with anything
-        // Apply collision function to everything touching the player
-        var bounds = hitbox.bounds;
-        var overlap = Physics.OverlapBox(bounds.center, bounds.extents);
-        foreach (var other in overlap)
-        {
-            if (!CanCollide(other)) continue;
-            if (Physics.ComputePenetration(hitbox, hitbox.transform.position, hitbox.transform.rotation, other,
-                other.transform.position, other.transform.rotation, out var direction, out var distance))
-            {
-                if (other.isTrigger)
-                {
-                    ContactTrigger(direction, other);
-                    continue;
-                }
-
-                if (CanCollide(other))
-                {
-                    ContactCollider(other, ref direction, ref distance);
-                }
-
-                // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
-                // So we treat all slanted ground as perfectly flat when not sliding
-                var angle = Vector3.Angle(Vector3.up, direction);
-                if (angle < GROUND_ANGLE && !IsSliding) direction = Vector3.up;
-                transform.position += direction * distance;
             }
         }
 
@@ -904,12 +947,14 @@ public class Player : MonoBehaviour
         hit = new RaycastHit();
         if (Charges < 1) return false;
 
-        if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
+            QueryTriggerInteraction.Ignore))
         {
             hit = rayhit;
             return true;
         }
-        else if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE, ExcludePlayerMask, QueryTriggerInteraction.Ignore))
+        else if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
+            QueryTriggerInteraction.Ignore))
         {
             hit = spherehit;
             return true;
@@ -931,6 +976,7 @@ public class Player : MonoBehaviour
     public const int RAIL_COOLDOWN_TICKS = 100;
     public const float RAIL_SPEED = 25;
     public const float RAIL_ACCELERATION = 1;
+    public const float RAIL_SLANT_EFFICIENCY = 0.1f;
     private int railTimestamp = -100000;
     private int railDirection;
     private int railTickCount;
@@ -955,8 +1001,6 @@ public class Player : MonoBehaviour
             closeDistance = distance;
             closeIndex = i;
         }
-
-        var speedBeforeAnything = Speed;
 
         // If rail direction is 0, we need to determine which direction the player should go based on their velocity
         // We will do this with a simple angle comparison of the players velocity, and seeing which direction makes more sense
@@ -986,16 +1030,22 @@ public class Player : MonoBehaviour
             {
                 railDirection = 1;
             }
+        }
 
-            try
+        var speedBeforeAnything = Speed;
+        if (closeIndex + railDirection >= 0 && closeIndex + railDirection < currentRail.smoothedPoints.Length)
+        {
+            var forward = currentRail.smoothedPoints[closeIndex + railDirection] -
+                          currentRail.smoothedPoints[closeIndex];
+            var y = velocity.y;
+            velocity = Speed * Flatten(forward).normalized;
+            velocity.y = y;
+            var projection = Vector3.Dot(velocity, forward.normalized);
+            var slantVec = forward.normalized * projection;
+            if (Flatten(slantVec).magnitude > speedBeforeAnything)
             {
-                var forward = currentRail.smoothedPoints[closeIndex - railDirection] -
-                              currentRail.smoothedPoints[closeIndex];
-                var p = Vector3.Dot(velocity, Flatten(forward).normalized);
-                velocity = Flatten(velocity).normalized * p;
-            }
-            catch (IndexOutOfRangeException)
-            {
+                var bonus = Flatten(slantVec).magnitude - speedBeforeAnything;
+                speedBeforeAnything += bonus * RAIL_SLANT_EFFICIENCY;
             }
         }
 
@@ -1179,18 +1229,21 @@ public class Player : MonoBehaviour
     public const float GRAPPLE_MIN_SPEED = 20;
     public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.9f;
     public const float GFORCE_SPEEDGAIN_UP_FRICTION = 4.5f;
-    public const float GRAPPLE_UPWARD_PULL = 10;
+    public const float GRAPPLE_UPWARD_PULL = 8;
     public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
+    public const float GRAPPLE_SPEEDGAIN = 8;
+    public const float GRAPPLE_SPEEDGAIN_CAP = 45;
     private int grappleTicks;
     private Vector3 grappleAttachPosition;
     private float speedOnAttach;
+
 
     public void GrappleMove(float f)
     {
         var position = grappleAttachPosition;
 
         var towardPoint = (position - transform.position).normalized;
-        
+
         var velocityProjection = Vector3.Dot(velocity, towardPoint);
         var tangentVector = (velocity + towardPoint * -velocityProjection).normalized;
 
@@ -1249,7 +1302,24 @@ public class Player : MonoBehaviour
             velocity += Vector3.up * GRAPPLE_UPWARD_PULL * f;
         }
 
-        Accelerate(Flatten(velocity).normalized, Mathf.Max(speedOnAttach, GRAPPLE_MIN_SPEED), GRAPPLE_REFUND_ACCELERATION, f);
+        var crosshairAngle = Vector3.Angle(CrosshairDirection, Vector3.up);
+        var towardPointAngle = Vector3.Angle(towardPoint, Vector3.up);
+        var velocityAngle = Vector3.Angle(velocity, Vector3.up);
+        if (crosshairAngle < towardPointAngle && velocityAngle > towardPointAngle)
+        {
+            var flatProjection = Vector3.Dot(velocity, Flatten(towardPoint).normalized);
+            if (flatProjection > 0)
+            {
+                var efficiency = 0.4f;
+                velocity -= Flatten(towardPoint).normalized * flatProjection * efficiency;
+                velocity.y += flatProjection * efficiency;
+            }
+        }
+
+        var rawgain = GRAPPLE_SPEEDGAIN *
+                      Mathf.Clamp01((GRAPPLE_SPEEDGAIN_CAP - Speed) / GRAPPLE_SPEEDGAIN_CAP);
+        var minSpeed = Mathf.Max(speedOnAttach, GRAPPLE_MIN_SPEED) + rawgain;
+        if (Speed < minSpeed) Accelerate(towardPoint.normalized, minSpeed, GRAPPLE_REFUND_ACCELERATION, f);
 
         var gain = 0.3f;
         var absolute = (gain / f) / 6f;
@@ -1291,13 +1361,15 @@ public class Player : MonoBehaviour
         hit = Vector3.zero;
         if (Charges < 1) return false;
 
-        if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
+            QueryTriggerInteraction.Ignore))
         {
             hit = rayhit.point;
             return true;
         }
 
-        if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE, ExcludePlayerMask, QueryTriggerInteraction.Ignore))
+        if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
+            QueryTriggerInteraction.Ignore))
         {
             hit = spherehit.point;
             return true;
@@ -1479,7 +1551,7 @@ public class Player : MonoBehaviour
 
     private int groundLevel;
     public const float CAMERA_ROLL_CORRECT_SPEED = 40f;
-    public const float GROUND_ACCELERATION = 6.5f;
+    public const float GROUND_ACCELERATION = 11f;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
     public const float SLIDE_FRICTION = 0.6f;
@@ -1512,7 +1584,11 @@ public class Player : MonoBehaviour
             Accelerate(Flatten(velocity).normalized, speed, BASE_SPEED);
         }
 
-        if (IsDashing) groundTickCount = -1;
+        if (IsDashing)
+        {
+            groundTickCount = -1;
+            SetQuickDeathPosition(transform.position, Yaw);
+        }
 
         groundTickCount++;
 
@@ -1521,6 +1597,7 @@ public class Player : MonoBehaviour
             groundFrictionTicks = 0;
             if (!IsSliding) AudioManager.PlayAudio(groundLand);
             ApplyFriction(f * LANDING_FRICTION_TAX, 0, BASE_SPEED / 2);
+            SetQuickDeathPosition(transform.position, Yaw);
             groundFrictionTicks++;
         }
 
@@ -1560,6 +1637,7 @@ public class Player : MonoBehaviour
                     ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
                     groundFrictionTicks++;
                 }
+
                 AirAccelerate(ref velocity, f, 1, 0);
 
                 slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, f * 7);
@@ -1568,7 +1646,14 @@ public class Player : MonoBehaviour
             {
                 ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 3);
                 groundFrictionTicks++;
+                var speed = Speed;
                 Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
+                if (Speed > BASE_SPEED)
+                {
+                    var y = velocity.y;
+                    velocity = Flatten(velocity).normalized * Mathf.Max(speed, BASE_SPEED);
+                    velocity.y = y;
+                }
             }
         }
 
@@ -1602,7 +1687,7 @@ public class Player : MonoBehaviour
 ╚═╝░░╚═╝╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝░╚════╝░░░░╚═╝░░░╚══════╝
     */
     public bool ApproachingGround { get; set; }
-    private const float AIR_SPEED = 1.8f;
+    private const float AIR_SPEED = 2.1f;
     private const float SIDE_AIR_ACCELERATION = 50;
     private const float FORWARD_AIR_ACCELERATION = 70;
     private const float DIAGONAL_AIR_ACCEL_BONUS = 80;
@@ -1929,7 +2014,7 @@ public class Player : MonoBehaviour
     public const int COYOTE_TICKS = 20;
     public const int GROUND_JUMP_BUFFERING = 4;
     public const int WALL_JUMP_BUFFERING = 4;
-    public const int JUMP_RECHARGE_COOLDOWN = 40;
+    public const int GROUNDJUMP_RECHARGE_COOLDOWN = 40;
 
     private float jumpBuffered;
     private int jumpTimestamp;
@@ -1977,7 +2062,6 @@ public class Player : MonoBehaviour
             var jumpStamina = Mathf.Clamp01(Mathf.Max(groundTickCount, wallTickCount) / JUMP_STAMINA_RECOVERY_TICKS);
             var jumpHeight = Mathf.Lerp(MIN_JUMP_HEIGHT, MAX_JUMP_HEIGHT, jumpStamina);
 
-            ChargeRefreshCooldown(JUMP_RECHARGE_COOLDOWN);
             AudioManager.StopAudio(slide);
             AudioManager.StopAudio(groundLand);
             if (wallJump)
@@ -2003,9 +2087,10 @@ public class Player : MonoBehaviour
                         ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
                         friction++;
                     }
+
                     if (negativeFrictionTicks > 0) friction *= -1;
 
-                    if (!coyoteJump && wallTickCount <= WALL_FRICTION_TICKS) 
+                    if (!coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
                         kickFeedback.Display(friction, friction == 1 ? Color.green : Color.white);
                 }
 
@@ -2053,6 +2138,7 @@ public class Player : MonoBehaviour
                     CancelDash(true);
 
                     velocity.y = Mathf.Max(height, velocity.y);
+                    ChargeRefreshCooldown(GROUNDJUMP_RECHARGE_COOLDOWN);
                 }
             }
 

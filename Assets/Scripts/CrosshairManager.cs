@@ -1,22 +1,30 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class CrosshairManager : MonoBehaviour
 {
     public Image crosshair;
-    
+
     private void Awake()
     {
         Game.OnAwakeBind(this);
+    }
+
+    private Player player;
+
+    private void Start()
+    {
+        player = Game.OnStartResolve<Player>();
     }
 
     private float crosshairColor;
 
     private void Update()
     {
-        if (IsActivated)
+        var active = false;
+        if (player.GrappleEnabled || player.DashEnabled)
+            active = player.GrappleCast(out var grappleHit) || player.DashCast(out var dashHit);
+        if (active)
         {
             crosshair.transform.rotation = Quaternion.Euler(0, 0,
                 Mathf.Lerp(crosshair.transform.rotation.eulerAngles.z, 45, Time.deltaTime * 20));
@@ -31,6 +39,4 @@ public class CrosshairManager : MonoBehaviour
 
         crosshair.color = new Color(crosshairColor, crosshairColor, crosshairColor, crosshairColor);
     }
-    
-    public bool IsActivated { get; set; }
 }
