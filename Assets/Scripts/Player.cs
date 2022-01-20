@@ -36,7 +36,7 @@ public class Player : MonoBehaviour
         quickDeathLerp = 0;
     }
 
-    public int ExcludePlayerMask => ~(1 << 10);
+    public int ExcludePlayerMask => ~((1 << 10) | (1 << 2));
 
     private float speed;
 
@@ -247,8 +247,6 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        jumpBuffered = Mathf.Max(jumpBuffered - Time.deltaTime, 0);
-
         if (Cursor.visible) return;
 
         // Mouse aim / Controller aim
@@ -378,6 +376,8 @@ public class Player : MonoBehaviour
     private void FixedUpdate()
     {
         wallRecovery -= Mathf.Min(wallRecovery, Time.fixedDeltaTime);
+        jumpBuffered = Mathf.Max(jumpBuffered - Time.fixedDeltaTime, 0);
+        eatJumpInputs = Mathf.Max(eatJumpInputs - Time.fixedDeltaTime, 0);
 
         // Check for level restart
         if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0) level.RestartLevel();
@@ -461,7 +461,14 @@ public class Player : MonoBehaviour
         {
             if (dashTime - factor <= 0)
             {
-                StopDash();
+                if (IsOnGround || IsOnWall)
+                {
+                    PlayerInput.SimulateKeyPress(PlayerInput.Jump);
+                    PlayerJump();
+                    eatJumpInputs = 0.2f;
+                }
+                else
+                    StopDash();
             }
             else
             {
@@ -773,8 +780,7 @@ public class Player : MonoBehaviour
             && Mathf.Abs(angle - 90) < WALL_VERTICAL_ANGLE_GIVE
             && !IsOnGround && jumpKitEnabled
             && (collider.gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.7 ||
-                WALL_ALLOW_SAME_FACING ||
-                PlayerInput.tickCount - wallJumpTimestamp > WALL_ALLOW_SAME_FACING_COOLDOWN_TICKS))
+                WALL_ALLOW_SAME_FACING))
         {
             // If the normal of a wall changes more than 10 degrees in 1 tick, kick you off the wall
             if (IsOnWall && Vector3.Angle(wallNormal, Flatten(normal).normalized) > 10)
@@ -955,13 +961,14 @@ public class Player : MonoBehaviour
         if (Charges < 1) return false;
 
         if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
-            QueryTriggerInteraction.Ignore))
+            QueryTriggerInteraction.Collide))
         {
             hit = rayhit;
             return true;
         }
-        else if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
-            QueryTriggerInteraction.Ignore))
+        else if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE - 2f,
+            ExcludePlayerMask,
+            QueryTriggerInteraction.Collide))
         {
             hit = spherehit;
             return true;
@@ -1039,23 +1046,6 @@ public class Player : MonoBehaviour
             }
         }
 
-        var speedBeforeAnything = Speed;
-        if (closeIndex + railDirection >= 0 && closeIndex + railDirection < currentRail.smoothedPoints.Length)
-        {
-            var forward = currentRail.smoothedPoints[closeIndex + railDirection] -
-                          currentRail.smoothedPoints[closeIndex];
-            var y = velocity.y;
-            velocity = Speed * Flatten(forward).normalized;
-            velocity.y = y;
-            var projection = Vector3.Dot(velocity, forward.normalized);
-            var slantVec = forward.normalized * projection;
-            if (Flatten(slantVec).magnitude > speedBeforeAnything)
-            {
-                var bonus = Flatten(slantVec).magnitude - speedBeforeAnything;
-                speedBeforeAnything += bonus * RAIL_SLANT_EFFICIENCY;
-            }
-        }
-
         var current = currentRail.smoothedPoints[closeIndex] + railLeanVector;
 
         // If youre on the last point of a rail, we use the vector of the final 2 points to extrapolate 1 extra point on the rail
@@ -1075,6 +1065,21 @@ public class Player : MonoBehaviour
 
         var previousVector = railVector;
         railVector = -(current - next).normalized;
+
+        var speedBeforeAnything = Speed;
+        if (closeIndex + railDirection >= 0 && closeIndex + railDirection < currentRail.smoothedPoints.Length)
+        {
+            var y = velocity.y;
+            velocity = Speed * Flatten(railVector).normalized;
+            velocity.y = y;
+            var projection = Vector3.Dot(velocity, railVector.normalized);
+            var slantVec = railVector.normalized * projection;
+            if (Flatten(slantVec).magnitude > speedBeforeAnything)
+            {
+                var bonus = Flatten(slantVec).magnitude - speedBeforeAnything;
+                speedBeforeAnything += bonus * RAIL_SLANT_EFFICIENCY;
+            }
+        }
 
         // Should the rail forcefully end this tick (riding off the edge)
         if ((railDirection == -1 && closeIndex == 0 ||
@@ -1236,7 +1241,7 @@ public class Player : MonoBehaviour
     public const float GRAPPLE_MIN_SPEED = 20;
     public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.9f;
     public const float GFORCE_SPEEDGAIN_UP_FRICTION = 4.5f;
-    public const float GRAPPLE_UPWARD_PULL = 8;
+    public const float GRAPPLE_UPWARD_PULL = 10;
     public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
     public const float GRAPPLE_SPEEDGAIN = 8;
     public const float GRAPPLE_SPEEDGAIN_CAP = 45;
@@ -1259,8 +1264,7 @@ public class Player : MonoBehaviour
         if (velocity.magnitude < 0.05f) velocity += towardPoint * f * GRAPPLE_CONTROL_ACCELERATION;
 
         var speed = velocity.magnitude;
-        var controldir = new Vector3(Wishdir.x, CrosshairDirection.y, Wishdir.z).normalized;
-        velocity += controldir * GRAPPLE_CONTROL_ACCELERATION * f;
+        velocity += CrosshairDirection * GRAPPLE_CONTROL_ACCELERATION * f;
         velocity = velocity.normalized * speed;
         if (velocity.y < 0)
         {
@@ -1309,31 +1313,31 @@ public class Player : MonoBehaviour
             velocity += Vector3.up * GRAPPLE_UPWARD_PULL * f;
         }
 
-        var crosshairAngle = Vector3.Angle(CrosshairDirection, Vector3.up);
         var towardPointAngle = Vector3.Angle(towardPoint, Vector3.up);
         var velocityAngle = Vector3.Angle(velocity, Vector3.up);
-        if (crosshairAngle + 10 < towardPointAngle && velocityAngle > towardPointAngle)
+        var upCross = Vector3.Cross(towardPoint, Vector3.Cross(towardPoint, Vector3.down));
+        if (Vector3.Dot(CrosshairDirection, upCross) > 0.05f && velocityAngle > towardPointAngle)
         {
             var flatProjection = Vector3.Dot(velocity, Flatten(towardPoint).normalized);
             if (flatProjection > 0)
             {
                 var efficiency = 0.4f;
                 velocity -= Flatten(towardPoint).normalized * flatProjection * efficiency;
-                velocity.y += flatProjection * efficiency;
+                velocity += Vector3.up * flatProjection * efficiency;
             }
         }
 
         var rawgain = GRAPPLE_SPEEDGAIN *
                       Mathf.Clamp01((GRAPPLE_SPEEDGAIN_CAP - Speed) / GRAPPLE_SPEEDGAIN_CAP);
         var minSpeed = Mathf.Max(speedOnAttach, GRAPPLE_MIN_SPEED) + rawgain;
-        if (Speed < minSpeed) Accelerate(towardPoint.normalized, minSpeed, GRAPPLE_REFUND_ACCELERATION, f);
+        if (Speed < minSpeed) Accelerate(CrosshairDirection, minSpeed, GRAPPLE_REFUND_ACCELERATION, f);
 
         var gain = 0.3f;
         var absolute = (gain / f) / 6f;
         var projection = Mathf.Sqrt(swingProjection) * Vector3.Dot(-transform.right, towardPoint) * absolute;
         SetCameraRoll(projection, CAMERA_ROLL_CORRECT_SPEED);
 
-        if (Vector3.Dot(towardPoint, CrosshairDirection) < 0) DetachGrapple();
+        if (Vector3.Dot(towardPoint, CrosshairDirection) < -0.2f) DetachGrapple();
 
         grappleTicks++;
         PlayerJump();
@@ -1369,14 +1373,14 @@ public class Player : MonoBehaviour
         if (Charges < 1) return false;
 
         if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
-            QueryTriggerInteraction.Ignore))
+            QueryTriggerInteraction.Collide))
         {
             hit = rayhit.point;
             return true;
         }
 
-        if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
-            QueryTriggerInteraction.Ignore))
+        if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE - 2f, ExcludePlayerMask,
+            QueryTriggerInteraction.Collide))
         {
             hit = spherehit.point;
             return true;
@@ -1443,7 +1447,6 @@ public class Player : MonoBehaviour
     public const int WALL_FRICTION_TICKS = 4;
     public const float WALL_FRICTION = 6f;
     public const bool WALL_ALLOW_SAME_FACING = false;
-    public const int WALL_ALLOW_SAME_FACING_COOLDOWN_TICKS = 200;
     private Vector3 wallNormal;
     private Vector3 lastWallNormal;
     private bool wallLeanCancelled;
@@ -1736,8 +1739,7 @@ public class Player : MonoBehaviour
             && CanCollide(hit.collider, false)
             && (hit.collider.gameObject != lastWall ||
                 Vector3.Dot(Flatten(hit.normal).normalized, lastWallNormal) < 0.7 ||
-                WALL_ALLOW_SAME_FACING ||
-                PlayerInput.tickCount - wallJumpTimestamp > WALL_ALLOW_SAME_FACING_COOLDOWN_TICKS))
+                WALL_ALLOW_SAME_FACING))
         {
             // This variable gives us a prediction of how long it will take until we touch the wall
             timeToWall = (hit.distance / (movement.magnitude * WALL_LEAN_PREDICTION_TIME)) *
@@ -2028,6 +2030,7 @@ public class Player : MonoBehaviour
     public const int GROUNDJUMP_RECHARGE_COOLDOWN = 40;
 
     private float jumpBuffered;
+    private float eatJumpInputs;
     private int jumpTimestamp;
 
     public bool PlayerJump(int friction = 0)
@@ -2040,6 +2043,12 @@ public class Player : MonoBehaviour
             {
                 jumpBuffered = Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) * Time.fixedDeltaTime;
                 return false;
+            }
+
+            if (eatJumpInputs > 0)
+            {
+                PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+                return true;
             }
 
             // Pressing jump ends rail and does not give jump height
