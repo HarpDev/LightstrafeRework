@@ -42,9 +42,9 @@ public class Collectible : MonoBehaviour
     private float chaseTime = 0.5f;
     private float chaseTimeStart;
 
-    private void Update()
+    private void LateUpdate()
     {
-        if (RequirementsMet() && !chasingPlayer)
+        /*if (RequirementsMet() && !chasingPlayer)
         {
             var target = player.camera.transform.position;
             var towardTarget = target - start;
@@ -58,12 +58,19 @@ public class Collectible : MonoBehaviour
 
             adjust = Vector3.Lerp(adjust, start + adjustVector, Time.deltaTime * 5);
             Visual.transform.position = adjust;
-        }
+        }*/
 
         if (chasingPlayer)
         {
-            transform.position = Vector3.Lerp(player.camera.transform.position, start, chaseTime / chaseTimeStart);
-            chaseTime -= Time.deltaTime;
+            if (chaseTime <= 0)
+            {
+                transform.position = player.camera.transform.position;
+            }
+            else
+            {
+                transform.position = Vector3.Lerp(player.camera.transform.position, start, chaseTime / chaseTimeStart);
+                chaseTime -= Time.deltaTime;
+            }
         }
 
         transform.Rotate(0, 0, 50 * Time.deltaTime);

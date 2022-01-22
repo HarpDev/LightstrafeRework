@@ -52,6 +52,17 @@ public class Rail : MonoBehaviour
         foreach (var point in _linePoints) point.transform.hasChanged = false;
     }
 
+    public void ChangeHitboxLayer(int layer)
+    {
+        for (var i = transform.childCount - 1; i > 0; i--)
+        {
+            if (transform.GetChild(i).name == "hitbox")
+            {
+                transform.GetChild(i).gameObject.layer = layer;
+            }
+        }
+    }
+
 
     public void GenerateHitboxes()
     {

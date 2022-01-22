@@ -30,6 +30,12 @@ public class Player : MonoBehaviour
 
     public void DoQuickDeath()
     {
+        if (quickDeathToLocation.sqrMagnitude <= 0.01f)
+        {
+            level.RestartLevel();
+            return;
+        }
+
         if (quickDeathLerp < 1) return;
         quickDeathFromLocation = camera.transform.position;
         quickDeathFromYaw = Yaw;
@@ -200,7 +206,6 @@ public class Player : MonoBehaviour
             IsOnGround = true;
             currentGround = hit.collider.gameObject;
             groundTickCount = 2;
-            SetQuickDeathPosition();
         }
     }
 
@@ -380,7 +385,10 @@ public class Player : MonoBehaviour
         eatJumpInputs = Mathf.Max(eatJumpInputs - Time.fixedDeltaTime, 0);
 
         // Check for level restart
-        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0) level.RestartLevel();
+        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0)
+        {
+            level.RestartLevel();
+        }
 
         // Set Wishdir
         Wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() +
@@ -451,7 +459,7 @@ public class Player : MonoBehaviour
         else
             AirMove(ref velocity, factor);
 
-        if (quickDeathLerp < 0.8f)
+        if (quickDeathLerp < 0.9f)
         {
             velocity = Vector3.zero;
             transform.position = quickDeathToLocation;
@@ -1177,6 +1185,8 @@ public class Player : MonoBehaviour
             railDirection = 1;
         }
 
+        rail.ChangeHitboxLayer(2);
+
         Recharge();
 
         if (GrappleHooked) DetachGrapple();
@@ -1190,6 +1200,7 @@ public class Player : MonoBehaviour
         // Also only apply if moving mostly upwards, sometimes we want rails to throw the player down
         if (velocity.y > -4) velocity.y += MIN_JUMP_HEIGHT;
 
+        currentRail.ChangeHitboxLayer(0);
         SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
         currentRail = null;
         AudioManager.StopAudio(railDuring);
@@ -1237,7 +1248,7 @@ public class Player : MonoBehaviour
     public bool GrappleHooked { get; set; }
     public const float GRAPPLE_Y_OFFSET = -1.2f;
     public const float GRAPPLE_CONTROL_ACCELERATION = 20f;
-    public const float GRAPPLE_REFUND_ACCELERATION = 3f;
+    public const float GRAPPLE_REFUND_ACCELERATION = 2f;
     public const float GRAPPLE_MIN_SPEED = 20;
     public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.9f;
     public const float GFORCE_SPEEDGAIN_UP_FRICTION = 4.5f;
@@ -1264,11 +1275,13 @@ public class Player : MonoBehaviour
         if (velocity.magnitude < 0.05f) velocity += towardPoint * f * GRAPPLE_CONTROL_ACCELERATION;
 
         var speed = velocity.magnitude;
-        velocity += CrosshairDirection * GRAPPLE_CONTROL_ACCELERATION * f;
+        var controlDirection = (CrosshairDirection - (Vector3.Dot(CrosshairDirection, towardPoint) * towardPoint))
+            .normalized;
+        velocity += controlDirection * GRAPPLE_CONTROL_ACCELERATION * f;
         velocity = velocity.normalized * speed;
         if (velocity.y < 0)
         {
-            GravityTick(f);
+            GravityTick(f * -velocity.normalized.y);
         }
         else
         {
@@ -1310,13 +1323,13 @@ public class Player : MonoBehaviour
 
         if (velocity.y > 0)
         {
-            velocity += Vector3.up * GRAPPLE_UPWARD_PULL * f;
+            velocity += Vector3.up * GRAPPLE_UPWARD_PULL * f * velocity.normalized.y;
         }
 
         var towardPointAngle = Vector3.Angle(towardPoint, Vector3.up);
         var velocityAngle = Vector3.Angle(velocity, Vector3.up);
         var upCross = Vector3.Cross(towardPoint, Vector3.Cross(towardPoint, Vector3.down));
-        if (Vector3.Dot(CrosshairDirection, upCross) > 0.05f && velocityAngle > towardPointAngle)
+        if (Vector3.Dot(CrosshairDirection, upCross) > 0.1f && velocityAngle > towardPointAngle)
         {
             var flatProjection = Vector3.Dot(velocity, Flatten(towardPoint).normalized);
             if (flatProjection > 0)
@@ -1361,6 +1374,12 @@ public class Player : MonoBehaviour
         if (GrappleHooked) GrappleHooked = false;
         if (grappleTether.enabled) grappleTether.enabled = false;
         SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
+
+        var s = speedOnAttach - Speed;
+        if (s > 0)
+        {
+            velocity += Flatten(velocity).normalized * Mathf.Min(s, 15);
+        }
 
         AudioManager.PlayOneShot(grappleRelease);
     }
@@ -1568,7 +1587,7 @@ public class Player : MonoBehaviour
     public const float GROUND_ACCELERATION = 11f;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
-    public const float SLIDE_FRICTION = 0.6f;
+    public const float SLIDE_FRICTION = 10f;
     public const float LANDING_FRICTION_TAX = 4f;
     public const int SLIDE_FRICTION_TICKS = 20;
     public const float SLIDE_BOOST_SPEED = 18f;
@@ -1648,7 +1667,11 @@ public class Player : MonoBehaviour
                 // Sliding on ground has same movement as in the air
                 if (groundTickCount is > GROUND_JUMP_BUFFERING and <= SLIDE_FRICTION_TICKS + GROUND_JUMP_BUFFERING)
                 {
-                    ApplyFriction(f * SLIDE_FRICTION, 0, BASE_SPEED / 2);
+                    var slideFriction = f * SLIDE_FRICTION;
+                    if (Speed > slideFriction)
+                    {
+                        velocity -= Flatten(velocity).normalized * slideFriction;
+                    }
                     groundFrictionTicks++;
                 }
 
@@ -1701,7 +1724,7 @@ public class Player : MonoBehaviour
 ╚═╝░░╚═╝╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝░╚════╝░░░░╚═╝░░░╚══════╝
     */
     public bool ApproachingGround { get; set; }
-    private const float AIR_SPEED = 2.1f;
+    private const float AIR_SPEED = 2.2f;
     private const float SIDE_AIR_ACCELERATION = 50;
     private const float FORWARD_AIR_ACCELERATION = 70;
     private const float DIAGONAL_AIR_ACCEL_BONUS = 80;
