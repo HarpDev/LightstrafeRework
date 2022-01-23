@@ -21,6 +21,11 @@ public class SpeedDisplay : MonoBehaviour
 
     private void Update()
     {
+        if (player == null)
+        {
+            speedText.color = new Color(1, 1, 1, 0);
+            return;
+        }
         var display = Mathf.RoundToInt(potential ? Mathf.Abs(player.velocity.y) : Flatten(player.velocity).magnitude);
         speedText.text = prefix + display + suffix;
     }

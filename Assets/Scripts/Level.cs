@@ -49,7 +49,7 @@ public class Level : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (player.transform.position.y <= KILL_LEVEL)
+        if (player != null && player.transform.position.y <= KILL_LEVEL)
         {
             player.DoQuickDeath();
         }

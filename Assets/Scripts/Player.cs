@@ -37,6 +37,7 @@ public class Player : MonoBehaviour
         }
 
         if (quickDeathLerp < 1) return;
+        DetachGrapple();
         quickDeathFromLocation = camera.transform.position;
         quickDeathFromYaw = Yaw;
         quickDeathLerp = 0;
@@ -1371,17 +1372,20 @@ public class Player : MonoBehaviour
 
     public void DetachGrapple()
     {
-        if (GrappleHooked) GrappleHooked = false;
-        if (grappleTether.enabled) grappleTether.enabled = false;
-        SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
-
-        var s = speedOnAttach - Speed;
-        if (s > 0)
+        if (GrappleHooked)
         {
-            velocity += Flatten(velocity).normalized * Mathf.Min(s, 15);
-        }
+            GrappleHooked = false;
+            if (grappleTether.enabled) grappleTether.enabled = false;
+            SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
 
-        AudioManager.PlayOneShot(grappleRelease);
+            var s = speedOnAttach - Speed;
+            if (s > 0)
+            {
+                velocity += Flatten(velocity).normalized * Mathf.Min(s, 15);
+            }
+
+            AudioManager.PlayOneShot(grappleRelease);
+        }
     }
 
     public bool GrappleCast(out Vector3 hit)

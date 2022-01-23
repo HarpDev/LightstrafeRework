@@ -17,13 +17,13 @@ public class GameSettings
 
     public static float SoundVolume
     {
-        get => PlayerPrefs.GetFloat("SoundVolume", 1);
+        get => PlayerPrefs.GetFloat("SoundVolume", 0.4f);
         set => PlayerPrefs.SetFloat("SoundVolume", value);
     }
 
     public static float MusicVolume
     {
-        get => PlayerPrefs.GetFloat("MusicVolume", 1);
+        get => PlayerPrefs.GetFloat("MusicVolume", 0.8f);
         set => PlayerPrefs.SetFloat("MusicVolume", value);
     }
 

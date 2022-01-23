@@ -21,6 +21,11 @@ public class CrosshairManager : MonoBehaviour
 
     private void Update()
     {
+        if (player == null)
+        {
+            crosshair.color = new Color(0, 0, 0, 0);
+            return;
+        }
         var active = false;
         if (player.GrappleEnabled || player.DashEnabled)
             active = player.GrappleCast(out var grappleHit) || player.DashCast(out var dashHit);

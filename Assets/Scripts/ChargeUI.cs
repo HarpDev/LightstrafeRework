@@ -30,10 +30,10 @@ public class ChargeUI : MonoBehaviour
 
     private void Update()
     {
-        var shouldShow = player.GrappleEnabled || player.DashEnabled;
+        var shouldShow = player != null && (player.GrappleEnabled || player.DashEnabled);
         for (var i = 0; i < Player.CHARGES; i++)
         {
-            var amt = Mathf.Clamp01(player.Charges - i);
+            var amt = Mathf.Clamp01((player == null ? 0 : player.Charges) - i);
             var img = bars[i].GetComponent<Image>();
             img.fillAmount = amt;
             if (amt >= 1 && fillAmounts[i] < 1)

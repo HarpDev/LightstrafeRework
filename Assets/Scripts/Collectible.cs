@@ -59,6 +59,7 @@ public class Collectible : MonoBehaviour
             adjust = Vector3.Lerp(adjust, start + adjustVector, Time.deltaTime * 5);
             Visual.transform.position = adjust;
         }*/
+        if (player == null) return;
 
         if (chasingPlayer)
         {
