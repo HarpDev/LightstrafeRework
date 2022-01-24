@@ -113,7 +113,7 @@ public class Player : MonoBehaviour
 
     public bool GrappleEnabled;
     public bool DashEnabled;
-    public const float GRAPPLE_DASH_RANGE = 30;
+    public const float GRAPPLE_DASH_RANGE = 35;
 
     public bool IsSliding
     {
