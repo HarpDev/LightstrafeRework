@@ -705,7 +705,7 @@ public class Player : MonoBehaviour
 ░╚════╝░░╚════╝░╚══════╝╚══════╝╚═╝╚═════╝░╚══════╝
     */
     public const float STEP_HEIGHT = 1.2f;
-    public const float VERTICAL_COLLIDE_INEFFICIENCY = 0.5f;
+    public const float VERTICAL_COLLIDE_INEFFICIENCY = 0.6f;
     private float surfAccelTime;
 
     private bool CanCollide(Component other, bool ignoreUninteractable = true)
@@ -982,6 +982,7 @@ public class Player : MonoBehaviour
         var origin = camera.transform.position;
         var direction = CrosshairDirection;
         hit = new RaycastHit();
+        if (quickDeathLerp < 1) return false;
         if (Charges < 1) return false;
 
         if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
@@ -1408,6 +1409,7 @@ public class Player : MonoBehaviour
         var origin = camera.transform.position;
         var direction = CrosshairDirection;
         hit = Vector3.zero;
+        if (quickDeathLerp < 1) return false;
         if (Charges < 1) return false;
 
         if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE, ExcludePlayerMask,
@@ -1484,8 +1486,8 @@ public class Player : MonoBehaviour
     public const float WALL_JUMP_SPEED = 8;
     public const int WALL_FRICTION_TICKS = 4;
     public const float WALL_FRICTION = 6f;
-    public const float WALLRUN_TIME = 1.5f;
-    public const float WALLRUN_FALLOFF_START = 0.6f;
+    public const float WALLRUN_TIME = 1.2f;
+    public const float WALLRUN_FALLOFF_START = 0.4f;
     private Vector3 wallNormal;
     private Vector3 lastWallNormal;
     private bool wallLeanCancelled;
