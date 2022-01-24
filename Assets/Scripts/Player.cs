@@ -24,8 +24,13 @@ public class Player : MonoBehaviour
     public void SetQuickDeathPosition()
     {
         if (quickDeathLerp < 1) return;
-        quickDeathToLocation = transform.position;
-        quickDeathToYaw = Yaw;
+        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
+                QueryTriggerInteraction.Ignore) &&
+            Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
+        {
+            quickDeathToLocation = hit.point + Vector3.up * 0.8f;
+            quickDeathToYaw = Yaw;
+        }
     }
 
     public void DoQuickDeath()
@@ -115,6 +120,7 @@ public class Player : MonoBehaviour
         // Give player a little control over sliding by allowing them to hold back/neutral to stand
         get
         {
+            if (uncrouchBlocked) return true;
             if (IsOnRail) return false;
             if (!PlayerInput.GetKey(PlayerInput.MoveForward) &&
                 !PlayerInput.GetKey(PlayerInput.MoveBackward) &&
@@ -379,6 +385,8 @@ public class Player : MonoBehaviour
 ╚═╝░░░░░╚═╝╚═╝░░╚═╝╚══════╝╚═════╝░░╚═════╝░╚═╝░░░░░╚═════╝░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝
     */
 
+    private bool uncrouchBlocked;
+
     private void FixedUpdate()
     {
         wallRecovery -= Mathf.Min(wallRecovery, Time.fixedDeltaTime);
@@ -423,12 +431,7 @@ public class Player : MonoBehaviour
 
         if (PlayerInput.SincePressed(PlayerInput.PrimaryInteract) <= 25 && GrappleEnabled)
         {
-            if (GrappleHooked)
-            {
-                DetachGrapple();
-                PlayerInput.ConsumeBuffer(PlayerInput.PrimaryInteract);
-            }
-            else
+            if (!GrappleHooked)
             {
                 if (GrappleCast(out var hit))
                 {
@@ -562,6 +565,7 @@ public class Player : MonoBehaviour
         }
 
         if (surfAccelTime > 0) surfAccelTime -= Time.fixedDeltaTime;
+        uncrouchBlocked = false;
 
         while (movement.magnitude > 0f && iterations < 5)
         {
@@ -569,17 +573,32 @@ public class Player : MonoBehaviour
 
             // this is fucked lol
             // good luck
-            if (Math.Abs(hitbox.transform.localScale.y - 1) < 0.05f && !IsSliding)
+            var crouchHitboxHeight = 1.2f;
+            var hitboxTransform = hitbox.transform;
+            if (Math.Abs(hitbox.transform.localScale.y - crouchHitboxHeight) < 0.05f && !IsSliding)
             {
-                hitbox.transform.localScale = new Vector3(1, 2, 1);
-                hitbox.transform.position += Vector3.up;
+                hitboxTransform.localScale = new Vector3(1, 2, 1);
+                hitboxTransform.localPosition = Vector3.up * (hitboxTransform.localScale.y - 1);
+                var extents = hitbox.bounds.extents;
+                var center = hitbox.bounds.center;
+                extents.y /= 2f;
+                center.y += 1;
+                foreach (var c in Physics.OverlapBox(center, extents))
+                {
+                    if (CanCollide(c))
+                    {
+                        uncrouchBlocked = true;
+                        hitboxTransform.localScale = new Vector3(1, crouchHitboxHeight, 1);
+                        break;
+                    }
+                }
             }
 
             if (Math.Abs(hitbox.transform.localScale.y - 2) < 0.05f && IsSliding)
             {
-                hitbox.transform.localScale = new Vector3(1, 1, 1);
-                hitbox.transform.position -= Vector3.up;
+                hitboxTransform.localScale = new Vector3(1, crouchHitboxHeight, 1);
             }
+            hitboxTransform.localPosition = Vector3.up * (hitboxTransform.localScale.y - 1);
 
             var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
             reducedscale.y = IsSliding ? reducedscale.y : 2f - hitbox.contactOffset * 2;
@@ -785,11 +804,7 @@ public class Player : MonoBehaviour
             DoubleJumpAvailable = true;
         }
 
-        if (!collider.CompareTag("Uninteractable")
-            && Mathf.Abs(angle - 90) < WALL_VERTICAL_ANGLE_GIVE
-            && !IsOnGround && jumpKitEnabled
-            && (collider.gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.7 ||
-                WALL_ALLOW_SAME_FACING))
+        if (IsViableWall(collider, normal))
         {
             // If the normal of a wall changes more than 10 degrees in 1 tick, kick you off the wall
             if (IsOnWall && Vector3.Angle(wallNormal, Flatten(normal).normalized) > 10)
@@ -1458,18 +1473,19 @@ public class Player : MonoBehaviour
     private int wallLevel;
     public bool ApproachingWall { get; set; }
     public const float WALL_CATCH_FRICTION = 10f;
-    public const float WALL_JUMP_ANGLE = 10f;
+    public const float WALL_JUMP_ANGLE = 12f;
     public const float WALL_VERTICAL_ANGLE_GIVE = 10f;
     public const float WALL_AIR_ACCEL_RECOVERY = 0.35f;
     public const float WALL_END_BOOST_SPEED = 2;
     public const float WALL_LEAN_DEGREES = 15f;
     public const float WALL_SPEED = 10;
-    public const float WALL_ACCELERATION = 1f;
+    public const float WALL_ACCELERATION = 0.2f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 8;
     public const int WALL_FRICTION_TICKS = 4;
     public const float WALL_FRICTION = 6f;
-    public const bool WALL_ALLOW_SAME_FACING = false;
+    public const float WALLRUN_TIME = 1.5f;
+    public const float WALLRUN_FALLOFF_START = 0.6f;
     private Vector3 wallNormal;
     private Vector3 lastWallNormal;
     private bool wallLeanCancelled;
@@ -1479,6 +1495,7 @@ public class Player : MonoBehaviour
     private GameObject lastWall;
     private GameObject currentWall;
     private float wallRecovery;
+    private float wallRunTime;
     private float wallLeanAmount;
     private float wallLeanLerp;
     private int wallFrictionTicks;
@@ -1497,7 +1514,10 @@ public class Player : MonoBehaviour
         {
             AudioManager.PlayAudio(wallRun, true);
             wallFrictionTicks = 0;
+            wallRunTime = WALLRUN_TIME;
         }
+
+        wallRunTime -= f;
 
         // Fade in wall run sound so if you jump off right away its silent
         AudioManager.SetVolume(wallRun, Mathf.Clamp01(wallTickCount / 10f));
@@ -1513,7 +1533,18 @@ public class Player : MonoBehaviour
         // Apply camera roll from the wall
         var normal = Flatten(wallNormal);
         var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
-        wallLeanAmount = Mathf.Clamp01(wallLeanAmount + Time.fixedDeltaTime * 10f);
+
+        var endModifier = Mathf.Clamp01(wallRunTime / WALLRUN_FALLOFF_START);
+        if (endModifier >= 1)
+        {
+            wallLeanAmount = Mathf.Clamp01(wallLeanAmount + Time.fixedDeltaTime * 10f);
+        }
+        else
+        {
+            var ease = Mathf.Pow(endModifier, 3);
+            wallLeanAmount = ease;
+        }
+
         var roll = WALL_LEAN_DEGREES * -projection * wallLeanAmount;
         wallLeanLerp = wallTickCount <= 1 ? roll : Mathf.Lerp(wallLeanLerp, roll, f * 20);
         var speed = Mathf.Abs(CameraRoll - wallLeanLerp) / Time.fixedDeltaTime;
@@ -1543,8 +1574,7 @@ public class Player : MonoBehaviour
             // Apply wall speed in direction youre already going
             if (Speed > 0)
             {
-                var s = Mathf.Lerp(WALL_SPEED, SLIDE_BOOST_SPEED, Mathf.Clamp01(wallTickCount / 200f));
-                Accelerate(Flatten(velocity).normalized, s, WALL_ACCELERATION, f);
+                Accelerate(Flatten(velocity).normalized, SLIDE_BOOST_SPEED, WALL_ACCELERATION, f);
             }
             else
             {
@@ -1563,7 +1593,32 @@ public class Player : MonoBehaviour
 
         // Push you into the wall, holding you against it a bit
         Accelerate(-wallNormal, 1, Gravity, f);
+        if (wallRunTime <= 0)
+        {
+            Accelerate(wallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
+            IsOnWall = false;
+            AudioManager.StopAudio(wallRun);
+            lastWall = currentWall;
+            lastWallNormal = wallNormal;
+            wallLeanCancelled = false;
+            ApproachingWall = false;
+            wallRecovery = WALL_AIR_ACCEL_RECOVERY;
+        }
+
         PlayerJump(wallFrictionTicks);
+    }
+
+    public bool IsViableWall(Collider wall, Vector3 normal)
+    {
+        return !wall.CompareTag("Uninteractable")
+               && Mathf.Abs(Vector3.Angle(Vector3.up, normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
+               && CanCollide(wall, false)
+               && (wall.gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.9f);
+    }
+
+    public bool IsViableWall(RaycastHit hit)
+    {
+        return IsViableWall(hit.collider, hit.normal);
     }
 
     /*
@@ -1632,7 +1687,7 @@ public class Player : MonoBehaviour
         if (groundTickCount == 1)
         {
             groundFrictionTicks = 0;
-            if (!IsSliding) AudioManager.PlayAudio(groundLand);
+            if (!IsSliding && quickDeathLerp >= 1) AudioManager.PlayAudio(groundLand);
             ApplyFriction(f * LANDING_FRICTION_TAX, 0, BASE_SPEED / 2);
             SetQuickDeathPosition();
             groundFrictionTicks++;
@@ -1676,6 +1731,7 @@ public class Player : MonoBehaviour
                     {
                         velocity -= Flatten(velocity).normalized * slideFriction;
                     }
+
                     groundFrictionTicks++;
                 }
 
@@ -1761,12 +1817,7 @@ public class Player : MonoBehaviour
             IsSliding = true;
         }
 
-        if (didHit
-            && Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
-            && CanCollide(hit.collider, false)
-            && (hit.collider.gameObject != lastWall ||
-                Vector3.Dot(Flatten(hit.normal).normalized, lastWallNormal) < 0.7 ||
-                WALL_ALLOW_SAME_FACING))
+        if (didHit && IsViableWall(hit))
         {
             // This variable gives us a prediction of how long it will take until we touch the wall
             timeToWall = (hit.distance / (movement.magnitude * WALL_LEAN_PREDICTION_TIME)) *
@@ -2113,11 +2164,8 @@ public class Player : MonoBehaviour
             AudioManager.StopAudio(groundLand);
             if (wallJump)
             {
-                wallRecovery = WALL_AIR_ACCEL_RECOVERY;
-                ApproachingWall = false;
                 AudioManager.PlayOneShot(jump);
                 IsOnWall = false;
-                wallLeanCancelled = false;
 
                 var negativeFrictionTicks = Mathf.Min(sinceJump, WALL_JUMP_BUFFERING);
                 var speedGain = WALL_JUMP_SPEED;
@@ -2142,8 +2190,11 @@ public class Player : MonoBehaviour
                 }
 
                 lastWall = currentWall;
-                wallJumpTimestamp = PlayerInput.tickCount;
                 lastWallNormal = wallNormal;
+                wallLeanCancelled = false;
+                ApproachingWall = false;
+                wallRecovery = WALL_AIR_ACCEL_RECOVERY;
+                wallJumpTimestamp = PlayerInput.tickCount;
                 var y = velocity.y;
 
                 var speed = Speed;
