@@ -232,23 +232,6 @@ public class Player : MonoBehaviour
 
         grappleTether.useWorldSpace = true;
         grappleTether.enabled = false;
-
-        var positionOverride = GameObject.Find("PlayerStartPositionOverride");
-        if (positionOverride != null)
-        {
-            transform.position = positionOverride.transform.position;
-        }
-
-        // Try to start the player on ground so it doesnt play the stupid ground land sound frame 1
-        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
-                QueryTriggerInteraction.Ignore) &&
-            Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
-        {
-            transform.position = hit.point + Vector3.up * 0.8f;
-            IsOnGround = true;
-            currentGround = hit.collider.gameObject;
-            groundTickCount = 2;
-        }
     }
 
     private Level level;
@@ -423,9 +406,25 @@ public class Player : MonoBehaviour
     */
 
     private bool uncrouchBlocked;
+    private int startGrounded = 5;
 
     private void FixedUpdate()
     {
+        // idk why but on box colliders unity likes to ignore this for the first couple ticks
+        // so i just repeat it for 5 ticks and it works
+        if (startGrounded > 0)
+        {
+            startGrounded--;
+            // Try to start the player on ground so it doesnt play the stupid ground land sound frame 1
+            if (rigidbody.SweepTest(Vector3.down, out var hit, 5f, QueryTriggerInteraction.Ignore) &&
+                Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
+            {
+                transform.position += Vector3.down * hit.distance;
+                IsOnGround = true;
+                currentGround = hit.collider.gameObject;
+                groundTickCount = 2;
+            }
+        }
         wallRecovery -= Mathf.Min(wallRecovery, Time.fixedDeltaTime);
         jumpBuffered = Mathf.Max(jumpBuffered - Time.fixedDeltaTime, 0);
         eatJumpInputs = Mathf.Max(eatJumpInputs - Time.fixedDeltaTime, 0);
