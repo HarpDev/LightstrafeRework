@@ -17,7 +17,9 @@ public class CrosshairManager : MonoBehaviour
         player = Game.OnStartResolve<Player>();
     }
 
-    private float crosshairColor;
+    private float crosshairScale;
+    private Vector4 crosshairGrey = new Color(0.39f, 0.39f, 0.39f, 0.39f);
+    private Vector4 crosshairBlue = new Color(0f, 0.8f, 1f, 1f);
 
     private void Update()
     {
@@ -43,8 +45,10 @@ public class CrosshairManager : MonoBehaviour
 
         crosshair.transform.rotation = Quaternion.Euler(0, 0,
             Mathf.Lerp(crosshair.transform.rotation.eulerAngles.z, 45 * active, Time.deltaTime * 20));
-        crosshairColor = Mathf.Lerp(crosshairColor, active >= 1f ? 1 : 100 / 255f, Time.deltaTime * 20);
-
-        crosshair.color = new Color(crosshairColor, crosshairColor, crosshairColor, crosshairColor);
+        
+        crosshairScale = Mathf.Lerp(crosshairScale, active >= 1f ? 1.35f : 1f, Time.deltaTime * 20);
+        
+        crosshair.color = Vector4.Lerp(crosshair.color, active >= 1f ? crosshairBlue : crosshairGrey, Time.deltaTime * 20);
+        crosshair.transform.localScale = new Vector3(crosshairScale, crosshairScale, crosshairScale);
     }
 }
