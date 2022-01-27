@@ -41,6 +41,13 @@ public class CanvasManager : MonoBehaviour
         notif.SetText(text, duration, fontSize);
     }
 
+    public void SendNotification(string text, IEnumerable<int> keys, int fontSize = 40)
+    {
+        var notif = Instantiate(textNotificationPrefab, baseCanvas.transform).GetComponent<TextNotification>();
+        fontSize *= Screen.width / 1600;
+        notif.SetText(text, keys, 1, fontSize);
+    }
+
     public void OpenMenuAndSetAsBaseCanvas(Canvas canvas)
     {
         var o = baseCanvas.gameObject;
