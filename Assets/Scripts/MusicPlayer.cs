@@ -4,7 +4,7 @@ public class MusicPlayer : MonoBehaviour
 {
     public AudioClip musicLoop;
 
-    private AudioSource audio;
+    private new AudioSource audio;
 
     private static MusicPlayer I;
     private Player player;

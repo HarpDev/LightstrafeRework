@@ -173,7 +173,6 @@ GameObject:
   - component: {fileID: 1351658015657563554}
   - component: {fileID: 1351658015657563556}
   - component: {fileID: 1351658015657563557}
-  - component: {fileID: 1351658015657563558}
   - component: {fileID: 1351658015657563559}
   m_Layer: 10
   m_Name: Player
@@ -214,7 +213,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hitbox: {fileID: 461677976843778005}
-  weaponManager: {fileID: 1351658015657563558}
+  weaponManager: {fileID: 0}
   camera: {fileID: 1351658016518666248}
   cameraParent: {fileID: 1351658015547209675}
   rigidbody: {fileID: 1351658015657563556}
@@ -449,25 +448,6 @@ LineRenderer:
     generateLightingData: 0
   m_UseWorldSpace: 1
   m_Loop: 0
---- !u!114 &1351658015657563558
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1351658015657563560}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc5d90ec90d237e4bb45aadbb84b19c3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  guns:
-  - {fileID: 1798855362, guid: c9ca7821ea4b44e4e8fcd242bfdeb805, type: 3}
-  - {fileID: 271368100, guid: 8dcf5390a829a5e4a9839b8d9380f922, type: 3}
-  - {fileID: 391917514384487629, guid: d2aeb77fc6a09d14ab27661954c6e77d, type: 3}
-  - {fileID: 5399352120545648288, guid: ccf97a4c40451254691d6eff237f279f, type: 3}
-  tracerMaterial: {fileID: 2100000, guid: 16adbd4a878d18b4ebda375ec72234a3, type: 2}
-  startGun: 4
 --- !u!114 &1351658015657563559
 MonoBehaviour:
   m_ObjectHideFlags: 0

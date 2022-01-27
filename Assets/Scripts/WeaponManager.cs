@@ -7,7 +7,7 @@ using UnityEngine.Serialization;
 public class WeaponManager : MonoBehaviour
 {
 
-    public List<Gun> guns;
+    /*public List<Gun> guns;
 
     public Material tracerMaterial;
 
@@ -22,7 +22,7 @@ public class WeaponManager : MonoBehaviour
 
     public enum GunType
     {
-        Rifle, Pistol, Cannon, GrappleGun, None
+        Rifle, Pistol, Cannon, None
     }
 
     public void EquipGun(GunType? type)
@@ -179,6 +179,6 @@ public class WeaponManager : MonoBehaviour
             animator.SetBool("Unequip", false);
         }
 
-    }
+    }*/
 
 }

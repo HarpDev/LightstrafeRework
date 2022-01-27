@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class Rifle : WeaponManager.Gun
+public class Rifle// : WeaponManager.Gun
 {
-
+/*
     public override WeaponManager.GunType GetGunType() => WeaponManager.GunType.Rifle;
 
     public AudioClip fireSound;
@@ -16,15 +13,10 @@ public class Rifle : WeaponManager.Gun
     public AudioClip boltDown;
 
     public List<GameObject> parts;
-    public GameObject animatedBoomerang;
-    public GameObject projectileBoomerang;
-    public Transform boomerangBone;
 
     public Transform barrel;
     public Transform center;
     public Transform stock;
-
-    public SkinnedMeshRenderer rifleMesh;
 
     private const float crouchPositionSpeed = 4;
 
@@ -224,27 +216,6 @@ public class Rifle : WeaponManager.Gun
 
         roll += player.CameraRoll / 2;
 
-        /*if (closest != null)
-        {
-            aimFactor = Mathf.Lerp(aimFactor, 1, Time.deltaTime * 10);
-            toTargetVector = closest.transform.position - player.camera.transform.position;
-        } else
-        {
-            aimFactor = Mathf.Lerp(aimFactor, 0, Time.deltaTime * 10);
-        }
-
-        if (toTargetVector.magnitude > 0)
-        {
-            var aimT = Mathf.Atan2(player.CrosshairDirection.z, player.CrosshairDirection.x);
-            var targetT = Mathf.Atan2(toTargetVector.z, toTargetVector.x);
-            swing += Mathf.Rad2Deg * ((targetT - aimT) / 3.5f) * aimFactor;
-
-            var aimP = Mathf.Acos(player.CrosshairDirection.y / player.CrosshairDirection.magnitude);
-            var targetP = Mathf.Acos(toTargetVector.y / toTargetVector.magnitude);
-            tilt += Mathf.Rad2Deg * ((aimP - targetP) / 3.5f) * aimFactor;
-            tilt += 1 * aimFactor;
-        }*/
-
         var barrelPosition = barrel.position;
         var centerPosition = center.position;
         var stockPosition = stock.position;
@@ -278,5 +249,5 @@ public class Rifle : WeaponManager.Gun
     private static Vector3 Flatten(Vector3 vec)
     {
         return new Vector3(vec.x, 0, vec.z);
-    }
+    }*/
 }

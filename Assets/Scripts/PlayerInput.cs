@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using FullSerializer;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerInput : MonoBehaviour

@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Pistol : WeaponManager.Gun
+public class Pistol //: WeaponManager.Gun
 {
-    public override WeaponManager.GunType GetGunType() => WeaponManager.GunType.Pistol;
+    /*public override WeaponManager.GunType GetGunType() => WeaponManager.GunType.Pistol;
 
     public AudioClip fireSound;
 
@@ -200,5 +200,5 @@ public class Pistol : WeaponManager.Gun
     private static Vector3 Flatten(Vector3 vec)
     {
         return new Vector3(vec.x, 0, vec.z);
-    }
+    }*/
 }

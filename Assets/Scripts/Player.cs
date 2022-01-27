@@ -290,7 +290,6 @@ public class Player : MonoBehaviour
 ░╚═════╝░╚═╝░░░░░╚═════╝░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝
     */
 
-    private float crosshairColor = 255;
     private float velocityThunk;
     private float velocityThunkSmoothed;
     private float previousYVelocity;
@@ -898,7 +897,6 @@ public class Player : MonoBehaviour
 ░░░╚═╝░░░╚══════╝╚══════╝╚══════╝╚═╝░░░░░░╚════╝░╚═╝░░╚═╝░░░╚═╝░░░
     */
     private float teleportTime;
-    private float teleportTotalTime;
     private Vector3 teleportToPosition;
     private Vector3 teleportStartPosition;
     private bool tpThisTick;
@@ -907,7 +905,7 @@ public class Player : MonoBehaviour
     {
         teleportToPosition = position;
         teleportTime = 0.2f;
-        teleportTotalTime = 0.2f;
+        //teleportTotalTime = 0.2f;
         teleportStartPosition = transform.position;
     }
 
@@ -1603,7 +1601,7 @@ public class Player : MonoBehaviour
             wallRecovery = WALL_AIR_ACCEL_RECOVERY;
         }
 
-        PlayerJump(wallFrictionTicks);
+        PlayerJump();
     }
 
     public bool IsViableWall(Collider wall, Vector3 normal)
@@ -1656,7 +1654,6 @@ public class Player : MonoBehaviour
     private GameObject currentGround;
     private GameObject lastGround;
     private GameObject lastRefreshGround;
-    private int groundFrictionTicks;
 
     public void GroundMove(float f)
     {
@@ -1684,11 +1681,9 @@ public class Player : MonoBehaviour
 
         if (groundTickCount == 1)
         {
-            groundFrictionTicks = 0;
             if (!IsSliding && quickDeathLerp >= 1) AudioManager.PlayAudio(groundLand);
             ApplyFriction(f * LANDING_FRICTION_TAX, 0, BASE_SPEED / 2);
             SetQuickDeathPosition();
-            groundFrictionTicks++;
         }
 
         // Stop sliding if you slow down enough
@@ -1729,8 +1724,6 @@ public class Player : MonoBehaviour
                     {
                         velocity -= Flatten(velocity).normalized * slideFriction;
                     }
-
-                    groundFrictionTicks++;
                 }
 
                 AirAccelerate(ref velocity, f, 1, 0);
@@ -1740,7 +1733,6 @@ public class Player : MonoBehaviour
             else
             {
                 ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 3);
-                groundFrictionTicks++;
                 var speed = Speed;
                 Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
                 if (Speed > BASE_SPEED)
@@ -1752,7 +1744,7 @@ public class Player : MonoBehaviour
             }
         }
 
-        PlayerJump(groundFrictionTicks);
+        PlayerJump();
     }
 
     // Returns speed gain
@@ -1839,7 +1831,7 @@ public class Player : MonoBehaviour
             }
 
             // First tick on approach, tell view model that lean is starting
-            if (!ApproachingWall)
+            /*if (!ApproachingWall)
             {
                 if (cameraRotation < 0)
                 {
@@ -1849,7 +1841,7 @@ public class Player : MonoBehaviour
                 {
                     weaponManager.RightWallStart();
                 }
-            }
+            }*/
 
             ApproachingWall = true;
 
@@ -1875,7 +1867,7 @@ public class Player : MonoBehaviour
         else
         {
             // Tell view model that we're not approaching a wall
-            weaponManager.WallStop();
+            //weaponManager.WallStop();
             ApproachingWall = false;
 
             // Lean out of a wall, applying same ease function as titanfall
@@ -2114,7 +2106,7 @@ public class Player : MonoBehaviour
     private float eatJumpInputs;
     private int jumpTimestamp;
 
-    public bool PlayerJump(int friction = 0)
+    public bool PlayerJump()
     {
         int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
         if (sinceJump <= Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) || jumpBuffered > 0)
@@ -2175,23 +2167,22 @@ public class Player : MonoBehaviour
                 
                 if (CancelDash(false))
                 {
-                    friction = 0;
+                    wallFrictionTicks = 0;
                     for (var i = 0; i < Mathf.Min(wallTickCount, WALL_FRICTION_TICKS); i++)
                     {
                         ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
-                        friction++;
+                        wallFrictionTicks++;
                     }
                 }
                 for (var i = 0; i < negativeFrictionTicks; i++)
                 {
                     ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
-                    friction++;
+                    wallFrictionTicks++;
                 }
 
-                if (negativeFrictionTicks > 0) friction *= -1;
+                if (negativeFrictionTicks > 0) wallFrictionTicks *= -1;
 
-                if (!coyoteJump && wallTickCount <= WALL_FRICTION_TICKS)
-                    kickFeedback.Display(friction, friction == 1 ? Color.green : Color.white);
+                kickFeedback.Display(wallFrictionTicks, wallFrictionTicks == 1 ? Color.green : Color.white);
 
                 lastWall = currentWall;
                 lastWallNormal = wallNormal;
