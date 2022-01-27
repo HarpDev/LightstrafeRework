@@ -1774,7 +1774,7 @@ public class Player : MonoBehaviour
     */
     public bool ApproachingGround { get; set; }
     private const float AIR_SPEED = 2.4f;
-    private const float SIDE_AIR_ACCELERATION = 40;
+    private const float SIDE_AIR_ACCELERATION = 50;
     private const float FORWARD_AIR_ACCELERATION = 70;
     private const float DIAGONAL_AIR_ACCEL_BONUS = 80;
     private const float BACKWARD_AIR_ACCELERATION = 35;
