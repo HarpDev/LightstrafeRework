@@ -121,6 +121,7 @@ public class Player : MonoBehaviour
         hit = ray;
         return h;
     }
+
     public bool GrappleDashCast(out RaycastHit hit, out float howFarBeyond, float beyond = 10f)
     {
         var origin = camera.transform.position;
@@ -425,6 +426,7 @@ public class Player : MonoBehaviour
                 groundTickCount = 2;
             }
         }
+
         wallRecovery -= Mathf.Min(wallRecovery, Time.fixedDeltaTime);
         jumpBuffered = Mathf.Max(jumpBuffered - Time.fixedDeltaTime, 0);
         eatJumpInputs = Mathf.Max(eatJumpInputs - Time.fixedDeltaTime, 0);
@@ -635,6 +637,7 @@ public class Player : MonoBehaviour
             {
                 hitboxTransform.localScale = new Vector3(1, crouchHitboxHeight, 1);
             }
+
             hitboxTransform.localPosition = Vector3.up * (hitboxTransform.localScale.y - 1);
 
             var reducedscale = hitbox.transform.localScale * (1f - hitbox.contactOffset * 2);
@@ -1333,9 +1336,9 @@ public class Player : MonoBehaviour
 
         if (velocityProjection < 0)
         {
-            if (Vector3.Angle(Flatten(velocity), velocity) < 20)
+            var wishdir = velocity + towardPoint.normalized * -velocityProjection;
+            if (wishdir.magnitude > 0.5f && Mathf.Abs(wishdir.normalized.y) < 0.35f)
             {
-                var wishdir = velocity + (towardPoint.normalized * -velocityProjection);
                 var y = CalculateYForDirection(wishdir);
 
                 velocity.y = y;
@@ -1964,6 +1967,7 @@ public class Player : MonoBehaviour
             Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION / 2, f);
             return;
         }
+
         var forward = transform.forward * PlayerInput.GetAxisStrafeForward();
         var right = transform.right * PlayerInput.GetAxisStrafeRight();
 
@@ -2163,7 +2167,7 @@ public class Player : MonoBehaviour
 
                 var negativeFrictionTicks = Mathf.Min(sinceJump, WALL_JUMP_BUFFERING);
                 var speedGain = WALL_JUMP_SPEED;
-                
+
                 if (CancelDash(false))
                 {
                     wallFrictionTicks = 0;
@@ -2173,6 +2177,7 @@ public class Player : MonoBehaviour
                         wallFrictionTicks++;
                     }
                 }
+
                 for (var i = 0; i < negativeFrictionTicks; i++)
                 {
                     ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
@@ -2264,7 +2269,7 @@ public class Player : MonoBehaviour
         return new Vector3(vec.x, 0, vec.z);
     }
 
-    public float CalculateYForDirection(Vector3 direction)
+    public float CalculateYForDirection(Vector3 direction, float max = 100f)
     {
         var wishdir = direction.normalized;
         var x2 = Flatten(wishdir).magnitude;
@@ -2272,6 +2277,7 @@ public class Player : MonoBehaviour
         var y2 = wishdir.y;
         var y1 = x1 * y2 / x2;
 
+        if (Mathf.Abs(y1) > max) y1 = Mathf.Sign(y1) * max;
         return y1;
     }
 }

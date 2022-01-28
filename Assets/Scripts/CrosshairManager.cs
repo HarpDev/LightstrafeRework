@@ -30,7 +30,7 @@ public class CrosshairManager : MonoBehaviour
         }
 
         var active = 0f;
-        var fadeRange = 20f;
+        var fadeRange = 25f;
         if (player.GrappleEnabled || player.DashEnabled)
         {
             if (player.GrappleDashCast(out var hit, out var howFarBeyond, fadeRange))
