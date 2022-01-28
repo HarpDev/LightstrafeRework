@@ -11,29 +11,33 @@ public class BuildingGenerator : MonoBehaviour
 
     public int slices = 10;
 
+    public bool Rebuild = false;
+
     private void Update()
     {
+        if (Application.isPlaying) return;
         top.transform.localPosition = Vector3.zero + (Vector3.up * 0.001f);
         slice.transform.localPosition = Vector3.zero;
         var sliceSize = slice.GetComponent<Renderer>().bounds.size.y;
-
-        if (sliceContainer.transform.childCount < slices)
+        
+        if (Rebuild)
         {
-            for (var i = 0; i < slices - sliceContainer.transform.childCount; i++)
-            {
-                Instantiate(slice, sliceContainer.transform);
-            }
-        }
-
-        if (sliceContainer.transform.childCount > slices)
-        {
-            for (var i = 0; i < sliceContainer.transform.childCount - slices; i++)
+            Rebuild = false;
+            for (var i = 0; i < sliceContainer.transform.childCount; i++)
             {
                 DestroyImmediate(sliceContainer.transform.GetChild(i).gameObject);
             }
+
+            if (sliceContainer.transform.childCount < slices)
+            {
+                for (var i = 0; i < slices - sliceContainer.transform.childCount; i++)
+                {
+                    Instantiate(slice, sliceContainer.transform);
+                }
+            }
         }
 
-        for (var i = 0; i < slices; i++)
+        for (var i = 0; i < sliceContainer.transform.childCount; i++)
         {
             var pos = Vector3.zero;
             pos.y -= (i + 1) * sliceSize;

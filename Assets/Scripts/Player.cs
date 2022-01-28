@@ -828,7 +828,10 @@ public class Player : MonoBehaviour
                     Flatten(verticalCollide).magnitude > Flatten(impulseCollide).magnitude &&
                     Mathf.Abs(angle - 90) >= WALL_VERTICAL_ANGLE_GIVE)
                 {
-                    velocity += impulse * VERTICAL_COLLIDE_INEFFICIENCY;
+                    if (angle >= GROUND_ANGLE || collider.CompareTag("Uninteractable") || collider.CompareTag("Wall") || velocity.normalized.y > 0.5f)
+                    {
+                        velocity += impulse * VERTICAL_COLLIDE_INEFFICIENCY;
+                    }
                     velocity.y = y;
                 }
                 else
@@ -1728,7 +1731,7 @@ public class Player : MonoBehaviour
                     }
                 }
 
-                AirAccelerate(ref velocity, f, 1, 0);
+                AirAccelerate(ref velocity, f, 10, 0.2f);
 
                 slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, f * 7);
             }
