@@ -128,6 +128,7 @@ public class Collectible : MonoBehaviour
                 edge.y += Screen.height / 2f;
 
                 toScreen = edge;
+                scale *= 2;
             }
 
             scale /= 4;
