@@ -20,6 +20,7 @@ public class CrosshairManager : MonoBehaviour
     private float crosshairScale;
     private Vector4 crosshairGrey = new Color(0.39f, 0.39f, 0.39f, 0.39f);
     private Vector4 crosshairBlue = new Color(0f, 0.8f, 1f, 1f);
+    private Vector4 crosshairWhite = new Color(1f, 1f, 1f, 1f);
 
     private void Update()
     {
@@ -42,13 +43,19 @@ public class CrosshairManager : MonoBehaviour
                 active = 1 - (howFarBeyond / fadeRange);
             }
         }
-
-        crosshair.transform.rotation = Quaternion.Euler(0, 0,
-            Mathf.Lerp(crosshair.transform.rotation.eulerAngles.z, 45 * active, Time.deltaTime * 20));
         
-        crosshairScale = Mathf.Lerp(crosshairScale, active >= 1f ? 1.35f : 1f, Time.deltaTime * 20);
-        
-        crosshair.color = Vector4.Lerp(crosshair.color, active >= 1f ? crosshairBlue : crosshairGrey, Time.deltaTime * 20);
+        if (player.IsDashing || player.GrappleHooked) {
+            crosshair.color = crosshairWhite;
+            crosshair.transform.rotation = Quaternion.Euler(0, 0, 45);
+        } else {
+            crosshair.transform.rotation = Quaternion.Euler(0, 0,
+                Mathf.Lerp(crosshair.transform.rotation.eulerAngles.z, 45 * active, Time.deltaTime * 20));
+            
+            crosshairScale = Mathf.Lerp(crosshairScale, active >= 1f ? 1.35f : 1f, Time.deltaTime * 20);
+            
+            crosshair.color = Vector4.Lerp(crosshair.color, active >= 1f ? crosshairBlue : crosshairGrey, Time.deltaTime * 20);
+        }
         crosshair.transform.localScale = new Vector3(crosshairScale, crosshairScale, crosshairScale);
+
     }
 }
