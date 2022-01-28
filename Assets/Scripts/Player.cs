@@ -304,8 +304,8 @@ public class Player : MonoBehaviour
             Pitch += pitchinterpolation;
             PitchFutureInterpolation -= pitchinterpolation;
 
-            Pitch = Mathf.Max(Pitch, -90);
-            Pitch = Mathf.Min(Pitch, 90);
+            Pitch = Mathf.Max(Pitch, -85);
+            Pitch = Mathf.Min(Pitch, 85);
         }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
