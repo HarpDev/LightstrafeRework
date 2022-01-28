@@ -7,10 +7,11 @@ public class AnimatedTexture : MonoBehaviour
     public float fps = 2f;
 
     private Material mat;
+    public int materialIndex;
     
     private void Start()
     {
-        mat = GetComponent<Renderer>().material;
+        mat = GetComponent<Renderer>().materials[materialIndex];
     }
 
     private void Update()

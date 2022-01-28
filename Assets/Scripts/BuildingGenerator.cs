@@ -36,9 +36,9 @@ public class BuildingGenerator : MonoBehaviour
         for (var i = 0; i < slices; i++)
         {
             var pos = Vector3.zero;
-            pos.y -= i * sliceSize;
+            pos.y -= (i + 1) * sliceSize;
             var child = sliceContainer.transform.GetChild(i);
-            child.transform.localPosition = pos;
+            child.localPosition = pos;
         }
     }
 }
