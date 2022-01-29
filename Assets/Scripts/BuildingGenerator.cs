@@ -1,48 +1,119 @@
+using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 [ExecuteAlways]
 [SelectionBase]
 public class BuildingGenerator : MonoBehaviour
 {
-
     public GameObject top;
-    public GameObject slice;
+    public GameObject[] slicePrefabs;
     public GameObject sliceContainer;
 
-    public int slices = 10;
+    public int slices = 15;
 
-    public bool Rebuild = false;
+    public bool randomizeRotation = true;
 
     private void Update()
     {
         if (Application.isPlaying) return;
-        top.transform.localPosition = Vector3.zero + (Vector3.up * 0.001f);
-        slice.transform.localPosition = Vector3.zero;
-        var sliceSize = slice.GetComponent<Renderer>().bounds.size.y;
+        top.transform.localPosition = Vector3.up * 0.001f;
         
-        if (Rebuild)
-        {
-            Rebuild = false;
-            for (var i = 0; i < sliceContainer.transform.childCount; i++)
-            {
-                DestroyImmediate(sliceContainer.transform.GetChild(i).gameObject);
-            }
-
-            if (sliceContainer.transform.childCount < slices)
-            {
-                for (var i = 0; i < slices - sliceContainer.transform.childCount; i++)
-                {
-                    Instantiate(slice, sliceContainer.transform);
-                }
-            }
-        }
-
+        var renderer = top.GetComponent<Renderer>();
+        var offset = (top.transform.position.y - renderer.bounds.center.y) + (renderer.bounds.size.y / 2f);
+        sliceContainer.transform.localPosition = Vector3.down * offset;
+        
+        var sliceBounds = new Bounds();
         for (var i = 0; i < sliceContainer.transform.childCount; i++)
         {
             var pos = Vector3.zero;
-            pos.y -= (i + 1) * sliceSize;
             var child = sliceContainer.transform.GetChild(i);
+            var childBounds = child.GetComponent<Renderer>().bounds;
+            if (i == 0)
+            {
+                sliceBounds = childBounds;
+            }
+            else
+            {
+                sliceBounds.Encapsulate(childBounds);
+            }
+            var sliceSize = childBounds.size.y;
+            pos.y -= i * sliceSize;
             child.localPosition = pos;
         }
+
+        var sliceCollider = GetComponent<BoxCollider>();
+        if (sliceCollider != null)
+        {
+            sliceCollider.center = transform.InverseTransformPoint(sliceBounds.center);
+            sliceCollider.size = sliceBounds.size;
+        }
+    }
+
+    public void ResizeTop()
+    {
+        var biggestBoundsX = 0f;
+        var biggestBoundsZ = 0f;
+        for (var i = 0; i < sliceContainer.transform.childCount; i++)
+        {
+            var child = sliceContainer.transform.GetChild(i);
+            var childBounds = child.GetComponent<Renderer>().bounds;
+            if (childBounds.size.x > biggestBoundsX) biggestBoundsX = childBounds.size.x;
+            if (childBounds.size.z > biggestBoundsZ) biggestBoundsZ = childBounds.size.z;
+        }
+
+        var renderer = top.GetComponent<Renderer>();
+        top.transform.localScale = Vector3.one;
+        var minBoundsSize = Mathf.Max(biggestBoundsX, biggestBoundsZ);
+        var topMaxBoundsSize = Mathf.Min(renderer.bounds.size.x, renderer.bounds.size.z);
+        
+        top.transform.localScale = Vector3.one * (minBoundsSize / topMaxBoundsSize);
+    }
+
+    public void Build()
+    {
+        var beforePosition = transform.position;
+        transform.position = Vector3.zero;
+        for (var i = sliceContainer.transform.childCount - 1; i >= 0; i--)
+        {
+            DestroyImmediate(sliceContainer.transform.GetChild(i).gameObject);
+        }
+
+        var combine = new CombineInstance[slices + 1];
+
+        for (var i = 0; i < slices; i++)
+        {
+            var indexToBuild = Random.Range(0, slicePrefabs.Length);
+
+            var addedSlice = Instantiate(slicePrefabs[indexToBuild], sliceContainer.transform);
+            if (randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
+            addedSlice.isStatic = true;
+        }
+        for (var i = 0; i < sliceContainer.transform.childCount; i++)
+        {
+            var pos = Vector3.zero;
+            var child = sliceContainer.transform.GetChild(i);
+            var childBounds = child.GetComponent<Renderer>().bounds;
+            var sliceSize = childBounds.size.y;
+            pos.y -= i * sliceSize;
+            child.localPosition = pos;
+        }
+        ResizeTop();
+        combine[0].mesh = top.GetComponent<MeshFilter>().sharedMesh;
+        combine[0].transform = top.transform.localToWorldMatrix;
+        for (var i = 0; i < slices; i++)
+        {
+            var meshFilter = sliceContainer.transform.GetChild(i).GetComponent<MeshFilter>();
+            combine[i + 1].mesh = meshFilter.sharedMesh;
+            combine[i + 1].transform = meshFilter.transform.localToWorldMatrix;
+        }
+
+        var hitboxMesh = new Mesh
+        {
+            name = "hitbox"
+        };
+        hitboxMesh.CombineMeshes(combine);
+        GetComponent<MeshCollider>().sharedMesh = hitboxMesh;
+        transform.position = beforePosition;
     }
 }

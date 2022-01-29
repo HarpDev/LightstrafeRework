@@ -43,6 +43,7 @@ public class Player : MonoBehaviour
 
         if (quickDeathLerp < 1) return;
         DetachGrapple();
+        EndRail();
         quickDeathFromLocation = camera.transform.position;
         quickDeathFromYaw = Yaw;
         quickDeathLerp = 0;
@@ -772,11 +773,14 @@ public class Player : MonoBehaviour
             {
                 if (Vector3.Angle(stepHit.normal, Vector3.up) < GROUND_ANGLE)
                 {
-                    normal = Vector3.up;
-                    velocity.y = -WALL_END_BOOST_SPEED;
-                    IsOnGround = true;
-                    ApproachingWall = false;
-                    distance = STEP_HEIGHT - stepHit.distance;
+                    if (Physics.OverlapSphere(stepCheck + Vector3.up * 0.11f, 0.1f, ExcludePlayerMask, QueryTriggerInteraction.Ignore).Length == 0)
+                    {
+                        normal = Vector3.up;
+                        velocity.y = -WALL_END_BOOST_SPEED;
+                        IsOnGround = true;
+                        ApproachingWall = false;
+                        distance = STEP_HEIGHT - stepHit.distance;
+                    }
                 }
             }
         }
@@ -861,7 +865,7 @@ public class Player : MonoBehaviour
                 IsOnWall = true;
                 wallNormal = Flatten(normal).normalized;
 
-                currentWall = collider.gameObject;
+                currentWall = GetTopParent(collider.transform).gameObject;
 
                 if (Speed < SLIDE_BOOST_SPEED && wallTickCount == 0)
                 {
@@ -1614,7 +1618,20 @@ public class Player : MonoBehaviour
         return !wall.CompareTag("Uninteractable")
                && Mathf.Abs(Vector3.Angle(Vector3.up, normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
                && CanCollide(wall, false)
-               && (wall.gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.9f);
+               && (GetTopParent(wall.transform).gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.9f);
+    }
+
+    public Transform GetTopParent(Transform child)
+    {
+        var top = child.transform;
+        while (top.parent != null)
+        {
+            var parent = top.parent;
+            if (parent == null) break;
+            top = parent;
+        }
+
+        return top;
     }
 
     public bool IsViableWall(RaycastHit hit)
@@ -1728,7 +1745,7 @@ public class Player : MonoBehaviour
                     if (Speed > slideFriction)
                     {
                         velocity -= Flatten(velocity).normalized * slideFriction;
-                    }
+                    } 
                 }
 
                 AirAccelerate(ref velocity, f, 10, 0.2f);
