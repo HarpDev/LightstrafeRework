@@ -66,6 +66,12 @@ public class Player : MonoBehaviour
 
             return speed;
         }
+        set
+        {
+            var y = velocity.y;
+            velocity = Flatten(velocity).normalized * value;
+            velocity.y = y;
+        }
     }
 
     public bool jumpKitEnabled = true;
@@ -1738,7 +1744,12 @@ public class Player : MonoBehaviour
                     } 
                 }
 
-                AirAccelerate(ref velocity, f, 10, 0.2f);
+                var speedBeforeAir = Speed;
+                AirAccelerate(ref velocity, f);
+                if (Speed > speedBeforeAir)
+                {
+                    Speed = speedBeforeAir;
+                }
 
                 slideLeanVector = Vector3.Lerp(slideLeanVector, Flatten(velocity).normalized, f * 7);
             }
