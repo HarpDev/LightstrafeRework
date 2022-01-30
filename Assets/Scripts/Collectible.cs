@@ -79,7 +79,7 @@ public class Collectible : MonoBehaviour
         {
             if (gemsprite == null)
             {
-                gemsprite = Instantiate(GemSprite, canvasManager.baseCanvas.transform);
+                gemsprite = Instantiate(GemSprite, canvasManager.screenSizeCanvas.transform);
                 gemsprite.transform.SetAsFirstSibling();
             }
 
@@ -128,10 +128,12 @@ public class Collectible : MonoBehaviour
                 edge.y += Screen.height / 2f;
 
                 toScreen = edge;
-                scale *= 2;
+
+                var scaleMod = Mathf.Clamp01(-Vector3.Dot(player.CrosshairDirection, (transform.position - player.camera.transform.position).normalized) * 10);
+                scale *= 1 + scaleMod;
             }
 
-            scale /= 4;
+            scale /= 1.8f;
 
             if (toScreen.x < MARGIN) toScreen.x = MARGIN;
             if (toScreen.y < MARGIN) toScreen.y = MARGIN;
@@ -144,7 +146,7 @@ public class Collectible : MonoBehaviour
         {
             if (nosprite == null)
             {
-                nosprite = Instantiate(NoSprite, canvasManager.baseCanvas.transform);
+                nosprite = Instantiate(NoSprite, canvasManager.screenSizeCanvas.transform);
                 nosprite.transform.SetAsFirstSibling();
             }
 

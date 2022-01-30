@@ -73,7 +73,9 @@ public class BuildingGenerator : MonoBehaviour
     public void Build()
     {
         var beforePosition = transform.position;
+        var beforeRotation = transform.rotation;
         transform.position = Vector3.zero;
+        transform.rotation = Quaternion.identity;
         for (var i = sliceContainer.transform.childCount - 1; i >= 0; i--)
         {
             DestroyImmediate(sliceContainer.transform.GetChild(i).gameObject);
@@ -114,6 +116,8 @@ public class BuildingGenerator : MonoBehaviour
         };
         hitboxMesh.CombineMeshes(combine);
         GetComponent<MeshCollider>().sharedMesh = hitboxMesh;
+        top.isStatic = true;
         transform.position = beforePosition;
+        transform.rotation = beforeRotation;
     }
 }

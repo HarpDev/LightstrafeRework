@@ -4,20 +4,31 @@ public class AnimatedTexture : MonoBehaviour
 {
 
     public Texture2D[] frames;
-    public float fps = 2f;
 
     private Material mat;
     public int materialIndex;
+
+    private MusicPlayer music;
     
     private void Start()
     {
+        music = Game.OnStartResolve<MusicPlayer>();
         mat = GetComponent<Renderer>().materials[materialIndex];
     }
 
+    private int lastIndex;
     private void Update()
     {
-        var index = (int) (Time.time * fps);
+        if (music == null) return;
+        var time = music.Audio.timeSamples / (float)music.musicLoop.frequency;
+        var fps = music.bpm / 60;
+        var index = Mathf.RoundToInt(time * fps);
         index %= frames.Length;
-        mat.mainTexture = frames[index];
+
+        if (index != lastIndex && Time.timeScale > 0)
+        {
+            mat.mainTexture = frames[index];
+        }
+        lastIndex = index;
     }
 }
