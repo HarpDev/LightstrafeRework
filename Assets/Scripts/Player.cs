@@ -1644,7 +1644,7 @@ public class Player : MonoBehaviour
         get => groundLevel > 0;
         set
         {
-            if (value && PlayerInput.tickCount - jumpTimestamp > 10) groundLevel = SURFACE_MAX_LEVEL;
+            if (value && jumpTimestamp != 0 && PlayerInput.tickCount - jumpTimestamp > 10) groundLevel = SURFACE_MAX_LEVEL;
             else groundLevel = 0;
         }
     }

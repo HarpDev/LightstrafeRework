@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
 [ExecuteAlways]
@@ -14,6 +16,9 @@ public class BuildingGenerator : MonoBehaviour
 
     public bool randomizeRotation = true;
 
+    // Pattern functions as a list of prefab indexes top to bottom
+    public long pattern = -1;
+
     private void Update()
     {
         if (Application.isPlaying) return;
@@ -23,7 +28,13 @@ public class BuildingGenerator : MonoBehaviour
         var offset = (top.transform.position.y - renderer.bounds.center.y) + (renderer.bounds.size.y / 2f);
         sliceContainer.transform.localPosition = Vector3.down * offset;
         
+        PositionSlices();
+    }
+
+    public void PositionSlices()
+    {
         var sliceBounds = new Bounds();
+        var lastY = 0f;
         for (var i = 0; i < sliceContainer.transform.childCount; i++)
         {
             var pos = Vector3.zero;
@@ -37,9 +48,9 @@ public class BuildingGenerator : MonoBehaviour
             {
                 sliceBounds.Encapsulate(childBounds);
             }
-            var sliceSize = childBounds.size.y;
-            pos.y -= i * sliceSize;
+            pos.y = lastY;
             child.localPosition = pos;
+            lastY -= childBounds.size.y;
         }
 
         var sliceCollider = GetComponent<BoxCollider>();
@@ -83,23 +94,20 @@ public class BuildingGenerator : MonoBehaviour
 
         var combine = new CombineInstance[slices + 1];
 
+        var selectionDigits = ("" + pattern).Select(digit => int.Parse(digit.ToString())).ToArray();
         for (var i = 0; i < slices; i++)
         {
             var indexToBuild = Random.Range(0, slicePrefabs.Length);
+            if (i < selectionDigits.Length)
+            {
+                if (selectionDigits[i] < slicePrefabs.Length && selectionDigits[i] >= 0) indexToBuild = selectionDigits[i];
+            }
 
             var addedSlice = Instantiate(slicePrefabs[indexToBuild], sliceContainer.transform);
             if (randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
             addedSlice.isStatic = true;
         }
-        for (var i = 0; i < sliceContainer.transform.childCount; i++)
-        {
-            var pos = Vector3.zero;
-            var child = sliceContainer.transform.GetChild(i);
-            var childBounds = child.GetComponent<Renderer>().bounds;
-            var sliceSize = childBounds.size.y;
-            pos.y -= i * sliceSize;
-            child.localPosition = pos;
-        }
+        PositionSlices();
         ResizeTop();
         combine[0].mesh = top.GetComponent<MeshFilter>().sharedMesh;
         combine[0].transform = top.transform.localToWorldMatrix;
@@ -114,6 +122,7 @@ public class BuildingGenerator : MonoBehaviour
         {
             name = "hitbox"
         };
+        hitboxMesh.indexFormat = IndexFormat.UInt32;
         hitboxMesh.CombineMeshes(combine);
         GetComponent<MeshCollider>().sharedMesh = hitboxMesh;
         top.isStatic = true;
