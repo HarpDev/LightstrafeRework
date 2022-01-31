@@ -12,12 +12,10 @@ public class BuildingGenerator : MonoBehaviour
     public GameObject[] slicePrefabs;
     public GameObject sliceContainer;
 
-    public int slices = 15;
-
     public bool randomizeRotation = true;
 
     // Pattern functions as a list of prefab indexes top to bottom
-    public long pattern = -1;
+    public long pattern = 000000000000;
 
     private void Update()
     {
@@ -91,11 +89,11 @@ public class BuildingGenerator : MonoBehaviour
         {
             DestroyImmediate(sliceContainer.transform.GetChild(i).gameObject);
         }
+        var selectionDigits = ("" + pattern).Select(digit => int.TryParse(digit.ToString(), out var n) ? n : 0).ToArray();
 
-        var combine = new CombineInstance[slices + 1];
+        var combine = new CombineInstance[selectionDigits.Length + 1];
 
-        var selectionDigits = ("" + pattern).Select(digit => int.Parse(digit.ToString())).ToArray();
-        for (var i = 0; i < slices; i++)
+        for (var i = 0; i < selectionDigits.Length; i++)
         {
             var indexToBuild = Random.Range(0, slicePrefabs.Length);
             if (i < selectionDigits.Length)
@@ -111,7 +109,7 @@ public class BuildingGenerator : MonoBehaviour
         ResizeTop();
         combine[0].mesh = top.GetComponent<MeshFilter>().sharedMesh;
         combine[0].transform = top.transform.localToWorldMatrix;
-        for (var i = 0; i < slices; i++)
+        for (var i = 0; i < sliceContainer.transform.childCount; i++)
         {
             var meshFilter = sliceContainer.transform.GetChild(i).GetComponent<MeshFilter>();
             combine[i + 1].mesh = meshFilter.sharedMesh;
