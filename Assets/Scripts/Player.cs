@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Advertisements.Platform.Editor;
 
 public class Player : MonoBehaviour
 {
@@ -25,6 +24,7 @@ public class Player : MonoBehaviour
     public void SetQuickDeathPosition()
     {
         if (quickDeathLerp < 1) return;
+        if (IsOnRail) return;
         if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
                 QueryTriggerInteraction.Ignore) &&
             Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
@@ -395,6 +395,7 @@ public class Player : MonoBehaviour
 
     private bool uncrouchBlocked;
     private int startGrounded = 5;
+    public bool IsSurfing { get; set; }
 
     private void FixedUpdate()
     {
@@ -412,6 +413,7 @@ public class Player : MonoBehaviour
                     currentGround = hit.collider.gameObject;
                 }
             }
+
             startGrounded--;
             IsOnGround = true;
             groundTickCount = 2;
@@ -426,7 +428,11 @@ public class Player : MonoBehaviour
         if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0)
         {
             DoQuickDeath();
-            //level.RestartLevel();
+        }
+
+        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 100 && PlayerInput.GetKey(PlayerInput.RestartLevel))
+        {
+            level.RestartLevel();
         }
 
         // Set Wishdir
@@ -555,6 +561,8 @@ public class Player : MonoBehaviour
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         motionInterpolationDelta = 0;
 
+        IsSurfing = false;
+
         // This variable is the total movement that will occur in this tick
         var movement = (IsDashing ? dashVector : velocity) * Time.fixedDeltaTime;
         movement += Flatten(movement).normalized * dashCancelTempSpeed * Time.fixedDeltaTime;
@@ -563,13 +571,15 @@ public class Player : MonoBehaviour
         var hold = 0.4f;
         if (rigidbody.SweepTest(Vector3.down, out var groundHoldHit, hold, QueryTriggerInteraction.Ignore))
         {
-            if (IsViableGround(groundHoldHit.collider, groundHoldHit.normal) && !ApproachingGround && velocity.y < MIN_JUMP_HEIGHT - 2)
+            if (IsViableGround(groundHoldHit.collider, groundHoldHit.normal) && !ApproachingGround &&
+                velocity.y < MIN_JUMP_HEIGHT - 2)
             {
                 transform.position += Vector3.down * groundHoldHit.distance;
                 IsOnGround = true;
                 currentGround = groundHoldHit.collider.gameObject;
             }
         }
+
         if (IsOnGround)
         {
             groundLevel--;
@@ -758,7 +768,8 @@ public class Player : MonoBehaviour
             {
                 if (Vector3.Angle(stepHit.normal, Vector3.up) < GROUND_ANGLE)
                 {
-                    if (Physics.OverlapSphere(stepCheck + Vector3.up * 0.11f, 0.1f, ExcludePlayerMask, QueryTriggerInteraction.Ignore).Length == 0)
+                    if (Physics.OverlapSphere(stepCheck + Vector3.up * 0.11f, 0.1f, ExcludePlayerMask,
+                        QueryTriggerInteraction.Ignore).Length == 0)
                     {
                         normal = Vector3.up;
                         velocity.y = -WALL_END_BOOST_SPEED;
@@ -821,6 +832,7 @@ public class Player : MonoBehaviour
                     {
                         velocity += impulse * VERTICAL_COLLIDE_INEFFICIENCY;
                     }
+
                     velocity.y = y;
                 }
                 else
@@ -834,6 +846,7 @@ public class Player : MonoBehaviour
         {
             surfAccelTime = 0.5f;
             DoubleJumpAvailable = true;
+            IsSurfing = true;
         }
 
         if (IsViableWall(collider, normal) && !IsOnGround)
@@ -855,7 +868,8 @@ public class Player : MonoBehaviour
                 if (Speed < WALL_COLLIDE_REFUND_MAX && wallTickCount == 0)
                 {
                     var fromRefundMax = WALL_COLLIDE_REFUND_MAX - Speed;
-                    var mod = Mathf.Abs(Vector3.Dot(Flatten(CrosshairDirection).normalized, Flatten(velocity).normalized));
+                    var mod = Mathf.Abs(Vector3.Dot(Flatten(CrosshairDirection).normalized,
+                        Flatten(velocity).normalized));
                     if (Vector3.Dot(CrosshairDirection, Flatten(velocity)) < 0) mod = 0;
                     mod = Mathf.Pow(mod, 3);
                     velocity += Flatten(velocity).normalized * Mathf.Min(velocityProjection, fromRefundMax) * mod;
@@ -1320,18 +1334,11 @@ public class Player : MonoBehaviour
             .normalized;
         velocity += controlDirection * GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION * f;
         velocity = velocity.normalized * speed;
+        velocity += towardPoint.normalized * GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION * f * 2;
+        velocity = velocity.normalized * speed;
         if (velocity.y < 0)
         {
-            GravityTick(f * -velocity.normalized.y);
-        }
-        else
-        {
-            if (Vector3.Distance(Flatten(transform.position), Flatten(position)) > 15)
-            {
-                velocity += towardPoint.normalized * GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION * f * 2;
-            }
-
-            velocity = velocity.normalized * speed;
+            //GravityTick(f * -velocity.normalized.y);
         }
 
         Accelerate(Wishdir, SLIDE_BOOST_SPEED, GRAPPLE_WISHDIR_CONTROL_ACCELERATION, f);
@@ -1392,7 +1399,7 @@ public class Player : MonoBehaviour
         var absolute = (gain / f) / 6f;
         var projection = Mathf.Sqrt(swingProjection) * Vector3.Dot(-transform.right, towardPoint) * absolute;
         SetCameraRoll(projection, CAMERA_ROLL_CORRECT_SPEED);
-        
+
         if (Vector3.Dot(towardPoint, CrosshairDirection) < (towardPoint.y > 0 ? -0.2f : 0f)) DetachGrapple();
 
         grappleTicks++;
@@ -1475,7 +1482,6 @@ public class Player : MonoBehaviour
 
     private int wallLevel;
     public bool ApproachingWall { get; set; }
-    public const float WALL_CATCH_FRICTION = 10f;
     public const float WALL_JUMP_ANGLE = 14f;
     public const float WALL_VERTICAL_ANGLE_GIVE = 10f;
     public const float WALL_AIR_ACCEL_RECOVERY = 0.35f;
@@ -1486,7 +1492,7 @@ public class Player : MonoBehaviour
     public const float WALL_TURNAROUND_ACCELERATION = 1.2f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 8;
-    public const int WALL_FRICTION_TICKS = 4;
+    public const int WALL_FRICTION_TICKS = 8;
     public const float WALL_FRICTION = 6f;
     public const float WALLRUN_TIME = 1.2f;
     public const float WALLRUN_FALLOFF_START = 0.4f;
@@ -1588,8 +1594,14 @@ public class Player : MonoBehaviour
 
         // Reduce y velocity while on walls, breaking falls
         // This also applies to moving upwards on walls
-        velocity.y = Mathf.Lerp(velocity.y, 0, f * WALL_CATCH_FRICTION);
-        if (Mathf.Abs(velocity.y) < 5) velocity.y = 0;
+        if (velocity.y < 5)
+        {
+            velocity.y = 0;
+        }
+        else
+        {
+            GravityTick(f);
+        }
 
         // Push you into the wall, holding you against it a bit
         Accelerate(-wallNormal, 1, Gravity, f);
@@ -1614,7 +1626,8 @@ public class Player : MonoBehaviour
         return !wall.CompareTag("Uninteractable")
                && Mathf.Abs(Vector3.Angle(Vector3.up, normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
                && CanCollide(wall, false)
-               && (GetTopParent(wall.transform).gameObject != lastWall || Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.9f);
+               && (GetTopParent(wall.transform).gameObject != lastWall ||
+                   Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.9f);
     }
 
     public Transform GetTopParent(Transform child)
@@ -1650,7 +1663,8 @@ public class Player : MonoBehaviour
         get => groundLevel > 0;
         set
         {
-            if (value && jumpTimestamp != 0 && PlayerInput.tickCount - jumpTimestamp > 10) groundLevel = SURFACE_MAX_LEVEL;
+            if (value && (jumpTimestamp == 0 || PlayerInput.tickCount - jumpTimestamp > 10))
+                groundLevel = SURFACE_MAX_LEVEL;
             else groundLevel = 0;
         }
     }
@@ -1741,7 +1755,7 @@ public class Player : MonoBehaviour
                     if (Speed > slideFriction)
                     {
                         velocity -= Flatten(velocity).normalized * slideFriction;
-                    } 
+                    }
                 }
 
                 var speedBeforeAir = Speed;
@@ -1787,6 +1801,7 @@ public class Player : MonoBehaviour
 
         return accelspeed;
     }
+
     public float Accelerate(ref Vector3 vel, Vector3 wishdir, float speed, float acceleration, float f = 1)
     {
         var currentspeed = Vector3.Dot(vel, wishdir.normalized);
@@ -1888,22 +1903,6 @@ public class Player : MonoBehaviour
 
             // Eat jump inputs if you are < buffering away from the wall to not eat double jump
             if (timeToWall < (WALL_JUMP_BUFFERING + 1) * Time.fixedDeltaTime) eatJump = true;
-
-            // This is to prevent landing on the very bottom of a wall
-            // If youre going towards the bottom of a wall
-            // your velocity will be redirected up so the bottom of your hitbox hits the bottom of the wall
-            /*var fromBottom = 1;
-            var upCheck = transform.position + (vel.normalized * hit.distance) + (-hit.normal * 0.55f) +
-                          (Vector3.down * 1);
-            if (Physics.Raycast(upCheck + Vector3.down * fromBottom, Vector3.up, out var upHit, 2, 1,
-                QueryTriggerInteraction.Ignore))
-            {
-                var vector = (transform.position + Vector3.down) - (upHit.point + Vector3.up * fromBottom);
-                var p = Mathf.Atan2(vector.y, Flatten(vector).magnitude);
-                if (p * Mathf.Rad2Deg < -45) p = Mathf.Deg2Rad * -45;
-                var y = Mathf.Tan(-p) * Flatten(vel).magnitude;
-                vel.y = y;
-            }*/
         }
         else
         {
@@ -2023,14 +2022,17 @@ public class Player : MonoBehaviour
         if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0 &&
             Vector3.Dot(right, Flatten(vel)) < 0 && wallJumpDiagonalRecovery <= 0)
         {
-            accel += DIAGONAL_AIR_ACCEL_BONUS;
-            var speed = Flatten(vel).magnitude;
-            vel += Wishdir * accel * f;
-            if (speed < Flatten(vel).magnitude)
+            if (!IsSurfing)
             {
-                var y = vel.y;
-                vel = Flatten(vel).normalized * speed;
-                vel.y = y;
+                accel += DIAGONAL_AIR_ACCEL_BONUS;
+                var speed = Flatten(vel).magnitude;
+                vel += Wishdir * accel * f;
+                if (speed < Flatten(vel).magnitude)
+                {
+                    var y = vel.y;
+                    vel = Flatten(vel).normalized * speed;
+                    vel.y = y;
+                }
             }
         }
         else
@@ -2046,7 +2048,7 @@ public class Player : MonoBehaviour
         }
 
 
-        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() <= 0)
+        if (PlayerInput.GetAxisStrafeRight() != 0 && (PlayerInput.GetAxisStrafeForward() <= 0 || IsSurfing))
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
             var airspeed = AIR_SPEED * sideairspeedmod;
@@ -2145,7 +2147,7 @@ public class Player : MonoBehaviour
     public const int JUMP_STAMINA_RECOVERY_TICKS = 10;
     public const int COYOTE_TICKS = 20;
     public const int GROUND_JUMP_BUFFERING = 4;
-    public const int WALL_JUMP_BUFFERING = 4;
+    public const int WALL_JUMP_BUFFERING = 7;
     public const int GROUNDJUMP_RECHARGE_COOLDOWN = 40;
 
     private float jumpBuffered;
@@ -2174,12 +2176,9 @@ public class Player : MonoBehaviour
             // Rail jump impulse is given in EndRail()
             if (PlayerInput.tickCount - railTimestamp < COYOTE_TICKS)
             {
-                if (railTickCount > 10)
-                {
-                    EndRail();
-                    PlayerInput.ConsumeBuffer(PlayerInput.Jump);
-                    jumpBuffered = 0;
-                }
+                EndRail();
+                PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+                jumpBuffered = 0;
 
                 return true;
             }

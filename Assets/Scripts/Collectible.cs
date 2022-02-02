@@ -1,14 +1,14 @@
-﻿using UnityEngine;
-using UnityEngine.Rendering.HighDefinition;
+﻿using System;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class Collectible : MonoBehaviour
 {
     public const int MARGIN = 50;
-    
+
     public GameObject NoSprite;
     public GameObject GemSprite;
-    public int Requires;
+    public Collectible NextCollectible;
     public int LeftToCollect { get; set; }
     public GameObject Visual;
 
@@ -21,8 +21,8 @@ public class Collectible : MonoBehaviour
 
     private void Awake()
     {
+        Unlocked = true;
         start = transform.position;
-        adjust = start;
         chaseTimeStart = chaseTime;
     }
 
@@ -36,29 +36,18 @@ public class Collectible : MonoBehaviour
         level = Game.OnStartResolve<Level>();
         player = Game.OnStartResolve<Player>();
         LeftToCollect = 5;
+
+        if (NextCollectible != null)
+        {
+            NextCollectible.Unlocked = false;
+        }
     }
 
-    private Vector3 adjust;
     private float chaseTime = 0.5f;
     private float chaseTimeStart;
 
     private void LateUpdate()
     {
-        /*if (RequirementsMet() && !chasingPlayer)
-        {
-            var target = player.camera.transform.position;
-            var towardTarget = target - start;
-            var adjustVector = towardTarget.normalized *
-                               Mathf.Min(Mathf.Max(0, 15 - towardTarget.magnitude), towardTarget.magnitude);
-
-            adjustVector -= player.velocity.normalized *
-                            Vector3.Dot(player.velocity.normalized, adjustVector);
-
-            adjustVector = adjustVector.normalized * Mathf.Min(adjustVector.magnitude, 5);
-
-            adjust = Vector3.Lerp(adjust, start + adjustVector, Time.deltaTime * 5);
-            Visual.transform.position = adjust;
-        }*/
         if (player == null) return;
 
         if (chasingPlayer)
@@ -75,7 +64,7 @@ public class Collectible : MonoBehaviour
         }
 
         transform.Rotate(0, 0, 50 * Time.deltaTime);
-        if (RequirementsMet())
+        if (Unlocked)
         {
             if (gemsprite == null)
             {
@@ -95,8 +84,8 @@ public class Collectible : MonoBehaviour
             scale = 1 - scale;
             if (toScreen.x < MARGIN ||
                 toScreen.y < MARGIN ||
-                toScreen.x > Screen.width - MARGIN||
-                toScreen.y > Screen.height - MARGIN||
+                toScreen.x > Screen.width - MARGIN ||
+                toScreen.y > Screen.height - MARGIN ||
                 player.camera.WorldToViewportPoint(transform.position).z < 0)
             {
                 var edge = new Vector3(toScreen.x, toScreen.y, toScreen.z);
@@ -104,6 +93,7 @@ public class Collectible : MonoBehaviour
                 {
                     edge = new Vector3(Screen.width - toScreen.x, Screen.height - toScreen.y, toScreen.z);
                 }
+
                 edge.x -= Screen.width / 2f;
                 edge.y -= Screen.height / 2f;
 
@@ -123,13 +113,14 @@ public class Collectible : MonoBehaviour
                     edge.x = horizontalEdge.x;
                     edge.y = horizontalEdge.y;
                 }
-                
+
                 edge.x += Screen.width / 2f;
                 edge.y += Screen.height / 2f;
 
                 toScreen = edge;
 
-                var scaleMod = Mathf.Clamp01(-Vector3.Dot(player.CrosshairDirection, (transform.position - player.camera.transform.position).normalized) * 10);
+                var scaleMod = Mathf.Clamp01(-Vector3.Dot(player.CrosshairDirection,
+                    (transform.position - player.camera.transform.position).normalized) * 10);
                 scale *= 1 + scaleMod;
             }
 
@@ -157,11 +148,12 @@ public class Collectible : MonoBehaviour
             var scale = Mathf.Clamp01(1 - Vector3.Distance(transform.position, player.camera.transform.position) /
                 70);
             var toPlayer = player.camera.transform.position - transform.position;
-            if (Physics.Raycast(transform.position, toPlayer.normalized, out var hit, 
+            if (Physics.Raycast(transform.position, toPlayer.normalized, out var hit,
                 toPlayer.magnitude, 1, QueryTriggerInteraction.Ignore))
             {
                 if (hit.collider.gameObject != player.gameObject) scale = 0;
             }
+
             if (player.camera.WorldToViewportPoint(transform.position).z < 0)
             {
                 scale = 0;
@@ -170,15 +162,12 @@ public class Collectible : MonoBehaviour
             nosprite.transform.localScale = new Vector3(scale, scale, 1);
         }
     }
-
-    private bool RequirementsMet()
-    {
-        return Requires <= 0;
-    }
+    
+    public bool Unlocked { get; private set; }
 
     public void Collect()
     {
-        if (!RequirementsMet()) return;
+        if (!Unlocked) return;
         if (gemsprite != null) Destroy(gemsprite);
         if (nosprite != null) Destroy(nosprite);
         if (chasingPlayer)
@@ -187,8 +176,12 @@ public class Collectible : MonoBehaviour
             foreach (var gem in objects)
             {
                 var coll = gem.GetComponent<Collectible>();
-                coll.Requires--;
                 coll.LeftToCollect = objects.Length - 1;
+            }
+
+            if (NextCollectible != null)
+            {
+                NextCollectible.Unlocked = true;
             }
 
             if (objects.Length == 1)

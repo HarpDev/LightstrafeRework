@@ -48,7 +48,7 @@ public class Timers : MonoBehaviour
         if (level == null) ResetFullGameRun();
         if (level != null && !level.IsLevelFinished && !TimerRunning)
         {
-            if (player != null && player.velocity.magnitude > 0.01f)
+            if (player != null && Flatten(player.velocity).magnitude > 0.01f)
             {
                 if (level.LevelName == FIRST_LEVEL)
                 {
@@ -141,5 +141,10 @@ public class Timers : MonoBehaviour
                 }
             }
         }
+    }
+
+    private static Vector3 Flatten(Vector3 vec)
+    {
+        return new Vector3(vec.x, 0, vec.z);
     }
 }
