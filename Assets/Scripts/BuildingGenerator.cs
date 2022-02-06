@@ -15,7 +15,7 @@ public class BuildingGenerator : MonoBehaviour
     public bool randomizeRotation = true;
 
     // Pattern functions as a list of prefab indexes top to bottom
-    public long pattern = 000000000000;
+    public string pattern = "000000000000";
 
     private void Update()
     {
@@ -31,6 +31,13 @@ public class BuildingGenerator : MonoBehaviour
 
     public void PositionSlices()
     {
+        var rot = transform.rotation;
+        var euler = rot.eulerAngles;
+        var prevY = euler.y;
+        euler.y = 0;
+        rot.eulerAngles = euler;
+        transform.rotation = rot;
+        
         var sliceBounds = new Bounds();
         var lastY = 0f;
         for (var i = 0; i < sliceContainer.transform.childCount; i++)
@@ -57,6 +64,10 @@ public class BuildingGenerator : MonoBehaviour
             sliceCollider.center = transform.InverseTransformPoint(sliceBounds.center);
             sliceCollider.size = sliceBounds.size;
         }
+        
+        euler.y = prevY;
+        rot.eulerAngles = euler;
+        transform.rotation = rot;
     }
 
     public void ResizeTop()
@@ -126,5 +137,6 @@ public class BuildingGenerator : MonoBehaviour
         top.isStatic = true;
         transform.position = beforePosition;
         transform.rotation = beforeRotation;
+        
     }
 }

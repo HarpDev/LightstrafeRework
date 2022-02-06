@@ -140,7 +140,7 @@ public class PlayerInput : MonoBehaviour
 
     public static bool GetKey(int key)
     {
-        if (key > 0) return SincePressed(key) < SinceReleased(key);
+        if (key > 0) return Input.GetKey((KeyCode) key);
 
         return false;
     }

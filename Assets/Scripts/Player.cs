@@ -228,6 +228,7 @@ public class Player : MonoBehaviour
     */
     private void Awake()
     {
+        restartBuffer = false;
         Game.OnAwakeBind(this);
         AudioManager = GetComponent<PlayerAudioManager>();
         LookScale = 1;
@@ -396,6 +397,7 @@ public class Player : MonoBehaviour
     private bool uncrouchBlocked;
     private int startGrounded = 5;
     public bool IsSurfing { get; set; }
+    private bool restartBuffer;
 
     private void FixedUpdate()
     {
@@ -425,14 +427,18 @@ public class Player : MonoBehaviour
         wallJumpDiagonalRecovery -= Mathf.Min(wallJumpDiagonalRecovery, Time.fixedDeltaTime);
 
         // Check for level restart
-        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0)
+        Debug.Log(PlayerInput.SincePressed(PlayerInput.RestartLevel));
+        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0 && restartBuffer)
         {
             DoQuickDeath();
+            Debug.Log("quick death");
         }
 
+        if (!PlayerInput.GetKey(PlayerInput.RestartLevel)) restartBuffer = true;
         if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 100 && PlayerInput.GetKey(PlayerInput.RestartLevel))
         {
             level.RestartLevel();
+            Debug.Log("hold restart");
         }
 
         // Set Wishdir
@@ -890,8 +896,11 @@ public class Player : MonoBehaviour
         if (other.CompareTag("Rail") && (PlayerInput.tickCount - railTimestamp > RAIL_COOLDOWN_TICKS ||
                                          other.transform.parent.gameObject != lastRail))
         {
-            lastRail = other.transform.parent.gameObject;
-            SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
+            if (!IsOnRail)
+            {
+                lastRail = other.transform.parent.gameObject;
+                SetRail(other.gameObject.transform.parent.gameObject.GetComponent<Rail>());
+            }
         }
 
         if (other.CompareTag("Kill Block"))
@@ -1051,9 +1060,9 @@ public class Player : MonoBehaviour
     private int railDirection;
     private int railTickCount;
     private Vector3 railVector;
-    private Vector3 railLeanVector;
     private GameObject lastRail;
     private Rail currentRail;
+    private float railLean;
 
     public void RailMove(float f)
     {
@@ -1102,21 +1111,21 @@ public class Player : MonoBehaviour
             }
         }
 
-        var current = currentRail.smoothedPoints[closeIndex] + railLeanVector;
+        var current = currentRail.smoothedPoints[closeIndex];
 
         // If youre on the last point of a rail, we use the vector of the final 2 points to extrapolate 1 extra point on the rail
         Vector3 next;
         if (railDirection == 1 && closeIndex == currentRail.smoothedPoints.Length - 1)
         {
-            next = current + (current - (currentRail.smoothedPoints[closeIndex - 1] + railLeanVector));
+            next = current + (current - (currentRail.smoothedPoints[closeIndex - 1]));
         }
         else if (railDirection == -1 && closeIndex == 0)
         {
-            next = current + (current - (currentRail.smoothedPoints[1] + railLeanVector));
+            next = current + (current - (currentRail.smoothedPoints[1]));
         }
         else
         {
-            next = currentRail.smoothedPoints[closeIndex + railDirection] + railLeanVector;
+            next = currentRail.smoothedPoints[closeIndex + railDirection];
         }
 
         var previousVector = railVector;
@@ -1146,22 +1155,22 @@ public class Player : MonoBehaviour
             return;
         }
 
+        // The balance vector is a vector that attempts to mimick which direction you would intuitively lean
+        // to not fall off the rail with real world physics, we will calculate a camera tilt based on it
+        var balanceVector = GetBalanceVector(closeIndex + railDirection);
+        var totalAngle = Vector3.Angle(Vector3.up, balanceVector) / 1.4f;
+        var roll = Vector3.Dot(balanceVector.normalized * totalAngle, -transform.right);
+        railLean = Mathf.Lerp(railLean, roll, f * 5f);
+        var speed = Mathf.Abs(CameraRoll - railLean) / Time.fixedDeltaTime;
+        SetCameraRoll(roll, speed);
+
         // Get the vector from current player position to the next rail point and lerp them towards it
-        var correctionVector = -(transform.position - next).normalized;
+        var correctionVector = ((next + balanceVector) - transform.position).normalized;
         velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 80).normalized;
 
         // Apply gravity only if the player is moving down
         // This makes them gain speed on downhill rails without losing speed on uphill rails // stonks
         if (velocity.y < 0) GravityTick(f);
-
-        // The balance vector is a vector that attempts to mimick which direction you would intuitively lean
-        // to not fall off the rail with real world physics, we will calculate a camera tilt based on it
-        var balanceVector = GetBalanceVector(closeIndex + railDirection);
-        railLeanVector = Vector3.Lerp(railLeanVector, balanceVector, f);
-        var totalAngle = Vector3.Angle(Vector3.up, railLeanVector) / 2f;
-        var roll = Vector3.Dot(railLeanVector.normalized * totalAngle, -transform.right);
-        var speed = Mathf.Abs(CameraRoll - roll) / Time.fixedDeltaTime;
-        SetCameraRoll(roll, speed);
 
         var desiredDirection = velocity.normalized;
         velocity = Flatten(velocity).normalized * speedBeforeAnything;
@@ -1222,8 +1231,8 @@ public class Player : MonoBehaviour
         AudioManager.PlayOneShot(railLand);
         AudioManager.PlayAudio(railDuring, true);
         railTickCount = 0;
+        railLean = 0;
         if (IsDashing) StopDash();
-        railLeanVector = Vector3.up;
         if (rail.railDirection == Rail.RailDirection.BACKWARD)
         {
             railDirection = -1;
@@ -1284,7 +1293,7 @@ public class Player : MonoBehaviour
         var leanVector = p3 - point;
         leanVector.y = Mathf.Abs(leanVector.y);
 
-        var balance = leanVector + Vector3.up * 0.4f;
+        var balance = leanVector + Vector3.up * 0.3f;
 
         return balance.normalized;
     }
@@ -1301,19 +1310,17 @@ public class Player : MonoBehaviour
     public bool GrappleHooked { get; set; }
     public const float GRAPPLE_Y_OFFSET = -1.2f;
     public const float GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION = 30f;
-    public const float GRAPPLE_WISHDIR_CONTROL_ACCELERATION = 3f;
+    public const float GRAPPLE_WISHDIR_CONTROL_ACCELERATION = 2f;
     public const float GRAPPLE_REFUND_ACCELERATION = 2f;
     public const float GRAPPLE_MIN_SPEED = 20;
     public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.9f;
     public const float GFORCE_SPEEDGAIN_UP_FRICTION = 4.5f;
     public const float GRAPPLE_UPWARD_PULL = 10;
-    public const float GRAPPLE_INWARD_PULL = 20;
     public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
-    public const float GRAPPLE_SPEEDGAIN = 8;
-    public const float GRAPPLE_SPEEDGAIN_CAP = 45;
-    private int grappleTicks;
+    private int grappleTickCount;
     private Vector3 grappleAttachPosition;
     private float speedOnAttach;
+    private bool grappleHoldMode;
 
 
     public void GrappleMove(float f)
@@ -1336,10 +1343,6 @@ public class Player : MonoBehaviour
         velocity = velocity.normalized * speed;
         velocity += towardPoint.normalized * GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION * f * 2;
         velocity = velocity.normalized * speed;
-        if (velocity.y < 0)
-        {
-            //GravityTick(f * -velocity.normalized.y);
-        }
 
         Accelerate(Wishdir, SLIDE_BOOST_SPEED, GRAPPLE_WISHDIR_CONTROL_ACCELERATION, f);
 
@@ -1390,9 +1393,7 @@ public class Player : MonoBehaviour
             }
         }
 
-        var rawgain = GRAPPLE_SPEEDGAIN *
-                      Mathf.Clamp01((GRAPPLE_SPEEDGAIN_CAP - Speed) / GRAPPLE_SPEEDGAIN_CAP);
-        var minSpeed = Mathf.Max(speedOnAttach, GRAPPLE_MIN_SPEED) + rawgain;
+        var minSpeed = Mathf.Max(speedOnAttach, GRAPPLE_MIN_SPEED);
         if (Speed < minSpeed) Accelerate(CrosshairDirection, minSpeed, GRAPPLE_REFUND_ACCELERATION, f);
 
         var gain = 0.3f;
@@ -1400,9 +1401,26 @@ public class Player : MonoBehaviour
         var projection = Mathf.Sqrt(swingProjection) * Vector3.Dot(-transform.right, towardPoint) * absolute;
         SetCameraRoll(projection, CAMERA_ROLL_CORRECT_SPEED);
 
-        if (Vector3.Dot(towardPoint, CrosshairDirection) < (towardPoint.y > 0 ? -0.2f : 0f)) DetachGrapple();
+        if (grappleTickCount == 25 && PlayerInput.GetKey(PlayerInput.PrimaryInteract))
+        {
+            grappleHoldMode = true;
+        }
+        if (grappleHoldMode)
+        {
+            if (!PlayerInput.GetKey(PlayerInput.PrimaryInteract))
+            {
+                DetachGrapple();
+            }
+        }
+        else
+        {
+            if (Vector3.Dot(towardPoint, CrosshairDirection) < (towardPoint.y > 0 ? -0.2f : 0f))
+            {
+                DetachGrapple();
+            }
+        }
 
-        grappleTicks++;
+        grappleTickCount++;
         PlayerJump();
     }
 
@@ -1413,10 +1431,11 @@ public class Player : MonoBehaviour
         if (IsOnRail) EndRail();
         grappleAttachPosition = position;
         GrappleHooked = true;
-        grappleTicks = 0;
+        grappleTickCount = 0;
         DoubleJumpAvailable = true;
         speedOnAttach = Speed;
         Charges--;
+        grappleHoldMode = false;
     }
 
     public void DetachGrapple()

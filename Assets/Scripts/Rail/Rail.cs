@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 [RequireComponent(typeof(LineRenderer))]
+[ExecuteAlways]
 public class Rail : MonoBehaviour
 {
     [Header("Gizmos")] public bool showGizmos = true;
