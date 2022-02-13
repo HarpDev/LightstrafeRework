@@ -1,10 +1,33 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerInput : MonoBehaviour
 {
-    public static int tickCount;
-    public static bool usingAnalog;
+    public int tickCount;
+    public bool usingAnalog;
+
+    private static PlayerInput I;
+
+    private void Awake()
+    {
+        if (I == null) Game.OnAwakeBind(this);
+    }
+
+    private void Start()
+    {
+        if (I == null)
+        {
+            DontDestroyOnLoad(gameObject);
+            I = this;
+        }
+        else if (I != this)
+        {
+            I.Start();
+            Destroy(gameObject);
+            return;
+        }
+    }
 
     // Binds must have the same variable name as their playerprefs entry
     public static int MoveForward
@@ -67,8 +90,8 @@ public class PlayerInput : MonoBehaviour
         private set { PlayerPrefs.SetInt("p", (int) value); }
     }
 
-    public static Dictionary<int, int> keyPressTimestamps = new();
-    public static Dictionary<int, int> keyReleaseTimestamps = new();
+    public Dictionary<int, int> keyPressTimestamps = new();
+    public Dictionary<int, int> keyReleaseTimestamps = new();
 
     public enum AlternateCode
     {
@@ -76,21 +99,21 @@ public class PlayerInput : MonoBehaviour
         ScrollDown = -2
     }
 
-    private static int GetPressTimestamp(int key)
+    private int GetPressTimestamp(int key)
     {
         var exists = keyPressTimestamps.TryGetValue(key, out int time);
         if (exists) return time;
         else return -1;
     }
 
-    public static int SincePressed(int key)
+    public int SincePressed(int key)
     {
         var data = GetPressTimestamp(key);
         if (data == -1) return int.MaxValue;
         return tickCount - data;
     }
 
-    private static int GetReleaseTimestamp(int key)
+    private int GetReleaseTimestamp(int key)
     {
         var exists = keyReleaseTimestamps.TryGetValue(key, out int time);
         if (exists) return time;
@@ -98,24 +121,24 @@ public class PlayerInput : MonoBehaviour
     }
 
 
-    public static int SinceReleased(int key)
+    public int SinceReleased(int key)
     {
         var data = GetReleaseTimestamp(key);
         if (data == -1) return int.MaxValue;
         return tickCount - data;
     }
 
-    public static bool GetKeyDown(KeyCode key)
+    public bool GetKeyDown(KeyCode key)
     {
         return GetKeyDown((int) key);
     }
 
-    public static bool GetKeyDown(AlternateCode key)
+    public bool GetKeyDown(AlternateCode key)
     {
         return GetKeyDown((int) key);
     }
 
-    private static bool GetKeyDown(int key)
+    private bool GetKeyDown(int key)
     {
         if (key > 0) return Input.GetKeyDown((KeyCode) key);
 
@@ -131,27 +154,27 @@ public class PlayerInput : MonoBehaviour
         return false;
     }
 
-    public static bool GetKeyUp(int key)
+    public bool GetKeyUp(int key)
     {
         if (key > 0) return Input.GetKeyUp((KeyCode) key);
 
         return false;
     }
 
-    public static bool GetKey(int key)
+    public bool GetKey(int key)
     {
         if (key > 0) return Input.GetKey((KeyCode) key);
 
         return false;
     }
 
-    public static void ConsumeBuffer(int key)
+    public void ConsumeBuffer(int key)
     {
         keyPressTimestamps[key] = -1;
         keyReleaseTimestamps[key] = -1;
     }
 
-    public static float GetAxisStrafeRight()
+    public float GetAxisStrafeRight()
     {
         float v;
         if (Input.GetKey((KeyCode) MoveRight))
@@ -167,7 +190,7 @@ public class PlayerInput : MonoBehaviour
         return v;
     }
 
-    public static float GetAxisStrafeForward()
+    public float GetAxisStrafeForward()
     {
         float v;
         if (Input.GetKey((KeyCode) MoveForward))
@@ -183,7 +206,7 @@ public class PlayerInput : MonoBehaviour
         return v;
     }
 
-    public static void SimulateKeyPress(int key)
+    public void SimulateKeyPress(int key)
     {
         keyPressTimestamps[key] = tickCount;
         keyReleaseTimestamps[key] = tickCount;

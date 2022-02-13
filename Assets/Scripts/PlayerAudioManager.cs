@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -83,6 +84,11 @@ public class PlayerAudioManager : MonoBehaviour
         var playing = playingAudio[clip.name];
         playing.volume = volume;
         playingAudio[clip.name] = playing;
+    }
+
+    private void Awake()
+    {
+        Game.OnAwakeBind(this);
     }
 
     private void Update()

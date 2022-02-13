@@ -8,7 +8,7 @@ public class Collectible : MonoBehaviour
 
     public GameObject NoSprite;
     public GameObject GemSprite;
-    public Collectible NextCollectible;
+    public Collectible PreviousCollectible;
     public int LeftToCollect { get; set; }
     public GameObject Visual;
 
@@ -21,7 +21,6 @@ public class Collectible : MonoBehaviour
 
     private void Awake()
     {
-        Unlocked = true;
         start = transform.position;
         chaseTimeStart = chaseTime;
     }
@@ -36,11 +35,6 @@ public class Collectible : MonoBehaviour
         level = Game.OnStartResolve<Level>();
         player = Game.OnStartResolve<Player>();
         LeftToCollect = 5;
-
-        if (NextCollectible != null)
-        {
-            NextCollectible.Unlocked = false;
-        }
     }
 
     private float chaseTime = 0.5f;
@@ -64,7 +58,7 @@ public class Collectible : MonoBehaviour
         }
 
         transform.Rotate(0, 0, 50 * Time.deltaTime);
-        if (Unlocked)
+        if (RequirementsMet)
         {
             if (gemsprite == null)
             {
@@ -162,12 +156,12 @@ public class Collectible : MonoBehaviour
             nosprite.transform.localScale = new Vector3(scale, scale, 1);
         }
     }
-    
-    public bool Unlocked { get; private set; }
+
+    public bool RequirementsMet => PreviousCollectible == null;
 
     public void Collect()
     {
-        if (!Unlocked) return;
+        if (!RequirementsMet) return;
         if (gemsprite != null) Destroy(gemsprite);
         if (nosprite != null) Destroy(nosprite);
         if (chasingPlayer)
@@ -177,11 +171,6 @@ public class Collectible : MonoBehaviour
             {
                 var coll = gem.GetComponent<Collectible>();
                 coll.LeftToCollect = objects.Length - 1;
-            }
-
-            if (NextCollectible != null)
-            {
-                NextCollectible.Unlocked = true;
             }
 
             if (objects.Length == 1)

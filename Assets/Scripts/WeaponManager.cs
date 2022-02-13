@@ -7,7 +7,7 @@ using UnityEngine.Serialization;
 public class WeaponManager : MonoBehaviour
 {
 
-    /*public List<Gun> guns;
+    public List<Gun> guns;
 
     public Material tracerMaterial;
 
@@ -179,6 +179,6 @@ public class WeaponManager : MonoBehaviour
             animator.SetBool("Unequip", false);
         }
 
-    }*/
+    }
 
 }

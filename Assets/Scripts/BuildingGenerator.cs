@@ -115,6 +115,15 @@ public class BuildingGenerator : MonoBehaviour
             var addedSlice = Instantiate(slicePrefabs[indexToBuild], sliceContainer.transform);
             if (randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
             addedSlice.isStatic = true;
+
+            transform.position = beforePosition;
+            PositionSlices();
+            if (addedSlice.transform.position.y < -40)
+            {
+                transform.position = Vector3.zero;
+                break;
+            }
+            transform.position = Vector3.zero;
         }
         PositionSlices();
         ResizeTop();

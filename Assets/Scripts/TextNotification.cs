@@ -17,6 +17,8 @@ public class TextNotification : MonoBehaviour
     private float timeUntilFade;
     private List<int> waitingOnInputs;
 
+    private PlayerInput input;
+
     public void SetText(string t, float duration = 5, int fontSize = 40)
     {
         timeUntilFade = duration;
@@ -34,6 +36,8 @@ public class TextNotification : MonoBehaviour
 
     private void Start()
     {
+        input = Game.OnStartResolve<PlayerInput>();
+        
         var textcolor = text.color;
         textcolor.a = 0;
         text.color = textcolor;
@@ -51,7 +55,7 @@ public class TextNotification : MonoBehaviour
             for (var i = waitingOnInputs.Count - 1; i >= 0; i--)
             {
                 var key = waitingOnInputs[i];
-                if (PlayerInput.SincePressed(key) == 0)
+                if (input.SincePressed(key) == 0)
                 {
                     waitingOnInputs.RemoveAt(i);
                 }

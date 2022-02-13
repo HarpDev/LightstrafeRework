@@ -95,24 +95,14 @@ public class Player : MonoBehaviour
     private float crouchAmount;
 
     public const int CHARGES = 2;
-    public const float CHARGE_START = 1f;
+    public const float CHARGE_START = 2f;
     public const float CHARGE_TOUCH_RECHARGE = 0.5f;
     public const float CHARGE_RECHARGE_RATE = 0f;
     private bool surfaceTouched = true;
-    private int rechargeCooldownTimestamp;
-    private int rechargeCooldown;
     public float Charges { get; set; }
-
-    public void ChargeRefreshCooldown(int ticks)
-    {
-        rechargeCooldown = ticks;
-        rechargeCooldownTimestamp = PlayerInput.tickCount;
-    }
 
     public void Recharge()
     {
-        var sinceLastRecharge = PlayerInput.tickCount - rechargeCooldownTimestamp;
-        if (sinceLastRecharge <= rechargeCooldown) return;
         Charges += CHARGE_TOUCH_RECHARGE;
         if (Charges > CHARGES) Charges = Charges;
     }
@@ -161,15 +151,14 @@ public class Player : MonoBehaviour
 
     public bool IsSliding
     {
-        // Give player a little control over sliding by allowing them to hold back/neutral to stand
         get
         {
             if (uncrouchBlocked) return true;
             if (IsOnRail) return false;
-            if (!PlayerInput.GetKey(PlayerInput.MoveForward) &&
-                !PlayerInput.GetKey(PlayerInput.MoveBackward) &&
-                !PlayerInput.GetKey(PlayerInput.MoveRight) &&
-                !PlayerInput.GetKey(PlayerInput.MoveLeft) &&
+            if (!input.GetKey(PlayerInput.MoveForward) &&
+                !input.GetKey(PlayerInput.MoveBackward) &&
+                !input.GetKey(PlayerInput.MoveRight) &&
+                !input.GetKey(PlayerInput.MoveLeft) &&
                 Wishdir.magnitude <= 0.05f &&
                 Speed < SLIDE_BOOST_SPEED) return false;
             if (Vector3.Dot(Wishdir, Flatten(velocity).normalized) < -0.2f &&
@@ -228,7 +217,7 @@ public class Player : MonoBehaviour
     */
     private void Awake()
     {
-        restartBuffer = false;
+        startGrounded = 5;
         Game.OnAwakeBind(this);
         AudioManager = GetComponent<PlayerAudioManager>();
         LookScale = 1;
@@ -246,9 +235,11 @@ public class Player : MonoBehaviour
 
     private Level level;
     private KickFeedback kickFeedback;
+    private PlayerInput input;
 
     private void Start()
     {
+        input = Game.OnStartResolve<PlayerInput>();
         level = Game.OnStartResolve<Level>();
         kickFeedback = Game.OnStartResolve<KickFeedback>();
     }
@@ -292,8 +283,7 @@ public class Player : MonoBehaviour
             Pitch += pitchinterpolation;
             PitchFutureInterpolation -= pitchinterpolation;
 
-            Pitch = Mathf.Max(Pitch, -85);
-            Pitch = Mathf.Min(Pitch, 85);
+            Pitch = Mathf.Clamp(Pitch, -85, 85);
         }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
@@ -301,7 +291,7 @@ public class Player : MonoBehaviour
 
         velocityThunk = Mathf.Lerp(velocityThunk, 0, Time.deltaTime * 4);
         velocityThunkSmoothed = Mathf.Lerp(velocityThunkSmoothed, velocityThunk, Time.deltaTime * 16);
-        if (!IsDashing && PlayerInput.tickCount - dashEndTimestamp > 5)
+        if (!IsDashing && input.tickCount - dashEndTimestamp > 5)
             velocityThunk += (velocity.y - previousYVelocity) / 3f;
         previousYVelocity = velocity.y;
 
@@ -396,8 +386,9 @@ public class Player : MonoBehaviour
 
     private bool uncrouchBlocked;
     private int startGrounded = 5;
-    public bool IsSurfing { get; set; }
-    private bool restartBuffer;
+    private bool allowHardRestart;
+    private int ignoreRestarts = 50;
+    private int groundRechargeCooldown;
 
     private void FixedUpdate()
     {
@@ -417,6 +408,7 @@ public class Player : MonoBehaviour
             }
 
             startGrounded--;
+            allowHardRestart = false;
             IsOnGround = true;
             groundTickCount = 2;
         }
@@ -426,24 +418,25 @@ public class Player : MonoBehaviour
         eatJumpInputs = Mathf.Max(eatJumpInputs - Time.fixedDeltaTime, 0);
         wallJumpDiagonalRecovery -= Mathf.Min(wallJumpDiagonalRecovery, Time.fixedDeltaTime);
 
-        // Check for level restart
-        Debug.Log(PlayerInput.SincePressed(PlayerInput.RestartLevel));
-        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 0 && restartBuffer)
+        if (ignoreRestarts > 0) ignoreRestarts--;
+        if (ignoreRestarts <= 0)
         {
-            DoQuickDeath();
-            Debug.Log("quick death");
-        }
+            if (input.SincePressed(PlayerInput.RestartLevel) == 0 && startGrounded <= 0)
+            {
+                DoQuickDeath();
+                allowHardRestart = true;
+            }
 
-        if (!PlayerInput.GetKey(PlayerInput.RestartLevel)) restartBuffer = true;
-        if (PlayerInput.SincePressed(PlayerInput.RestartLevel) == 100 && PlayerInput.GetKey(PlayerInput.RestartLevel))
-        {
-            level.RestartLevel();
-            Debug.Log("hold restart");
+            if (input.SincePressed(PlayerInput.RestartLevel) == 60 && input.GetKey(PlayerInput.RestartLevel) &&
+                allowHardRestart)
+            {
+                level.RestartLevel();
+            }
         }
 
         // Set Wishdir
-        Wishdir = (transform.right * PlayerInput.GetAxisStrafeRight() +
-                   transform.forward * PlayerInput.GetAxisStrafeForward()).normalized;
+        Wishdir = (transform.right * input.GetAxisStrafeRight() +
+                   transform.forward * input.GetAxisStrafeForward()).normalized;
         if (Wishdir.magnitude <= 0)
         {
             Wishdir = (transform.right * Input.GetAxis("Joy 1 X") + transform.forward * -Input.GetAxis("Joy 1 Y"))
@@ -451,16 +444,25 @@ public class Player : MonoBehaviour
         }
 
         // Timestamps used for coyote time
-        if (IsOnGround) groundTimestamp = PlayerInput.tickCount;
-        if (IsOnWall) wallTimestamp = PlayerInput.tickCount;
-        if (IsOnRail) railTimestamp = PlayerInput.tickCount;
+        if (IsOnGround) groundTimestamp = input.tickCount;
+        if (IsOnWall) wallTimestamp = input.tickCount;
+        if (IsOnRail) railTimestamp = input.tickCount;
 
+        if (groundRechargeCooldown > 0) groundRechargeCooldown--;
         if (IsOnGround || IsOnWall)
         {
             if (!surfaceTouched)
             {
                 surfaceTouched = true;
-                Recharge();
+                if (IsOnGround)
+                {
+                    if (groundRechargeCooldown <= 0)
+                    {
+                        Recharge();
+                    }
+                }
+
+                if (IsOnWall) Recharge();
             }
         }
         else surfaceTouched = false;
@@ -471,23 +473,23 @@ public class Player : MonoBehaviour
             lastWallNormal = Vector3.zero;
         }
 
-        if (PlayerInput.SincePressed(PlayerInput.PrimaryInteract) <= 25 && GrappleEnabled)
+        if (input.SincePressed(PlayerInput.PrimaryInteract) <= 25 && GrappleEnabled)
         {
             if (!GrappleHooked)
             {
                 if (GrappleDashCast(out var hit))
                 {
                     AttachGrapple(hit.point);
-                    PlayerInput.ConsumeBuffer(PlayerInput.PrimaryInteract);
+                    input.ConsumeBuffer(PlayerInput.PrimaryInteract);
                 }
             }
         }
 
-        if (PlayerInput.SincePressed(PlayerInput.SecondaryInteract) <= 25 && DashEnabled)
+        if (input.SincePressed(PlayerInput.SecondaryInteract) <= 25 && DashEnabled)
         {
             if (DashAvailable)
             {
-                PlayerInput.ConsumeBuffer(PlayerInput.SecondaryInteract);
+                input.ConsumeBuffer(PlayerInput.SecondaryInteract);
                 Dash();
             }
         }
@@ -515,14 +517,7 @@ public class Player : MonoBehaviour
         {
             if (dashTime - factor <= 0)
             {
-                if (IsOnGround || IsOnWall)
-                {
-                    PlayerInput.SimulateKeyPress(PlayerInput.Jump);
-                    PlayerJump();
-                    eatJumpInputs = 0.2f;
-                }
-                else
-                    StopDash();
+                StopDash();
             }
             else
             {
@@ -567,25 +562,6 @@ public class Player : MonoBehaviour
         // Interpolation delta resets to 0 every fixed update tick, its used to measure the time since the last fixed update tick
         motionInterpolationDelta = 0;
 
-        IsSurfing = false;
-
-        // This variable is the total movement that will occur in this tick
-        var movement = (IsDashing ? dashVector : velocity) * Time.fixedDeltaTime;
-        movement += Flatten(movement).normalized * dashCancelTempSpeed * Time.fixedDeltaTime;
-        previousPosition = transform.position;
-
-        var hold = 0.4f;
-        if (rigidbody.SweepTest(Vector3.down, out var groundHoldHit, hold, QueryTriggerInteraction.Ignore))
-        {
-            if (IsViableGround(groundHoldHit.collider, groundHoldHit.normal) && !ApproachingGround &&
-                velocity.y < MIN_JUMP_HEIGHT - 2)
-            {
-                transform.position += Vector3.down * groundHoldHit.distance;
-                IsOnGround = true;
-                currentGround = groundHoldHit.collider.gameObject;
-            }
-        }
-
         if (IsOnGround)
         {
             groundLevel--;
@@ -603,6 +579,62 @@ public class Player : MonoBehaviour
             if (!IsOnWall)
             {
                 AudioManager.StopAudio(slide);
+            }
+        }
+
+        if (launchCooldown > 0) launchCooldown--;
+
+        CheckForCollision(IsDashing && dashThrough);
+
+        previousSpeed = Speed;
+    }
+
+    /*
+░█████╗░░█████╗░██╗░░░░░██╗░░░░░██╗██████╗░███████╗
+██╔══██╗██╔══██╗██║░░░░░██║░░░░░██║██╔══██╗██╔════╝
+██║░░╚═╝██║░░██║██║░░░░░██║░░░░░██║██║░░██║█████╗░░
+██║░░██╗██║░░██║██║░░░░░██║░░░░░██║██║░░██║██╔══╝░░
+╚█████╔╝╚█████╔╝███████╗███████╗██║██████╔╝███████╗
+░╚════╝░░╚════╝░╚══════╝╚══════╝╚═╝╚═════╝░╚══════╝
+    */
+    public const float STEP_HEIGHT = 1.2f;
+    public const float VERTICAL_COLLIDE_INEFFICIENCY = 0.6f;
+    public const float WALL_COLLIDE_REFUND_MAX = 16;
+    public const float BREAKABLE_UP_FORCE = 40;
+    public bool IsSurfing { get; set; }
+    private float surfAccelTime;
+    private Vector3 groundNormal;
+
+    public AudioClip glassBreak;
+
+    private bool CanCollide(Component other, bool ignoreUninteractable = true)
+    {
+        if (other.gameObject.layer == 9) return false;
+        if (other.gameObject == gameObject) return false;
+        if (other.CompareTag("Player")) return false;
+        if (!ignoreUninteractable && other.CompareTag("Uninteractable")) return false;
+        return true;
+    }
+
+    private void CheckForCollision(bool noclip = false)
+    {
+        IsSurfing = false;
+
+        // This variable is the total movement that will occur in this tick
+        var movement = velocity * Time.fixedDeltaTime;
+
+        movement += Flatten(movement).normalized * dashCancelTempSpeed * Time.fixedDeltaTime;
+        previousPosition = transform.position;
+
+        var hold = 0.4f;
+        if (rigidbody.SweepTest(Vector3.down, out var groundHoldHit, hold, QueryTriggerInteraction.Ignore))
+        {
+            if (IsViableGround(groundHoldHit.collider, groundHoldHit.normal) && !ApproachingGround && !IsOnRail &&
+                velocity.y < MIN_JUMP_HEIGHT - 2)
+            {
+                transform.position += Vector3.down * groundHoldHit.distance;
+                IsOnGround = true;
+                currentGround = groundHoldHit.collider.gameObject;
             }
         }
 
@@ -655,7 +687,7 @@ public class Player : MonoBehaviour
             transform.position -= movement.normalized * 0.2f;
             movement += movement.normalized * 0.2f;
             var collided = false;
-            if (rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
+            if (!noclip && rigidbody.SweepTest(movement.normalized, out var hit, movement.magnitude,
                 QueryTriggerInteraction.Ignore) && CanCollide(hit.collider))
             {
                 hitbox.transform.localScale = realscale;
@@ -705,6 +737,7 @@ public class Player : MonoBehaviour
             }
         }
 
+        if (noclip) return;
         // After doing sweep tests, use ComputePenetration() to ensure that the player is not intersecting with anything
         // Apply collision function to everything touching the player
         var bounds = hitbox.bounds;
@@ -733,35 +766,21 @@ public class Player : MonoBehaviour
                 transform.position += direction * distance;
             }
         }
-
-        previousSpeed = Speed;
-    }
-
-    /*
-░█████╗░░█████╗░██╗░░░░░██╗░░░░░██╗██████╗░███████╗
-██╔══██╗██╔══██╗██║░░░░░██║░░░░░██║██╔══██╗██╔════╝
-██║░░╚═╝██║░░██║██║░░░░░██║░░░░░██║██║░░██║█████╗░░
-██║░░██╗██║░░██║██║░░░░░██║░░░░░██║██║░░██║██╔══╝░░
-╚█████╔╝╚█████╔╝███████╗███████╗██║██████╔╝███████╗
-░╚════╝░░╚════╝░╚══════╝╚══════╝╚═╝╚═════╝░╚══════╝
-    */
-    public const float STEP_HEIGHT = 1.2f;
-    public const float VERTICAL_COLLIDE_INEFFICIENCY = 0.6f;
-    public const float WALL_COLLIDE_REFUND_MAX = 16;
-    private float surfAccelTime;
-
-    private bool CanCollide(Component other, bool ignoreUninteractable = true)
-    {
-        if (other.gameObject == gameObject) return false;
-        if (other.CompareTag("Player")) return false;
-        if (other.CompareTag("Target")) return false;
-        if (other.CompareTag("Projectile")) return false;
-        if (!ignoreUninteractable && other.CompareTag("Uninteractable")) return false;
-        return true;
     }
 
     private void ContactCollider(Collider collider, ref Vector3 normal, ref float distance)
     {
+        var breakable = collider.gameObject.GetComponent<Breakable>();
+        if (breakable != null && IsDashing && normal.y <= -0.9)
+        {
+            breakable.Break(velocity, transform.position);
+            StopDash(true);
+            AudioManager.PlayOneShot(glassBreak, false, 0.5f);
+            normal = -normal;
+            velocity.y = BREAKABLE_UP_FORCE;
+            Recharge();
+        }
+
         if (!IsOnWall && Vector3.Dot(Flatten(CrosshairDirection).normalized, Flatten(normal).normalized) < -0.5f &&
             surfAccelTime <= 0)
         {
@@ -787,12 +806,6 @@ public class Player : MonoBehaviour
             }
         }
 
-        var dashProjection = Vector3.Dot(dashVector, -normal);
-        if (dashProjection > 0)
-        {
-            dashVector += normal * dashProjection;
-        }
-
         var angle = Vector3.Angle(Vector3.up, normal);
 
         if (IsViableGround(collider, normal))
@@ -800,6 +813,7 @@ public class Player : MonoBehaviour
             IsOnGround = true;
 
             currentGround = collider.gameObject;
+            groundNormal = normal;
 
             // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
             // So we treat all slanted ground as perfectly flat when not sliding
@@ -888,12 +902,15 @@ public class Player : MonoBehaviour
     {
         var angle = Vector3.Angle(Vector3.up, normal);
 
-        return angle < GROUND_ANGLE && !collider.CompareTag("Uninteractable") && !collider.CompareTag("Wall");
+        return angle < GROUND_ANGLE && !collider.CompareTag("Uninteractable");
     }
+
+    public AudioClip launcherClip;
+    private int launchCooldown;
 
     private void ContactTrigger(Vector3 normal, Collider other)
     {
-        if (other.CompareTag("Rail") && (PlayerInput.tickCount - railTimestamp > RAIL_COOLDOWN_TICKS ||
+        if (other.CompareTag("Rail") && (input.tickCount - railTimestamp > RAIL_COOLDOWN_TICKS ||
                                          other.transform.parent.gameObject != lastRail))
         {
             if (!IsOnRail)
@@ -903,9 +920,19 @@ public class Player : MonoBehaviour
             }
         }
 
-        if (other.CompareTag("Kill Block"))
+        if (other.CompareTag("Breakable") && launchCooldown <= 0)
         {
-            level.RestartLevel();
+            launchCooldown = 20;
+            if (IsDashing)
+            {
+                velocity = Flatten(velocity).normalized * Speed;
+                StopDash();
+            }
+            DoubleJumpAvailable = true;
+            Recharge();
+            Recharge();
+            velocity.y = 50;
+            AudioManager.PlayOneShot(launcherClip, false, 0.7f);
         }
 
         var collectible = other.gameObject.GetComponent<Collectible>();
@@ -946,19 +973,22 @@ public class Player : MonoBehaviour
     */
     public bool IsDashing => dashTime > 0;
 
-    public const float DASH_SPEED = 70;
+    public const float DASH_SPEED = 50;
     public const float DASH_CANCEL_TEMP_SPEED = 5;
-    public const float DASH_SPEEDGAIN = 10;
+    public const float DASH_SPEEDGAIN = 28;
     public const float DASH_SPEEDGAIN_CAP = 35;
     public const float DASH_CANCEL_TEMP_SPEED_DECAY = 1.5f;
     public const float DASH_UPVELOCITY_LIMIT = 16;
-    public const float DASH_MAX_REFUND = 5;
-    public const int DASH_TICKS_BEYOND_SURFACE = 8;
+    public const float DASH_MAX_REFUND = 10;
+    public const int DASH_TICKS_BEYOND_SURFACE = 20;
     private float dashTime;
     private float dashCancelTempSpeed;
     private int dashEndTimestamp;
+
     private Vector3 velocityBeforeDash;
-    private Vector3 dashVector;
+
+    //private Vector3 dashVector;
+    private bool dashThrough;
 
     public void Dash()
     {
@@ -984,31 +1014,39 @@ public class Player : MonoBehaviour
 
             Charges--;
 
-            dashVector = wishdir.normalized * DASH_SPEED;
-            dashTime = hit.distance / dashVector.magnitude;
+            dashThrough = false;
+            velocity = wishdir.normalized * Mathf.Max(DASH_SPEED, velocity.magnitude);
+            dashTime = hit.distance / velocity.magnitude;
             dashTime += Time.fixedDeltaTime * DASH_TICKS_BEYOND_SURFACE;
         }
     }
 
-    public bool StopDash()
+    public bool StopDash(bool preserveMagnitude = false)
     {
         if (IsDashing)
         {
             if (ApproachingGround || ApproachingWall) return false;
             dashTime = 0;
-            dashEndTimestamp = PlayerInput.tickCount;
+            dashEndTimestamp = input.tickCount;
 
-            var wishdir = dashVector.normalized;
+            var wishdir = velocity.normalized;
 
             var y1 = CalculateYForDirection(wishdir);
 
             var onlyYChange = Flatten(velocityBeforeDash).magnitude * Flatten(wishdir).normalized;
             onlyYChange.y = y1;
 
-            velocity = Mathf.Min(velocityBeforeDash.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+            if (preserveMagnitude)
+            {
+                velocity = Mathf.Max(velocityBeforeDash.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+            }
+            else
+            {
+                velocity = Mathf.Min(velocityBeforeDash.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+            }
 
             var y = velocity.y;
-            if (dashVector.y > 0 && Flatten(velocity).sqrMagnitude < Flatten(velocityBeforeDash).sqrMagnitude)
+            if (Flatten(velocity).sqrMagnitude < Flatten(velocityBeforeDash).sqrMagnitude)
             {
                 var refundAmt = Flatten(velocityBeforeDash).magnitude - Speed;
                 if (refundAmt > DASH_MAX_REFUND) refundAmt = DASH_MAX_REFUND;
@@ -1131,6 +1169,14 @@ public class Player : MonoBehaviour
         var previousVector = railVector;
         railVector = -(current - next).normalized;
 
+        if (Mathf.Abs(Vector3.Dot(Flatten(railVector).normalized, Flatten(velocity).normalized)) < 0.3f)
+        {
+            if (velocity.y < 0) velocity.y = 0;
+            EndRail();
+            velocity.y += 10;
+            return;
+        }
+
         var speedBeforeAnything = Speed;
         if (closeIndex + railDirection >= 0 && closeIndex + railDirection < currentRail.smoothedPoints.Length)
         {
@@ -1164,9 +1210,20 @@ public class Player : MonoBehaviour
         var speed = Mathf.Abs(CameraRoll - railLean) / Time.fixedDeltaTime;
         SetCameraRoll(roll, speed);
 
-        // Get the vector from current player position to the next rail point and lerp them towards it
-        var correctionVector = ((next + balanceVector) - transform.position).normalized;
-        velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 80).normalized;
+        if (IsDashing)
+        {
+            //velocity = velocity.magnitude * railVector;
+            //dashVector = dashVector.magnitude * Flatten(railVector).normalized;
+            velocity = velocity.magnitude * Flatten(railVector).normalized;
+            StopDash();
+            speedBeforeAnything = Speed;
+        }
+        else
+        {
+            // Get the vector from current player position to the next rail point and lerp them towards it
+            var correctionVector = ((next + balanceVector) - transform.position).normalized;
+            velocity = velocity.magnitude * Vector3.Lerp(railVector, correctionVector, f * 50).normalized;
+        }
 
         // Apply gravity only if the player is moving down
         // This makes them gain speed on downhill rails without losing speed on uphill rails // stonks
@@ -1220,7 +1277,7 @@ public class Player : MonoBehaviour
             PitchFutureInterpolation += pitchChange;
         }
 
-        PlayerJump();
+        if (railTickCount > 10) PlayerJump();
         railTickCount++;
     }
 
@@ -1232,7 +1289,6 @@ public class Player : MonoBehaviour
         AudioManager.PlayAudio(railDuring, true);
         railTickCount = 0;
         railLean = 0;
-        if (IsDashing) StopDash();
         if (rail.railDirection == Rail.RailDirection.BACKWARD)
         {
             railDirection = -1;
@@ -1310,13 +1366,15 @@ public class Player : MonoBehaviour
     public bool GrappleHooked { get; set; }
     public const float GRAPPLE_Y_OFFSET = -1.2f;
     public const float GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION = 30f;
-    public const float GRAPPLE_WISHDIR_CONTROL_ACCELERATION = 2f;
+    public const float GRAPPLE_WISHDIR_CONTROL_ACCELERATION = 4f;
     public const float GRAPPLE_REFUND_ACCELERATION = 2f;
     public const float GRAPPLE_MIN_SPEED = 20;
-    public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.9f;
-    public const float GFORCE_SPEEDGAIN_UP_FRICTION = 4.5f;
+    public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.5f;
+    public const float GFORCE_SPEEDGAIN_UP_FRICTION = 4f;
     public const float GRAPPLE_UPWARD_PULL = 10;
     public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
+    public const float GRAPPLE_SPEEDGAIN = 32;
+    public const float GRAPPLE_SPEEDGAIN_CAP = 43;
     private int grappleTickCount;
     private Vector3 grappleAttachPosition;
     private float speedOnAttach;
@@ -1344,7 +1402,7 @@ public class Player : MonoBehaviour
         velocity += towardPoint.normalized * GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION * f * 2;
         velocity = velocity.normalized * speed;
 
-        Accelerate(Wishdir, SLIDE_BOOST_SPEED, GRAPPLE_WISHDIR_CONTROL_ACCELERATION, f);
+        Accelerate(Wishdir, SLIDE_BOOST_SPEED, GRAPPLE_WISHDIR_CONTROL_ACCELERATION, f, true);
 
         if (velocityProjection < 0)
         {
@@ -1358,7 +1416,16 @@ public class Player : MonoBehaviour
             else
             {
                 var beforeSwing = velocity;
-                velocity += towardPoint.normalized * -velocityProjection;
+                var scaling = 1 - Mathf.Abs(towardPoint.y);
+                velocity += towardPoint.normalized * -velocityProjection * scaling;
+                /*if (towardPoint.y < 0 || (position - transform.position).magnitude < 8)
+                {
+                    velocity += towardPoint.normalized * -velocityProjection * 0.4f;
+                }
+                else
+                {
+                    velocity += towardPoint.normalized * -velocityProjection;
+                }*/
                 var verticalG = Mathf.Abs((towardPoint.normalized * -velocityProjection).y);
                 if (Speed > Flatten(beforeSwing).magnitude)
                 {
@@ -1393,7 +1460,9 @@ public class Player : MonoBehaviour
             }
         }
 
-        var minSpeed = Mathf.Max(speedOnAttach, GRAPPLE_MIN_SPEED);
+        var rawgain = GRAPPLE_SPEEDGAIN *
+                      Mathf.Clamp01((GRAPPLE_SPEEDGAIN_CAP - speedOnAttach) / GRAPPLE_SPEEDGAIN_CAP);
+        var minSpeed = Mathf.Max(speedOnAttach + rawgain, GRAPPLE_MIN_SPEED);
         if (Speed < minSpeed) Accelerate(CrosshairDirection, minSpeed, GRAPPLE_REFUND_ACCELERATION, f);
 
         var gain = 0.3f;
@@ -1401,20 +1470,22 @@ public class Player : MonoBehaviour
         var projection = Mathf.Sqrt(swingProjection) * Vector3.Dot(-transform.right, towardPoint) * absolute;
         SetCameraRoll(projection, CAMERA_ROLL_CORRECT_SPEED);
 
-        if (grappleTickCount == 25 && PlayerInput.GetKey(PlayerInput.PrimaryInteract))
+        if (grappleTickCount == 25 && input.GetKey(PlayerInput.PrimaryInteract))
         {
             grappleHoldMode = true;
         }
+
         if (grappleHoldMode)
         {
-            if (!PlayerInput.GetKey(PlayerInput.PrimaryInteract))
+            if (!input.GetKey(PlayerInput.PrimaryInteract))
             {
                 DetachGrapple();
             }
         }
         else
         {
-            if (Vector3.Dot(towardPoint, CrosshairDirection) < (towardPoint.y > 0 ? -0.2f : 0f))
+            if (Vector3.Dot(towardPoint, CrosshairDirection) <
+                (towardPoint.y * -1) / 5f) //(towardPoint.y > 0 ? -0.2f : 0f))
             {
                 DetachGrapple();
             }
@@ -1512,7 +1583,7 @@ public class Player : MonoBehaviour
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 8;
     public const int WALL_FRICTION_TICKS = 8;
-    public const float WALL_FRICTION = 6f;
+    public const float WALL_FRICTION = 5f;
     public const float WALLRUN_TIME = 1.2f;
     public const float WALLRUN_FALLOFF_START = 0.4f;
     private Vector3 wallNormal;
@@ -1624,7 +1695,6 @@ public class Player : MonoBehaviour
 
         // Push you into the wall, holding you against it a bit
         Accelerate(-wallNormal, 1, Gravity, f);
-        if (IsDashing) Accelerate(ref dashVector, -wallNormal, 1, Gravity, f);
         if (wallRunTime <= 0)
         {
             Accelerate(wallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
@@ -1642,6 +1712,7 @@ public class Player : MonoBehaviour
 
     public bool IsViableWall(Collider wall, Vector3 normal)
     {
+        if (IsDashing && dashThrough) return false;
         return !wall.CompareTag("Uninteractable")
                && Mathf.Abs(Vector3.Angle(Vector3.up, normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
                && CanCollide(wall, false)
@@ -1682,19 +1753,18 @@ public class Player : MonoBehaviour
         get => groundLevel > 0;
         set
         {
-            if (value && (jumpTimestamp == 0 || PlayerInput.tickCount - jumpTimestamp > 10))
+            if (value && (jumpTimestamp == 0 || input.tickCount - jumpTimestamp > 10))
                 groundLevel = SURFACE_MAX_LEVEL;
             else groundLevel = 0;
         }
     }
 
     private int groundLevel;
-    public const float CAMERA_ROLL_CORRECT_SPEED = 40f;
+    public const float CAMERA_ROLL_CORRECT_SPEED = 20f;
     public const float GROUND_ACCELERATION = 11f;
     public const float GROUND_ANGLE = 45;
     public const float GROUND_FRICTION = 6f;
     public const float SLIDE_FRICTION = 10f;
-    public const float LANDING_FRICTION_TAX = 4f;
     public const int SLIDE_FRICTION_TICKS = 20;
     public const float SLIDE_BOOST_SPEED = 18f;
     private int groundTickCount;
@@ -1733,7 +1803,6 @@ public class Player : MonoBehaviour
         if (groundTickCount == 1)
         {
             if (!IsSliding && quickDeathLerp >= 1) AudioManager.PlayAudio(groundLand);
-            ApplyFriction(f * LANDING_FRICTION_TAX, 0, BASE_SPEED / 2);
             SetQuickDeathPosition();
         }
 
@@ -1773,7 +1842,10 @@ public class Player : MonoBehaviour
                     var slideFriction = f * SLIDE_FRICTION;
                     if (Speed > slideFriction)
                     {
-                        velocity -= Flatten(velocity).normalized * slideFriction;
+                        if (Vector3.Dot(Flatten(velocity), groundNormal) < 0.01f)
+                        {
+                            velocity -= Flatten(velocity).normalized * slideFriction;
+                        }
                     }
                 }
 
@@ -1789,14 +1861,7 @@ public class Player : MonoBehaviour
             else
             {
                 ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 3);
-                var speed = Speed;
-                Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f);
-                if (Speed > BASE_SPEED)
-                {
-                    var y = velocity.y;
-                    velocity = Flatten(velocity).normalized * Mathf.Max(speed, BASE_SPEED);
-                    velocity.y = y;
-                }
+                Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f, true);
             }
         }
 
@@ -1804,8 +1869,9 @@ public class Player : MonoBehaviour
     }
 
     // Returns speed gain
-    public float Accelerate(Vector3 wishdir, float speed, float acceleration, float f = 1)
+    public float Accelerate(Vector3 wishdir, float speed, float acceleration, float f = 1, bool hardCap = false)
     {
+        var beforeSpeed = Speed;
         var currentspeed = Vector3.Dot(velocity, wishdir.normalized);
         var addspeed = Mathf.Abs(speed) - currentspeed;
 
@@ -1817,6 +1883,11 @@ public class Player : MonoBehaviour
             accelspeed = addspeed;
 
         velocity += accelspeed * wishdir;
+
+        if (Speed > speed)
+        {
+            Speed = Mathf.Min(beforeSpeed, Speed);
+        }
 
         return accelspeed;
     }
@@ -1850,7 +1921,7 @@ public class Player : MonoBehaviour
     private const float AIR_SPEED = 2.4f;
     private const float SIDE_AIR_ACCELERATION = 50;
     private const float FORWARD_AIR_ACCELERATION = 70;
-    private const float DIAGONAL_AIR_ACCEL_BONUS = 80;
+    private const float DIAGONAL_AIR_ACCEL_BONUS = 30;
     private const float BACKWARD_AIR_ACCELERATION = 35;
     private int airTickCount;
     private float timeToWall;
@@ -1870,7 +1941,7 @@ public class Player : MonoBehaviour
         }
 
         // Lean in
-        var movement = IsDashing ? dashVector : velocity;
+        var movement = velocity;
         var didHit = rigidbody.SweepTest(movement.normalized, out var hit,
             movement.magnitude * WALL_LEAN_PREDICTION_TIME, QueryTriggerInteraction.Ignore);
 
@@ -1894,6 +1965,8 @@ public class Player : MonoBehaviour
             if (wallLeanAmount < 1)
             {
                 wallLeanAmount = Mathf.Clamp01(wallLeanAmount + Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
+                var normalizedToWall = 1 - (hit.distance / (movement.magnitude * WALL_LEAN_PREDICTION_TIME));
+                wallLeanAmount = normalizedToWall;
 
                 var easeOutSine = Mathf.Sin(wallLeanAmount * Mathf.PI / 2);
 
@@ -1962,43 +2035,28 @@ public class Player : MonoBehaviour
             }
         }
 
-        // Reduce air control as you approach a wall
-        // Actually super important, without it its really easy to start leaning into a wall and strafe out of it
-        var mod = AirAcclerationMod;
-        if (PlayerInput.usingAnalog)
+        if (!ApproachingWall)
         {
-            AnalogAirAccelerate(ref vel, f, mod);
-        }
-        else
-        {
-            AirAccelerate(ref vel, f, mod);
+            if (input.usingAnalog)
+            {
+                AnalogAirAccelerate(ref vel, f);
+            }
+            else
+            {
+                AirAccelerate(ref vel, f);
+            }
         }
 
         // If we're eating jump inputs, dont check for PlayerJump()
         // Also set jumpBuffered higher than needed so that when PlayerJump() does eventually run it'll use the buffer
         if (eatJump || jumpBuffered > 0)
         {
-            if (PlayerInput.SincePressed(PlayerInput.Jump) == 0)
+            if (input.SincePressed(PlayerInput.Jump) == 0)
             {
                 jumpBuffered = Mathf.Max(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) + Time.fixedDeltaTime * 2;
             }
         }
         else PlayerJump();
-    }
-
-    public float AirAcclerationMod
-    {
-        get
-        {
-            var mod = 1f;
-            if (ApproachingWall)
-            {
-                mod = Mathf.Clamp01(((timeToWall - (WALL_LEAN_PREDICTION_TIME / 2)) * 2) / WALL_LEAN_PREDICTION_TIME);
-                mod = 1 - Mathf.Pow(1 - mod, 3);
-            }
-
-            return mod;
-        }
     }
 
     public const float ANALOG_AIR_ACCELERATION = 90;
@@ -2025,8 +2083,8 @@ public class Player : MonoBehaviour
             return;
         }
 
-        var forward = transform.forward * PlayerInput.GetAxisStrafeForward();
-        var right = transform.right * PlayerInput.GetAxisStrafeRight();
+        var forward = transform.forward * input.GetAxisStrafeForward();
+        var right = transform.right * input.GetAxisStrafeRight();
 
         var accel = FORWARD_AIR_ACCELERATION * accelMod;
 
@@ -2038,7 +2096,7 @@ public class Player : MonoBehaviour
         }
 
         // Player can turn sharper if holding forward and proper side direction
-        if (PlayerInput.GetAxisStrafeRight() != 0 && PlayerInput.GetAxisStrafeForward() > 0 &&
+        if (input.GetAxisStrafeRight() != 0 && input.GetAxisStrafeForward() > 0 &&
             Vector3.Dot(right, Flatten(vel)) < 0 && wallJumpDiagonalRecovery <= 0)
         {
             if (!IsSurfing)
@@ -2067,7 +2125,7 @@ public class Player : MonoBehaviour
         }
 
 
-        if (PlayerInput.GetAxisStrafeRight() != 0 && (PlayerInput.GetAxisStrafeForward() <= 0 || IsSurfing))
+        if (input.GetAxisStrafeRight() != 0 && (input.GetAxisStrafeForward() <= 0 || IsSurfing))
         {
             var sideaccel = SIDE_AIR_ACCELERATION * accelMod;
             var airspeed = AIR_SPEED * sideairspeedmod;
@@ -2128,7 +2186,7 @@ public class Player : MonoBehaviour
         velocity.y -= Gravity * f;
         if (IsDashing)
         {
-            dashVector.y -= Gravity * f;
+            //dashVector.y -= Gravity * f;
         }
     }
 
@@ -2166,7 +2224,7 @@ public class Player : MonoBehaviour
     public const int JUMP_STAMINA_RECOVERY_TICKS = 10;
     public const int COYOTE_TICKS = 20;
     public const int GROUND_JUMP_BUFFERING = 4;
-    public const int WALL_JUMP_BUFFERING = 7;
+    public const int WALL_JUMP_BUFFERING = 8;
     public const int GROUNDJUMP_RECHARGE_COOLDOWN = 40;
 
     private float jumpBuffered;
@@ -2175,7 +2233,7 @@ public class Player : MonoBehaviour
 
     public bool PlayerJump()
     {
-        int sinceJump = PlayerInput.SincePressed(PlayerInput.Jump);
+        int sinceJump = input.SincePressed(PlayerInput.Jump);
         if (sinceJump <= Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) || jumpBuffered > 0)
         {
             // Infinite buffering while teleporting
@@ -2187,24 +2245,24 @@ public class Player : MonoBehaviour
 
             if (eatJumpInputs > 0)
             {
-                PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+                input.ConsumeBuffer(PlayerInput.Jump);
                 return true;
             }
 
             // Pressing jump ends rail and does not give jump height
             // Rail jump impulse is given in EndRail()
-            if (PlayerInput.tickCount - railTimestamp < COYOTE_TICKS)
+            if (input.tickCount - railTimestamp < COYOTE_TICKS)
             {
                 EndRail();
-                PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+                input.ConsumeBuffer(PlayerInput.Jump);
                 jumpBuffered = 0;
 
                 return true;
             }
 
-            var wallJump = PlayerInput.tickCount - wallTimestamp < COYOTE_TICKS;
-            var groundJump = PlayerInput.tickCount - groundTimestamp < COYOTE_TICKS;
-            var coyoteJump = PlayerInput.tickCount - wallTimestamp != 0 && PlayerInput.tickCount - groundTimestamp != 0;
+            var wallJump = input.tickCount - wallTimestamp < COYOTE_TICKS;
+            var groundJump = input.tickCount - groundTimestamp < COYOTE_TICKS;
+            var coyoteJump = input.tickCount - wallTimestamp != 0 && input.tickCount - groundTimestamp != 0;
 
             if (!groundJump && !wallJump && !DoubleJumpAvailable) return false;
             if (!groundJump && !wallJump && IsDashing)
@@ -2226,7 +2284,7 @@ public class Player : MonoBehaviour
                 AudioManager.PlayOneShot(jump);
                 IsOnWall = false;
 
-                var negativeFrictionTicks = Mathf.Min(sinceJump, WALL_JUMP_BUFFERING);
+                var negativeFrictionTicks = Mathf.Min(sinceJump, WALL_FRICTION_TICKS);
                 var speedGain = WALL_JUMP_SPEED;
 
                 if (CancelDash(false))
@@ -2255,7 +2313,7 @@ public class Player : MonoBehaviour
                 wallLeanCancelled = false;
                 ApproachingWall = false;
                 wallRecovery = WALL_AIR_ACCEL_RECOVERY;
-                wallJumpTimestamp = PlayerInput.tickCount;
+                wallJumpTimestamp = input.tickCount;
                 var y = velocity.y;
 
                 var speed = Speed;
@@ -2295,14 +2353,14 @@ public class Player : MonoBehaviour
                     var height = jumpHeight;
                     if (velocity.y > 0 && !coyoteJump) height += velocity.y;
                     CancelDash(true);
+                    groundRechargeCooldown = GROUNDJUMP_RECHARGE_COOLDOWN;
 
                     velocity.y = Mathf.Max(height, velocity.y);
-                    ChargeRefreshCooldown(GROUNDJUMP_RECHARGE_COOLDOWN);
                 }
             }
 
-            jumpTimestamp = PlayerInput.tickCount;
-            PlayerInput.ConsumeBuffer(PlayerInput.Jump);
+            jumpTimestamp = input.tickCount;
+            input.ConsumeBuffer(PlayerInput.Jump);
             jumpBuffered = 0;
             return true;
         }
@@ -2312,8 +2370,8 @@ public class Player : MonoBehaviour
 
     public bool IsInCoyoteTime()
     {
-        var wallJump = PlayerInput.tickCount - wallTimestamp < COYOTE_TICKS;
-        var groundJump = PlayerInput.tickCount - groundTimestamp < COYOTE_TICKS;
+        var wallJump = input.tickCount - wallTimestamp < COYOTE_TICKS;
+        var groundJump = input.tickCount - groundTimestamp < COYOTE_TICKS;
         return wallJump || groundJump;
     }
 

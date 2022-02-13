@@ -70,7 +70,7 @@ public class TimerDisplay : MonoBehaviour
                     {
                         if (PlayerPrefs.HasKey("BestTime" + name))
                         {
-                            ticks += timers.GetBestLevelTime(name);
+                            //ticks += timers.GetBestLevelTime(name);
                         }
                         else
                         {

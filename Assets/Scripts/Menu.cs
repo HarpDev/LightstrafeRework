@@ -5,9 +5,11 @@ using UnityEngine;
 public class Menu : MonoBehaviour
 {
     private CanvasManager canvasManager;
+    private PlayerInput input;
 
     private void Start()
     {
+        input = Game.OnStartResolve<PlayerInput>();
         canvasManager = Game.OnStartResolve<CanvasManager>();
     }
 
@@ -16,7 +18,6 @@ public class Menu : MonoBehaviour
         if (Input.GetKeyDown((KeyCode)PlayerInput.Pause))
         {
             canvasManager.CloseMenu();
-            PlayerInput.ConsumeBuffer(PlayerInput.Pause);
         }
     }
 }

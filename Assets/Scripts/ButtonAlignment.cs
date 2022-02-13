@@ -9,9 +9,10 @@ public class ButtonAlignment : MonoBehaviour
     private void Update()
     {
         if (Application.isPlaying) return;
+        var rect = GetComponent<RectTransform>();
         var position = transform.localPosition;
-        position.x -= position.x % 165;
-        position.y -= position.y % 35;
-        transform.localPosition = position;
+        position.x -= position.x % (rect.rect.width + 10);
+        position.y -= position.y % (rect.rect.height + 10);
+        //transform.localPosition = position;
     }
 }

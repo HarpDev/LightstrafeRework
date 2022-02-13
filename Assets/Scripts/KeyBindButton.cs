@@ -12,8 +12,11 @@ public class KeyBindButton : MonoBehaviour
 
     private bool rebinding = false;
 
+    private PlayerInput input;
+
     private void Start()
     {
+        input = Game.OnStartResolve<PlayerInput>();
         text.text = GetValue();
     }
 
@@ -23,7 +26,7 @@ public class KeyBindButton : MonoBehaviour
         {
             foreach (KeyCode kcode in Enum.GetValues(typeof(KeyCode)))
             {
-                if (PlayerInput.GetKeyDown(kcode))
+                if (input.GetKeyDown(kcode))
                 {
                     PlayerInput.SetBind(bindName, kcode);
                     text.text = kcode.ToString();
@@ -33,7 +36,7 @@ public class KeyBindButton : MonoBehaviour
             }
             foreach (PlayerInput.AlternateCode kcode in Enum.GetValues(typeof(PlayerInput.AlternateCode)))
             {
-                if (PlayerInput.GetKeyDown(kcode))
+                if (input.GetKeyDown(kcode))
                 {
                     PlayerInput.SetBind(bindName, kcode);
                     text.text = kcode.ToString();

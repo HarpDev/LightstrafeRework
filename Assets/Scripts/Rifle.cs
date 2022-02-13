@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class Rifle// : WeaponManager.Gun
+public class Rifle: WeaponManager.Gun
 {
-/*
+
     public override WeaponManager.GunType GetGunType() => WeaponManager.GunType.Rifle;
 
     public AudioClip fireSound;
@@ -31,10 +31,12 @@ public class Rifle// : WeaponManager.Gun
     private float _crouchFactor;
     private float _crouchReloadMod;
     private Player player;
+    private PlayerInput input;
 
     private void Start()
     {
         player = Game.OnStartResolve<Player>();
+        input = Game.OnStartResolve<PlayerInput>();
     }
 
     public bool UseSideGun
@@ -109,33 +111,13 @@ public class Rifle// : WeaponManager.Gun
 
         shotAvailable = true;
 
-        if (fireInputConsumed && !PlayerInput.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
-        if (PlayerInput.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") 
+        if (fireInputConsumed && !input.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
+        if (input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") 
             && !animator.GetBool("Reload") && !fireInputConsumed && shotAvailable)
             //&& (player.IsOnGround || player.IsOnWall || player.ApproachingGround || player.ApproachingWall || player.IsInCoyoteTime()))
         {
             shotAvailable = false;
             //Fire(QueryTriggerInteraction.Collide, player.CrosshairDirection);
-            var direction = player.CrosshairDirection;
-            var triggerInteraction = QueryTriggerInteraction.Ignore;
-            var obj = new GameObject("Tracer");
-            obj.AddComponent<TracerDecay>();
-            var line = obj.AddComponent<LineRenderer>();
-            var positions = new Vector3[2];
-            positions[0] = GetTracerStartWorldPosition();
-            
-            if (Physics.Raycast(player.camera.transform.position, direction, out var hit, 200, 1, triggerInteraction))
-            {
-                positions[1] = hit.point;
-                if (!hit.collider.CompareTag("Player") && !hit.collider.CompareTag("Kill Block"))
-                {
-                    player.Teleport(hit.point - direction.normalized / 2);
-                }
-            } else positions[1] = player.camera.transform.position + (direction * 300);
-            line.material = WeaponManager.tracerMaterial;
-            line.endWidth = 0.1f;
-            line.startWidth = 0.1f;
-            line.SetPositions(positions);
             fireInputConsumed = true;
 
             player.AudioManager.PlayOneShot(fireSound);
@@ -193,7 +175,7 @@ public class Rifle// : WeaponManager.Gun
 
         _prevVelocity = player.velocity;
 
-        _forward += Time.deltaTime / 1.2f;
+        //_forward += Time.deltaTime / 1.2f;
         _forward = Mathf.Lerp(_forward, 0, Time.deltaTime * 8);
 
         var localforward = _forward;
@@ -249,5 +231,5 @@ public class Rifle// : WeaponManager.Gun
     private static Vector3 Flatten(Vector3 vec)
     {
         return new Vector3(vec.x, 0, vec.z);
-    }*/
+    }
 }
