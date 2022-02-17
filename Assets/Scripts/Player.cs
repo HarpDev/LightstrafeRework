@@ -206,6 +206,7 @@ public class Player : MonoBehaviour
     public AudioClip railDuring;
     public AudioClip railEnd;
     public AudioClip wow;
+    public AudioClip trick;
 
     /*
 ░█████╗░░██╗░░░░░░░██╗░█████╗░██╗░░██╗███████╗
@@ -256,6 +257,8 @@ public class Player : MonoBehaviour
     private float velocityThunk;
     private float velocityThunkSmoothed;
     private float previousYVelocity;
+    
+    private float threeSixtyCounter;
 
     private void Update()
     {
@@ -284,6 +287,14 @@ public class Player : MonoBehaviour
             PitchFutureInterpolation -= pitchinterpolation;
 
             Pitch = Mathf.Clamp(Pitch, -85, 85);
+        }
+
+        threeSixtyCounter -= Mathf.Min(threeSixtyCounter, Time.deltaTime * 150);
+        threeSixtyCounter += Mathf.Abs(YawIncrease);
+        if (threeSixtyCounter > 240)
+        {
+            threeSixtyCounter -= 240;
+            AudioManager.PlayOneShot(trick);
         }
 
         // This is where orientation is handled, the camera is only adjusted by the pitch, and the entire player is adjusted by yaw
@@ -448,6 +459,8 @@ public class Player : MonoBehaviour
         if (IsOnWall) wallTimestamp = input.tickCount;
         if (IsOnRail) railTimestamp = input.tickCount;
 
+        if (sameFacingWallCooldown > 0) sameFacingWallCooldown -= Time.fixedDeltaTime;
+
         if (groundRechargeCooldown > 0) groundRechargeCooldown--;
         if (IsOnGround || IsOnWall)
         {
@@ -473,7 +486,7 @@ public class Player : MonoBehaviour
             lastWallNormal = Vector3.zero;
         }
 
-        if (input.SincePressed(PlayerInput.PrimaryInteract) <= 25 && GrappleEnabled)
+        if (input.SincePressed(PlayerInput.PrimaryInteract) <= 15 && GrappleEnabled)
         {
             if (!GrappleHooked)
             {
@@ -485,7 +498,7 @@ public class Player : MonoBehaviour
             }
         }
 
-        if (input.SincePressed(PlayerInput.SecondaryInteract) <= 25 && DashEnabled)
+        if (input.SincePressed(PlayerInput.SecondaryInteract) <= 15 && DashEnabled)
         {
             if (DashAvailable)
             {
@@ -604,8 +617,6 @@ public class Player : MonoBehaviour
     public bool IsSurfing { get; set; }
     private float surfAccelTime;
     private Vector3 groundNormal;
-
-    public AudioClip glassBreak;
 
     private bool CanCollide(Component other, bool ignoreUninteractable = true)
     {
@@ -770,17 +781,6 @@ public class Player : MonoBehaviour
 
     private void ContactCollider(Collider collider, ref Vector3 normal, ref float distance)
     {
-        var breakable = collider.gameObject.GetComponent<Breakable>();
-        if (breakable != null && IsDashing && normal.y <= -0.9)
-        {
-            breakable.Break(velocity, transform.position);
-            StopDash(true);
-            AudioManager.PlayOneShot(glassBreak, false, 0.5f);
-            normal = -normal;
-            velocity.y = BREAKABLE_UP_FORCE;
-            Recharge();
-        }
-
         if (!IsOnWall && Vector3.Dot(Flatten(CrosshairDirection).normalized, Flatten(normal).normalized) < -0.5f &&
             surfAccelTime <= 0)
         {
@@ -883,7 +883,7 @@ public class Player : MonoBehaviour
                 IsOnWall = true;
                 wallNormal = Flatten(normal).normalized;
 
-                currentWall = GetTopParent(collider.transform).gameObject;
+                currentWall = collider.gameObject;
 
                 if (Speed < WALL_COLLIDE_REFUND_MAX && wallTickCount == 0)
                 {
@@ -979,15 +979,13 @@ public class Player : MonoBehaviour
     public const float DASH_SPEEDGAIN_CAP = 35;
     public const float DASH_CANCEL_TEMP_SPEED_DECAY = 1.5f;
     public const float DASH_UPVELOCITY_LIMIT = 16;
-    public const float DASH_MAX_REFUND = 10;
-    public const int DASH_TICKS_BEYOND_SURFACE = 20;
+    public const int DASH_CANCEL_FORGIVENESS = 20;
     private float dashTime;
     private float dashCancelTempSpeed;
     private int dashEndTimestamp;
 
     private Vector3 velocityBeforeDash;
 
-    //private Vector3 dashVector;
     private bool dashThrough;
 
     public void Dash()
@@ -1017,11 +1015,10 @@ public class Player : MonoBehaviour
             dashThrough = false;
             velocity = wishdir.normalized * Mathf.Max(DASH_SPEED, velocity.magnitude);
             dashTime = hit.distance / velocity.magnitude;
-            dashTime += Time.fixedDeltaTime * DASH_TICKS_BEYOND_SURFACE;
         }
     }
 
-    public bool StopDash(bool preserveMagnitude = false)
+    public bool StopDash()
     {
         if (IsDashing)
         {
@@ -1036,24 +1033,14 @@ public class Player : MonoBehaviour
             var onlyYChange = Flatten(velocityBeforeDash).magnitude * Flatten(wishdir).normalized;
             onlyYChange.y = y1;
 
-            if (preserveMagnitude)
+            if (Mathf.Abs(y1) > DASH_UPVELOCITY_LIMIT)
             {
-                velocity = Mathf.Max(velocityBeforeDash.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+                velocity = velocityBeforeDash.magnitude * wishdir.normalized;
             }
             else
             {
-                velocity = Mathf.Min(velocityBeforeDash.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+                velocity = onlyYChange.magnitude * wishdir.normalized;
             }
-
-            var y = velocity.y;
-            if (Flatten(velocity).sqrMagnitude < Flatten(velocityBeforeDash).sqrMagnitude)
-            {
-                var refundAmt = Flatten(velocityBeforeDash).magnitude - Speed;
-                if (refundAmt > DASH_MAX_REFUND) refundAmt = DASH_MAX_REFUND;
-                velocity += Flatten(velocity).normalized * refundAmt;
-            }
-
-            velocity.y = Mathf.Min(DASH_UPVELOCITY_LIMIT, y);
 
             var rawgain = DASH_SPEEDGAIN *
                           Mathf.Clamp01((DASH_SPEEDGAIN_CAP - Speed) / DASH_SPEEDGAIN_CAP);
@@ -1066,7 +1053,7 @@ public class Player : MonoBehaviour
 
     public bool CancelDash(bool ground)
     {
-        if (StopDash())
+        if (StopDash() || input.tickCount - dashEndTimestamp < DASH_CANCEL_FORGIVENESS)
         {
             dashEndTimestamp = 0;
             AudioManager.PlayOneShot(dashCancel);
@@ -1106,6 +1093,7 @@ public class Player : MonoBehaviour
     {
         if (!IsOnRail) return;
         DoubleJumpAvailable = true;
+        sameFacingWallCooldown = 0;
 
         // Find the point on the rail closest to the player
         var closeIndex = 0;
@@ -1210,6 +1198,11 @@ public class Player : MonoBehaviour
         var speed = Mathf.Abs(CameraRoll - railLean) / Time.fixedDeltaTime;
         SetCameraRoll(roll, speed);
 
+        if (railTickCount == 0)
+        {
+            velocity = velocity.magnitude * railVector;
+        }
+
         if (IsDashing)
         {
             //velocity = velocity.magnitude * railVector;
@@ -1277,7 +1270,7 @@ public class Player : MonoBehaviour
             PitchFutureInterpolation += pitchChange;
         }
 
-        if (railTickCount > 10) PlayerJump();
+        PlayerJump();
         railTickCount++;
     }
 
@@ -1308,6 +1301,7 @@ public class Player : MonoBehaviour
     public void EndRail()
     {
         if (!IsOnRail) return;
+        velocity.y = CalculateYForDirection(railVector);
 
         if (Mathf.Abs(velocity.y) > RAIL_VERTICAL_VELCITYLIMIT)
         {
@@ -1318,6 +1312,7 @@ public class Player : MonoBehaviour
         // Also only apply if moving mostly upwards, sometimes we want rails to throw the player down
         if (velocity.y > -4) velocity.y += MIN_JUMP_HEIGHT;
 
+        CancelDash(true);
         currentRail.ChangeHitboxLayer(0);
         SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
         currentRail = null;
@@ -1366,15 +1361,15 @@ public class Player : MonoBehaviour
     public bool GrappleHooked { get; set; }
     public const float GRAPPLE_Y_OFFSET = -1.2f;
     public const float GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION = 30f;
-    public const float GRAPPLE_WISHDIR_CONTROL_ACCELERATION = 4f;
-    public const float GRAPPLE_REFUND_ACCELERATION = 2f;
+    public const float GRAPPLE_WISHDIR_CONTROL_ACCELERATION = 1.7f;
+    public const float GRAPPLE_REFUND_ACCELERATION = 0.2f;
     public const float GRAPPLE_MIN_SPEED = 20;
     public const float GFORCE_SPEEDGAIN_DOWN_FRICTION = 1.5f;
     public const float GFORCE_SPEEDGAIN_UP_FRICTION = 4f;
     public const float GRAPPLE_UPWARD_PULL = 10;
     public const float GRAPPLE_DOUBLEJUMP_IMPULSE = 4;
-    public const float GRAPPLE_SPEEDGAIN = 32;
-    public const float GRAPPLE_SPEEDGAIN_CAP = 43;
+    public const float GRAPPLE_SPEEDGAIN = 22;
+    public const float GRAPPLE_SPEEDGAIN_CAP = 60;
     private int grappleTickCount;
     private Vector3 grappleAttachPosition;
     private float speedOnAttach;
@@ -1410,22 +1405,16 @@ public class Player : MonoBehaviour
             if (wishdir.magnitude > 0.5f && Mathf.Abs(wishdir.normalized.y) < 0.35f)
             {
                 var y = CalculateYForDirection(wishdir);
+                var s = Speed;
+                velocity += towardPoint.normalized * -velocityProjection;
 
+                Speed = s;
                 velocity.y = y;
             }
             else
             {
                 var beforeSwing = velocity;
-                var scaling = 1 - Mathf.Abs(towardPoint.y);
-                velocity += towardPoint.normalized * -velocityProjection * scaling;
-                /*if (towardPoint.y < 0 || (position - transform.position).magnitude < 8)
-                {
-                    velocity += towardPoint.normalized * -velocityProjection * 0.4f;
-                }
-                else
-                {
-                    velocity += towardPoint.normalized * -velocityProjection;
-                }*/
+                velocity += towardPoint.normalized * -velocityProjection;
                 var verticalG = Mathf.Abs((towardPoint.normalized * -velocityProjection).y);
                 if (Speed > Flatten(beforeSwing).magnitude)
                 {
@@ -1459,6 +1448,7 @@ public class Player : MonoBehaviour
                 velocity += Vector3.up * flatProjection * efficiency;
             }
         }
+        
 
         var rawgain = GRAPPLE_SPEEDGAIN *
                       Mathf.Clamp01((GRAPPLE_SPEEDGAIN_CAP - speedOnAttach) / GRAPPLE_SPEEDGAIN_CAP);
@@ -1485,7 +1475,7 @@ public class Player : MonoBehaviour
         else
         {
             if (Vector3.Dot(towardPoint, CrosshairDirection) <
-                (towardPoint.y * -1) / 5f) //(towardPoint.y > 0 ? -0.2f : 0f))
+                (towardPoint.y * -1) / 5f)
             {
                 DetachGrapple();
             }
@@ -1586,6 +1576,7 @@ public class Player : MonoBehaviour
     public const float WALL_FRICTION = 5f;
     public const float WALLRUN_TIME = 1.2f;
     public const float WALLRUN_FALLOFF_START = 0.4f;
+    public const float WALL_SAMEFACING_COOLDOWN = 3;
     private Vector3 wallNormal;
     private Vector3 lastWallNormal;
     private bool wallLeanCancelled;
@@ -1599,6 +1590,7 @@ public class Player : MonoBehaviour
     private float wallLeanAmount;
     private float wallLeanLerp;
     private int wallFrictionTicks;
+    private float sameFacingWallCooldown;
 
     public void WallMove(float f)
     {
@@ -1699,6 +1691,7 @@ public class Player : MonoBehaviour
         {
             Accelerate(wallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
             IsOnWall = false;
+            sameFacingWallCooldown = WALL_SAMEFACING_COOLDOWN;
             AudioManager.StopAudio(wallRun);
             lastWall = currentWall;
             lastWallNormal = wallNormal;
@@ -1716,21 +1709,7 @@ public class Player : MonoBehaviour
         return !wall.CompareTag("Uninteractable")
                && Mathf.Abs(Vector3.Angle(Vector3.up, normal) - 90) < WALL_VERTICAL_ANGLE_GIVE
                && CanCollide(wall, false)
-               && (GetTopParent(wall.transform).gameObject != lastWall ||
-                   Vector3.Dot(Flatten(normal).normalized, lastWallNormal) < 0.9f);
-    }
-
-    public Transform GetTopParent(Transform child)
-    {
-        var top = child.transform;
-        while (top.parent != null)
-        {
-            var parent = top.parent;
-            if (parent == null) break;
-            top = parent;
-        }
-
-        return top;
+               && (Vector3.Angle(Flatten(normal).normalized, lastWallNormal) > 10 || sameFacingWallCooldown <= 0);
     }
 
     public bool IsViableWall(RaycastHit hit)
@@ -1799,6 +1778,7 @@ public class Player : MonoBehaviour
         }
 
         groundTickCount++;
+        sameFacingWallCooldown = 0;
 
         if (groundTickCount == 1)
         {
@@ -2307,6 +2287,7 @@ public class Player : MonoBehaviour
 
                 kickFeedback.Display(wallFrictionTicks, wallFrictionTicks == 1 ? Color.green : Color.white);
 
+                sameFacingWallCooldown = WALL_SAMEFACING_COOLDOWN;
                 wallJumpDiagonalRecovery = WALLJUMP_DIAGONAL_RECOVERY;
                 lastWall = currentWall;
                 lastWallNormal = wallNormal;

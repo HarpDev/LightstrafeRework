@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
@@ -44,6 +45,7 @@ public class BuildingGenerator : MonoBehaviour
         {
             var pos = Vector3.zero;
             var child = sliceContainer.transform.GetChild(i);
+
             var childBounds = child.GetComponent<Renderer>().bounds;
             if (i == 0)
             {
@@ -56,6 +58,8 @@ public class BuildingGenerator : MonoBehaviour
             pos.y = lastY;
             child.localPosition = pos;
             lastY -= childBounds.size.y;
+            
+            
         }
 
         var sliceCollider = GetComponent<BoxCollider>();
@@ -112,7 +116,7 @@ public class BuildingGenerator : MonoBehaviour
                 if (selectionDigits[i] < slicePrefabs.Length && selectionDigits[i] >= 0) indexToBuild = selectionDigits[i];
             }
 
-            var addedSlice = Instantiate(slicePrefabs[indexToBuild], sliceContainer.transform);
+            var addedSlice = (GameObject)PrefabUtility.InstantiatePrefab(slicePrefabs[indexToBuild], sliceContainer.transform);
             if (randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
             addedSlice.isStatic = true;
 
@@ -132,8 +136,8 @@ public class BuildingGenerator : MonoBehaviour
         for (var i = 0; i < sliceContainer.transform.childCount; i++)
         {
             var meshFilter = sliceContainer.transform.GetChild(i).GetComponent<MeshFilter>();
-            combine[i + 1].mesh = meshFilter.sharedMesh;
-            combine[i + 1].transform = meshFilter.transform.localToWorldMatrix;
+            //combine[i + 1].mesh = meshFilter.sharedMesh;
+            //combine[i + 1].transform = meshFilter.transform.localToWorldMatrix;
         }
 
         var hitboxMesh = new Mesh
@@ -142,7 +146,7 @@ public class BuildingGenerator : MonoBehaviour
         };
         hitboxMesh.indexFormat = IndexFormat.UInt32;
         hitboxMesh.CombineMeshes(combine);
-        GetComponent<MeshCollider>().sharedMesh = hitboxMesh;
+        //GetComponent<MeshCollider>().sharedMesh = hitboxMesh;
         top.isStatic = true;
         transform.position = beforePosition;
         transform.rotation = beforeRotation;

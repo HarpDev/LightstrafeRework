@@ -187,8 +187,13 @@ public class Collectible : MonoBehaviour
             transform.position = Visual.transform.position;
             start = transform.position;
             Visual.transform.localPosition = Vector3.zero;
-            GetComponent<SphereCollider>().radius = 1f;
+            GetComponent<Collider>().enabled = false;
+            var sphereCollider = gameObject.AddComponent<SphereCollider>();
+            sphereCollider.isTrigger = true;
+            sphereCollider.radius = 1f;
             chasingPlayer = true;
+            player.Recharge();
+            player.Recharge();
         }
     }
 }
