@@ -19,6 +19,8 @@ public class SpeedDisplay : MonoBehaviour
         speedText = GetComponent<Text>();
     }
 
+    private float speedLerp = 0;
+
     private void Update()
     {
         if (player == null)
@@ -26,8 +28,9 @@ public class SpeedDisplay : MonoBehaviour
             speedText.color = new Color(1, 1, 1, 0);
             return;
         }
-        var display = Mathf.RoundToInt(potential ? Mathf.Abs(player.velocity.y) : Flatten(player.velocity).magnitude);
-        speedText.text = prefix + display + suffix;
+        var display = potential ? Mathf.Abs(player.velocity.y) : Flatten(player.velocity).magnitude;
+        speedLerp = Mathf.Lerp(speedLerp, display, Time.deltaTime * 8);
+        speedText.text = prefix + Mathf.RoundToInt(speedLerp) + suffix;
     }
 
     private static Vector3 Flatten(Vector3 vec)

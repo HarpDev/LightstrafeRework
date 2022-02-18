@@ -33,8 +33,8 @@ public class AnimatedTexture : MonoBehaviour
             }
             if (mat.name.StartsWith("bigBlockColorfulMat"))
             {
-                var x = calcElastic(8, 0.5f) + calcSine(20, 5);
-                var y = calcElastic(5, 0.6f) + calcSine(10, 3);
+                var x = calcElastic(10, 0.5f) + calcSine(25, 5);
+                var y = calcElastic(7, 0.6f) + calcSine(15, 3);
                 
                 var offset = new Vector2(x, y);
                 
@@ -55,7 +55,39 @@ public class AnimatedTexture : MonoBehaviour
                 }
                 lastIndex = index;
             }
+            if (mat.name.StartsWith("bigBlockRingMat"))
+            {
+                var x = calcRing(5, 3);
+                
+                var offset = new Vector2(x, x);
+                offset += Vector2.one * 0.5f;
+
+                mat.mainTextureOffset = -(offset / 2) + Vector2.one * 0.5f;
+                mat.mainTextureScale = offset;
+                mat.SetTextureOffset("_EmissiveColorMap", -(offset / 2) + Vector2.one * 0.5f);
+                mat.SetTextureScale("_EmissiveColorMap", offset);
+            }
         }
+    }
+
+    private float calcRing(float speed, float distance)
+    {
+        var position = (Time.time + distance) % speed;
+        var amt = 0f;
+        if (position > speed / 2)
+        {
+            var normalized = ((position - (speed / 2)) / (speed / 2));
+            var ease = easeOutBounce(normalized);
+            amt = 1 - ease;
+        }
+        else
+        {
+            var normalized = position / (speed / 2);
+            var ease = easeOutElastic(normalized);
+            amt = ease;
+        }
+
+        return amt * distance;
     }
 
     private float calcSine(float speed, float distance)

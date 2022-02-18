@@ -260,6 +260,9 @@ public class Player : MonoBehaviour
     
     private float threeSixtyCounter;
 
+    public const float VIEWBOBBING_SPEED = 8;
+    private float viewBobbingAmount;
+
     private void Update()
     {
         if (Cursor.visible) return;
@@ -306,9 +309,13 @@ public class Player : MonoBehaviour
             velocityThunk += (velocity.y - previousYVelocity) / 3f;
         previousYVelocity = velocity.y;
 
-        camera.transform.localRotation = Quaternion.Euler(new Vector3(Pitch + velocityThunkSmoothed, 0, CameraRoll));
+        viewBobbingAmount -= Mathf.Min(Time.deltaTime * 3, viewBobbingAmount);
+        var yawBobbing = (Mathf.Sin((Time.time * VIEWBOBBING_SPEED) + Mathf.PI / 2) - 0.5f) * viewBobbingAmount * 0.6f;
+        var pitchBobbing = (Mathf.Abs(Mathf.Sin(Time.time * VIEWBOBBING_SPEED)) - 0.5f) * viewBobbingAmount * 0.4f;
+
+        camera.transform.localRotation = Quaternion.Euler(new Vector3(Pitch + velocityThunkSmoothed - pitchBobbing, 0, CameraRoll));
         CrosshairDirection = cam.forward;
-        transform.rotation = Quaternion.Euler(0, Yaw, 0);
+        transform.rotation = Quaternion.Euler(0, Yaw + yawBobbing, 0);
 
         // This value is used to calcuate the positions in between each fixedupdate tick
         motionInterpolationDelta += Time.deltaTime;
@@ -526,15 +533,15 @@ public class Player : MonoBehaviour
             transform.position = quickDeathToLocation;
         }
 
-        if (dashTime > 0)
+        if (DashTime > 0)
         {
-            if (dashTime - factor <= 0)
+            if (DashTime - factor <= 0)
             {
                 StopDash();
             }
             else
             {
-                dashTime -= factor;
+                DashTime -= factor;
             }
         }
 
@@ -971,7 +978,7 @@ public class Player : MonoBehaviour
 ██████╔╝██║░░██║██████╔╝██║░░██║
 ╚═════╝░╚═╝░░╚═╝╚═════╝░╚═╝░░╚═╝
     */
-    public bool IsDashing => dashTime > 0;
+    public bool IsDashing => DashTime > 0;
 
     public const float DASH_SPEED = 50;
     public const float DASH_CANCEL_TEMP_SPEED = 5;
@@ -980,7 +987,8 @@ public class Player : MonoBehaviour
     public const float DASH_CANCEL_TEMP_SPEED_DECAY = 1.5f;
     public const float DASH_UPVELOCITY_LIMIT = 16;
     public const int DASH_CANCEL_FORGIVENESS = 20;
-    private float dashTime;
+    public float DashTime { get; set; }
+    public Vector3 DashTargetNormal { get; set; }
     private float dashCancelTempSpeed;
     private int dashEndTimestamp;
 
@@ -1011,10 +1019,11 @@ public class Player : MonoBehaviour
             velocity = Mathf.Min(velocity.magnitude, onlyYChange.magnitude) * wishdir.normalized;
 
             Charges--;
+            DashTargetNormal = hit.normal;
 
             dashThrough = false;
             velocity = wishdir.normalized * Mathf.Max(DASH_SPEED, velocity.magnitude);
-            dashTime = hit.distance / velocity.magnitude;
+            DashTime = hit.distance / velocity.magnitude;
         }
     }
 
@@ -1023,7 +1032,7 @@ public class Player : MonoBehaviour
         if (IsDashing)
         {
             if (ApproachingGround || ApproachingWall) return false;
-            dashTime = 0;
+            DashTime = 0;
             dashEndTimestamp = input.tickCount;
 
             var wishdir = velocity.normalized;
@@ -1192,6 +1201,7 @@ public class Player : MonoBehaviour
         // The balance vector is a vector that attempts to mimick which direction you would intuitively lean
         // to not fall off the rail with real world physics, we will calculate a camera tilt based on it
         var balanceVector = GetBalanceVector(closeIndex + railDirection);
+        Debug.DrawRay(transform.position, balanceVector, Color.red, 100f);
         var totalAngle = Vector3.Angle(Vector3.up, balanceVector) / 1.4f;
         var roll = Vector3.Dot(balanceVector.normalized * totalAngle, -transform.right);
         railLean = Mathf.Lerp(railLean, roll, f * 5f);
@@ -1344,7 +1354,9 @@ public class Player : MonoBehaviour
         var leanVector = p3 - point;
         leanVector.y = Mathf.Abs(leanVector.y);
 
-        var balance = leanVector + Vector3.up * 0.3f;
+        if (leanVector.magnitude <= 0.01f) leanVector = Vector3.up;
+        var upOffset = 0.1f + (Mathf.Pow((Vector3.Angle(leanVector, Vector3.up) / 200f) + 1, 2) - 1);
+        var balance = leanVector.normalized + Vector3.up * upOffset;
 
         return balance.normalized;
     }
@@ -1841,7 +1853,8 @@ public class Player : MonoBehaviour
             else
             {
                 ApplyFriction(f * GROUND_FRICTION, 0, BASE_SPEED / 3);
-                Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION, f, true);
+                Accelerate(Wishdir, BASE_SPEED + 0.32f, GROUND_ACCELERATION, f, true);
+                if (Wishdir.magnitude > 0) viewBobbingAmount = Mathf.Lerp(viewBobbingAmount, 1, f * 8);
             }
         }
 
@@ -2247,7 +2260,7 @@ public class Player : MonoBehaviour
             if (!groundJump && !wallJump && !DoubleJumpAvailable) return false;
             if (!groundJump && !wallJump && IsDashing)
             {
-                jumpBuffered = dashTime + Time.fixedDeltaTime * 2;
+                jumpBuffered = DashTime + Time.fixedDeltaTime * 2;
                 return false;
             }
 
