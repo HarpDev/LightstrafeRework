@@ -1588,7 +1588,7 @@ public class Player : MonoBehaviour
     public const float WALL_FRICTION = 5f;
     public const float WALLRUN_TIME = 1.2f;
     public const float WALLRUN_FALLOFF_START = 0.4f;
-    public const float WALL_SAMEFACING_COOLDOWN = 3;
+    public const float WALL_SAMEFACING_COOLDOWN = 2;
     private Vector3 wallNormal;
     private Vector3 lastWallNormal;
     private bool wallLeanCancelled;

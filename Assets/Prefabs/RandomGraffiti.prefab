@@ -9,8 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8374697475703214532}
-  - component: {fileID: 8374697475703214531}
   - component: {fileID: 8374697475703214533}
+  - component: {fileID: 7602836994765333491}
   m_Layer: 0
   m_Name: RandomGraffiti
   m_TagString: Untagged
@@ -33,32 +33,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
---- !u!114 &8374697475703214531
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8374697475703214530}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f19d9143a39eb3b46bc4563e9889cfbd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Material: {fileID: 2100000, guid: e373131ea85baf74e82b3551cc302f87, type: 2}
-  m_DrawDistance: 1000
-  m_FadeScale: 1
-  m_StartAngleFade: 180
-  m_EndAngleFade: 180
-  m_UVScale: {x: 1, y: 1}
-  m_UVBias: {x: 0, y: 0}
-  m_AffectsTransparency: 0
-  m_DecalLayerMask: 1
-  m_ScaleMode: 0
-  m_Offset: {x: 0, y: 0, z: 0}
-  m_Size: {x: 10, y: 10, z: 1}
-  m_FadeFactor: 1
-  m_Version: 2
 --- !u!114 &8374697475703214533
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -72,9 +46,39 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   options:
-  - {fileID: 2100000, guid: e373131ea85baf74e82b3551cc302f87, type: 2}
-  - {fileID: 2100000, guid: d0354fcba3ac7f74b96442443a062826, type: 2}
-  - {fileID: 2100000, guid: bc9d4cca41c42f4478e30dfbe3ef8470, type: 2}
-  - {fileID: 2100000, guid: adc5b6a637f8d144aa5a4ba2124a2537, type: 2}
-  - {fileID: 2100000, guid: 6ee0e9e4f0d44634f8fcdb5869685934, type: 2}
-  - {fileID: 2100000, guid: 2d2235560f2fcc647851666d15813797, type: 2}
+  - {fileID: 6249411415076766217, guid: 76a6d10b1d2def24494603098a6827f3, type: 3}
+  - {fileID: 2471645020236710815, guid: d5debc7687605e74981ec8c6af37da50, type: 3}
+  - {fileID: 917085587418411332, guid: 16b61714e0f166c419b722b554d0c858, type: 3}
+  - {fileID: 3863801516886264669, guid: b36ce56a1a3379a4aa564c741d1c7daf, type: 3}
+  - {fileID: 4565307072250174251, guid: 3cc9742e5074178409246d45b38399d4, type: 3}
+  - {fileID: 7336127982510195224, guid: 8f29804b8ae360e4b85eea4b79bef6f5, type: 3}
+  - {fileID: 549159785302233969, guid: 08ce59da76a55b04b9287fea19fe2ff5, type: 3}
+  - {fileID: 980246003774287236, guid: ade4499fdab884b4f86847949012e61f, type: 3}
+  - {fileID: 6732913247122536000, guid: 06254e150b57b5d4283dd4a2d3434e4e, type: 3}
+  noGraffitiChance: 50
+--- !u!114 &7602836994765333491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8374697475703214530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f19d9143a39eb3b46bc4563e9889cfbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 2100000, guid: 500e733574922d04ea961553b1b26a63, type: 2}
+  m_DrawDistance: 1000
+  m_FadeScale: 0.9
+  m_StartAngleFade: 180
+  m_EndAngleFade: 180
+  m_UVScale: {x: 1, y: 1}
+  m_UVBias: {x: 0, y: 0}
+  m_AffectsTransparency: 0
+  m_DecalLayerMask: 1
+  m_ScaleMode: 0
+  m_Offset: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 1, z: 1}
+  m_FadeFactor: 1
+  m_Version: 2

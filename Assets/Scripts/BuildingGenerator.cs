@@ -116,17 +116,17 @@ public class BuildingGenerator : MonoBehaviour
                 if (selectionDigits[i] < slicePrefabs.Length && selectionDigits[i] >= 0) indexToBuild = selectionDigits[i];
             }
 
-            //var addedSlice = (GameObject)PrefabUtility.InstantiatePrefab(slicePrefabs[indexToBuild], sliceContainer.transform);
-            //if (randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
-            //addedSlice.isStatic = true;
+            var addedSlice = (GameObject)PrefabUtility.InstantiatePrefab(slicePrefabs[indexToBuild], sliceContainer.transform);
+            if (randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
+            addedSlice.isStatic = true;
 
             transform.position = beforePosition;
             PositionSlices();
-            //if (addedSlice.transform.position.y < -40)
-            //{
-             //   transform.position = Vector3.zero;
-            //    break;
-           // }
+            if (addedSlice.transform.position.y < -40)
+            {
+                transform.position = Vector3.zero;
+                break;
+            }
             transform.position = Vector3.zero;
         }
         PositionSlices();
