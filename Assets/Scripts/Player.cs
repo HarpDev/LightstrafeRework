@@ -21,6 +21,8 @@ public class Player : MonoBehaviour
     private float quickDeathLerp = 1;
     private const float QUICKDEATH_SPEED = 1;
 
+    private List<GameObject> quickSpawnObjects = new();
+
     public void SetQuickDeathPosition()
     {
         if (quickDeathLerp < 1) return;
@@ -28,6 +30,19 @@ public class Player : MonoBehaviour
         if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
                 QueryTriggerInteraction.Ignore) &&
             Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
+        {
+            if (quickSpawnObjects.Contains(hit.collider.gameObject)) return;
+            quickSpawnObjects.Add(hit.collider.gameObject);
+            quickDeathToLocation = hit.point + Vector3.up * 0.8f;
+            quickDeathToYaw = Yaw;
+        }
+    }
+
+    public void SetQuickDeathPositionForce()
+    {
+        if (quickDeathLerp < 1) return;
+        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
+            QueryTriggerInteraction.Ignore))
         {
             quickDeathToLocation = hit.point + Vector3.up * 0.8f;
             quickDeathToYaw = Yaw;
@@ -112,6 +127,7 @@ public class Player : MonoBehaviour
     public bool GrappleEnabled;
     public bool DashEnabled;
     public const float GRAPPLE_DASH_RANGE = 35;
+    public int GrappleDashMask => ~((1 << 10) | (1 << 6) | (1 << 2));
 
     public bool GrappleDashCast(out RaycastHit hit)
     {
@@ -129,7 +145,7 @@ public class Player : MonoBehaviour
         if (quickDeathLerp < 1) return false;
         if (Charges < 1) return false;
 
-        if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE + beyond, ExcludePlayerMask,
+        if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE + beyond, GrappleDashMask,
             QueryTriggerInteraction.Collide))
         {
             hit = rayhit;
@@ -138,7 +154,7 @@ public class Player : MonoBehaviour
         }
 
         if (Physics.SphereCast(origin, 2f, direction, out var spherehit, GRAPPLE_DASH_RANGE - 2f + beyond,
-            ExcludePlayerMask,
+            GrappleDashMask,
             QueryTriggerInteraction.Collide))
         {
             hit = spherehit;
@@ -229,9 +245,6 @@ public class Player : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        grappleTether.useWorldSpace = true;
-        grappleTether.enabled = false;
     }
 
     private Level level;
@@ -257,7 +270,7 @@ public class Player : MonoBehaviour
     private float velocityThunk;
     private float velocityThunkSmoothed;
     private float previousYVelocity;
-    
+
     private float threeSixtyCounter;
 
     public const float VIEWBOBBING_SPEED = 8;
@@ -313,7 +326,8 @@ public class Player : MonoBehaviour
         var yawBobbing = (Mathf.Sin((Time.time * VIEWBOBBING_SPEED) + Mathf.PI / 2) - 0.5f) * viewBobbingAmount * 0.6f;
         var pitchBobbing = (Mathf.Abs(Mathf.Sin(Time.time * VIEWBOBBING_SPEED)) - 0.5f) * viewBobbingAmount * 0.4f;
 
-        camera.transform.localRotation = Quaternion.Euler(new Vector3(Pitch + velocityThunkSmoothed - pitchBobbing, 0, CameraRoll));
+        camera.transform.localRotation =
+            Quaternion.Euler(new Vector3(Pitch + velocityThunkSmoothed - pitchBobbing, 0, CameraRoll));
         CrosshairDirection = cam.forward;
         transform.rotation = Quaternion.Euler(0, Yaw + yawBobbing, 0);
 
@@ -364,20 +378,6 @@ public class Player : MonoBehaviour
         else
         {
             camera.transform.position = InterpolatedPosition + position;
-        }
-
-        // Grapple tether visual
-        if (GrappleHooked)
-        {
-            if (!grappleTether.enabled) grappleTether.enabled = true;
-
-            var list = new List<Vector3>
-            {
-                camera.transform.position + Vector3.up * GRAPPLE_Y_OFFSET, grappleAttachPosition
-            };
-
-            grappleTether.positionCount = list.Count;
-            grappleTether.SetPositions(list.ToArray());
         }
 
         // FOV increases with speed
@@ -788,6 +788,10 @@ public class Player : MonoBehaviour
 
     private void ContactCollider(Collider collider, ref Vector3 normal, ref float distance)
     {
+        if (collider.CompareTag("Kill"))
+        {
+            DoQuickDeath();
+        }
         if (!IsOnWall && Vector3.Dot(Flatten(CrosshairDirection).normalized, Flatten(normal).normalized) < -0.5f &&
             surfAccelTime <= 0)
         {
@@ -879,16 +883,16 @@ public class Player : MonoBehaviour
         if (IsViableWall(collider, normal) && !IsOnGround)
         {
             // If the normal of a wall changes more than 10 degrees in 1 tick, kick you off the wall
-            if (IsOnWall && Vector3.Angle(wallNormal, Flatten(normal).normalized) > 10)
+            if (IsOnWall && Vector3.Angle(WallNormal, Flatten(normal).normalized) > 10)
             {
-                Accelerate(wallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
+                Accelerate(WallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
                 IsOnWall = false;
                 AudioManager.StopAudio(wallRun);
             }
             else
             {
                 IsOnWall = true;
-                wallNormal = Flatten(normal).normalized;
+                WallNormal = Flatten(normal).normalized;
 
                 currentWall = collider.gameObject;
 
@@ -917,6 +921,11 @@ public class Player : MonoBehaviour
 
     private void ContactTrigger(Vector3 normal, Collider other)
     {
+        if (other.CompareTag("Kill"))
+        {
+            DoQuickDeath();
+        }
+
         if (other.CompareTag("Rail") && (input.tickCount - railTimestamp > RAIL_COOLDOWN_TICKS ||
                                          other.transform.parent.gameObject != lastRail))
         {
@@ -935,6 +944,7 @@ public class Player : MonoBehaviour
                 velocity = Flatten(velocity).normalized * Speed;
                 StopDash();
             }
+
             DoubleJumpAvailable = true;
             Recharge();
             Recharge();
@@ -985,7 +995,7 @@ public class Player : MonoBehaviour
     public const float DASH_SPEEDGAIN = 28;
     public const float DASH_SPEEDGAIN_CAP = 35;
     public const float DASH_CANCEL_TEMP_SPEED_DECAY = 1.5f;
-    public const float DASH_UPVELOCITY_LIMIT = 16;
+    public const float DASH_UPVELOCITY_LIMIT = 26;
     public const int DASH_CANCEL_FORGIVENESS = 20;
     public float DashTime { get; set; }
     public Vector3 DashTargetNormal { get; set; }
@@ -1037,12 +1047,12 @@ public class Player : MonoBehaviour
 
             var wishdir = velocity.normalized;
 
-            var y1 = CalculateYForDirection(wishdir);
+            var y = CalculateYForDirectionAndSpeed(wishdir, Flatten(velocityBeforeDash).magnitude);
 
             var onlyYChange = Flatten(velocityBeforeDash).magnitude * Flatten(wishdir).normalized;
-            onlyYChange.y = y1;
+            onlyYChange.y = y;
 
-            if (Mathf.Abs(y1) > DASH_UPVELOCITY_LIMIT)
+            if (Mathf.Abs(y) > DASH_UPVELOCITY_LIMIT)
             {
                 velocity = velocityBeforeDash.magnitude * wishdir.normalized;
             }
@@ -1369,7 +1379,6 @@ public class Player : MonoBehaviour
 ╚██████╔╝██║░░██║██║░░██║██║░░░░░██║░░░░░███████╗███████╗
 ░╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝░░░░░╚══════╝╚══════╝
     */
-    public LineRenderer grappleTether;
     public bool GrappleHooked { get; set; }
     public const float GRAPPLE_Y_OFFSET = -1.2f;
     public const float GRAPPLE_CROSSHAIR_CONTROL_ACCELERATION = 30f;
@@ -1383,14 +1392,14 @@ public class Player : MonoBehaviour
     public const float GRAPPLE_SPEEDGAIN = 22;
     public const float GRAPPLE_SPEEDGAIN_CAP = 60;
     private int grappleTickCount;
-    private Vector3 grappleAttachPosition;
+    public Vector3 GrappleAttachPosition { get; set; }
     private float speedOnAttach;
     private bool grappleHoldMode;
 
 
     public void GrappleMove(float f)
     {
-        var position = grappleAttachPosition;
+        var position = GrappleAttachPosition;
 
         var towardPoint = (position - transform.position).normalized;
 
@@ -1460,7 +1469,7 @@ public class Player : MonoBehaviour
                 velocity += Vector3.up * flatProjection * efficiency;
             }
         }
-        
+
 
         var rawgain = GRAPPLE_SPEEDGAIN *
                       Mathf.Clamp01((GRAPPLE_SPEEDGAIN_CAP - speedOnAttach) / GRAPPLE_SPEEDGAIN_CAP);
@@ -1502,7 +1511,7 @@ public class Player : MonoBehaviour
         if (GrappleHooked) return;
         AudioManager.PlayOneShot(grappleAttach);
         if (IsOnRail) EndRail();
-        grappleAttachPosition = position;
+        GrappleAttachPosition = position;
         GrappleHooked = true;
         grappleTickCount = 0;
         DoubleJumpAvailable = true;
@@ -1516,7 +1525,6 @@ public class Player : MonoBehaviour
         if (GrappleHooked)
         {
             GrappleHooked = false;
-            if (grappleTether.enabled) grappleTether.enabled = false;
             SetCameraRoll(0, CAMERA_ROLL_CORRECT_SPEED);
 
             var s = speedOnAttach - Speed;
@@ -1574,6 +1582,8 @@ public class Player : MonoBehaviour
 
     private int wallLevel;
     public bool ApproachingWall { get; set; }
+    public bool WallRightSide { get; set; }
+    public Vector3 WallNormal { get; set; }
     public const float WALL_JUMP_ANGLE = 14f;
     public const float WALL_VERTICAL_ANGLE_GIVE = 10f;
     public const float WALL_AIR_ACCEL_RECOVERY = 0.35f;
@@ -1589,7 +1599,6 @@ public class Player : MonoBehaviour
     public const float WALLRUN_TIME = 1.2f;
     public const float WALLRUN_FALLOFF_START = 0.4f;
     public const float WALL_SAMEFACING_COOLDOWN = 2;
-    private Vector3 wallNormal;
     private Vector3 lastWallNormal;
     private bool wallLeanCancelled;
     private int wallTimestamp = -100000;
@@ -1630,7 +1639,7 @@ public class Player : MonoBehaviour
         }
 
         // Apply camera roll from the wall
-        var normal = Flatten(wallNormal);
+        var normal = Flatten(WallNormal);
         var projection = Vector3.Dot(CrosshairDirection, new Vector3(-normal.z, normal.y, normal.x));
 
         var endModifier = Mathf.Clamp01(wallRunTime / WALLRUN_FALLOFF_START);
@@ -1649,11 +1658,12 @@ public class Player : MonoBehaviour
         var speed = Mathf.Abs(CameraRoll - wallLeanLerp) / Time.fixedDeltaTime;
         SetCameraRoll(wallLeanLerp, speed);
         ApproachingWall = false;
+        WallRightSide = cameraRotation > 0;
 
         if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) > 0.6f)
         {
-            var alongView = (Wishdir - (Flatten(wallNormal).normalized *
-                                        Vector3.Dot(Wishdir, Flatten(wallNormal).normalized)))
+            var alongView = (Wishdir - (Flatten(WallNormal).normalized *
+                                        Vector3.Dot(Wishdir, Flatten(WallNormal).normalized)))
                 .normalized;
             Accelerate(alongView, WALL_SPEED, WALL_ACCELERATION * 4, f);
             Accelerate(alongView, BASE_SPEED, WALL_TURNAROUND_ACCELERATION * 4, f);
@@ -1662,8 +1672,8 @@ public class Player : MonoBehaviour
         // If you hold back on a wall, apply friction and accelerate in the opposite direction so you can turn around on walls
         if (Vector3.Dot(Flatten(velocity).normalized, Flatten(Wishdir).normalized) < -0.6f)
         {
-            var alongView = (Wishdir - (Flatten(wallNormal).normalized *
-                                        Vector3.Dot(Wishdir, Flatten(wallNormal).normalized)))
+            var alongView = (Wishdir - (Flatten(WallNormal).normalized *
+                                        Vector3.Dot(Wishdir, Flatten(WallNormal).normalized)))
                 .normalized;
             Accelerate(alongView, BASE_SPEED, WALL_TURNAROUND_ACCELERATION * 4, f);
             ApplyFriction(f * WALL_FRICTION);
@@ -1679,8 +1689,8 @@ public class Player : MonoBehaviour
             else
             {
                 // If your velocity is 0, we cant accelerate in the direction youre moving, so we use CrosshairDirection instead
-                var alongView = (CrosshairDirection - (Flatten(wallNormal).normalized *
-                                                       Vector3.Dot(CrosshairDirection, Flatten(wallNormal).normalized)))
+                var alongView = (CrosshairDirection - (Flatten(WallNormal).normalized *
+                                                       Vector3.Dot(CrosshairDirection, Flatten(WallNormal).normalized)))
                     .normalized;
                 Accelerate(alongView, BASE_SPEED, BASE_SPEED, f);
             }
@@ -1698,15 +1708,15 @@ public class Player : MonoBehaviour
         }
 
         // Push you into the wall, holding you against it a bit
-        Accelerate(-wallNormal, 1, Gravity, f);
+        Accelerate(-WallNormal, 1, Gravity, f);
         if (wallRunTime <= 0)
         {
-            Accelerate(wallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
+            Accelerate(WallNormal, WALL_END_BOOST_SPEED, WALL_END_BOOST_SPEED);
             IsOnWall = false;
             sameFacingWallCooldown = WALL_SAMEFACING_COOLDOWN;
             AudioManager.StopAudio(wallRun);
             lastWall = currentWall;
-            lastWallNormal = wallNormal;
+            lastWallNormal = WallNormal;
             wallLeanCancelled = false;
             ApproachingWall = false;
             wallRecovery = WALL_AIR_ACCEL_RECOVERY;
@@ -1952,7 +1962,7 @@ public class Player : MonoBehaviour
             timeToWall = (hit.distance / (movement.magnitude * WALL_LEAN_PREDICTION_TIME)) *
                          WALL_LEAN_PREDICTION_TIME;
 
-            wallNormal = Flatten(hit.normal).normalized;
+            WallNormal = Flatten(hit.normal).normalized;
 
             // Slowly increase lean amount, and ease it with the same ease function as titanfall
             if (wallLeanAmount < 1)
@@ -1971,19 +1981,7 @@ public class Player : MonoBehaviour
                 SetCameraRoll(roll, speed);
             }
 
-            // First tick on approach, tell view model that lean is starting
-            /*if (!ApproachingWall)
-            {
-                if (cameraRotation < 0)
-                {
-                    weaponManager.LeftWallStart();
-                }
-                else
-                {
-                    weaponManager.RightWallStart();
-                }
-            }*/
-
+            WallRightSide = cameraRotation > 0;
             ApproachingWall = true;
 
             // Eat jump inputs if you are < buffering away from the wall to not eat double jump
@@ -2001,7 +1999,7 @@ public class Player : MonoBehaviour
                 wallLeanAmount = Mathf.Clamp01(wallLeanAmount - Time.fixedDeltaTime / WALL_LEAN_PREDICTION_TIME);
 
                 var leanOutProjection = Vector3.Dot(CrosshairDirection,
-                    new Vector3(-wallNormal.z, wallNormal.y, wallNormal.x));
+                    new Vector3(-WallNormal.z, WallNormal.y, WallNormal.x));
 
                 var easeOut = wallLeanCancelled
                     ? Mathf.Sin(wallLeanAmount * Mathf.PI / 2)
@@ -2303,7 +2301,7 @@ public class Player : MonoBehaviour
                 sameFacingWallCooldown = WALL_SAMEFACING_COOLDOWN;
                 wallJumpDiagonalRecovery = WALLJUMP_DIAGONAL_RECOVERY;
                 lastWall = currentWall;
-                lastWallNormal = wallNormal;
+                lastWallNormal = WallNormal;
                 wallLeanCancelled = false;
                 ApproachingWall = false;
                 wallRecovery = WALL_AIR_ACCEL_RECOVERY;
@@ -2311,7 +2309,7 @@ public class Player : MonoBehaviour
                 var y = velocity.y;
 
                 var speed = Speed;
-                velocity += wallNormal * WALL_JUMP_ANGLE * (Mathf.Clamp01(speed / 50) + 0.2f);
+                velocity += WallNormal * WALL_JUMP_ANGLE * (Mathf.Clamp01(speed / 50) + 0.2f);
                 velocity = speed * Flatten(velocity).normalized;
 
                 velocity += Flatten(velocity).normalized * speedGain;
@@ -2385,9 +2383,14 @@ public class Player : MonoBehaviour
 
     public float CalculateYForDirection(Vector3 direction, float max = 100f)
     {
+        return CalculateYForDirectionAndSpeed(direction, Speed, max);
+    }
+
+    public float CalculateYForDirectionAndSpeed(Vector3 direction, float speed, float max = 100f)
+    {
         var wishdir = direction.normalized;
         var x2 = Flatten(wishdir).magnitude;
-        var x1 = Speed;
+        var x1 = speed;
         var y2 = wishdir.y;
         var y1 = x1 * y2 / x2;
 

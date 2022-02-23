@@ -10,24 +10,15 @@ public class Collectible : MonoBehaviour
     public GameObject GemSprite;
     public Collectible PreviousCollectible;
     public int LeftToCollect { get; set; }
-    public GameObject Visual;
-
-    private bool chasingPlayer;
 
     private GameObject nosprite;
     private GameObject gemsprite;
 
-    private Vector3 start;
-
-    private void Awake()
-    {
-        start = transform.position;
-        chaseTimeStart = chaseTime;
-    }
-
     private Player player;
     private CanvasManager canvasManager;
     private Level level;
+
+    public bool ChasingPlayer { get; private set; }
 
     private void Start()
     {
@@ -37,25 +28,9 @@ public class Collectible : MonoBehaviour
         LeftToCollect = 5;
     }
 
-    private float chaseTime = 0.5f;
-    private float chaseTimeStart;
-
     private void LateUpdate()
     {
         if (player == null) return;
-
-        if (chasingPlayer)
-        {
-            if (chaseTime <= 0)
-            {
-                transform.position = player.camera.transform.position;
-            }
-            else
-            {
-                transform.position = Vector3.Lerp(player.camera.transform.position, start, chaseTime / chaseTimeStart);
-                chaseTime -= Time.deltaTime;
-            }
-        }
 
         transform.Rotate(0, 0, 50 * Time.deltaTime);
         if (RequirementsMet)
@@ -164,36 +139,23 @@ public class Collectible : MonoBehaviour
         if (!RequirementsMet) return;
         if (gemsprite != null) Destroy(gemsprite);
         if (nosprite != null) Destroy(nosprite);
-        if (chasingPlayer)
+        var objects = FindObjectsOfType<Collectible>();
+        foreach (var gem in objects)
         {
-            var objects = FindObjectsOfType<Collectible>();
-            foreach (var gem in objects)
-            {
-                var coll = gem.GetComponent<Collectible>();
-                coll.LeftToCollect = objects.Length - 1;
-            }
-
-            if (objects.Length == 1)
-            {
-                level.LevelFinished();
-            }
-
-            player.AudioManager.PlayOneShot(player.wow, false, 0.4f);
-
-            Destroy(gameObject);
+            var coll = gem.GetComponent<Collectible>();
+            coll.LeftToCollect = objects.Length - 1;
         }
-        else
+
+        if (objects.Length == 1)
         {
-            transform.position = Visual.transform.position;
-            start = transform.position;
-            Visual.transform.localPosition = Vector3.zero;
-            GetComponent<Collider>().enabled = false;
-            var sphereCollider = gameObject.AddComponent<SphereCollider>();
-            sphereCollider.isTrigger = true;
-            sphereCollider.radius = 1f;
-            chasingPlayer = true;
-            player.Recharge();
-            player.Recharge();
+            level.LevelFinished();
         }
+
+        player.AudioManager.PlayOneShot(player.wow, false, 0.4f);
+        player.Recharge();
+        player.Recharge();
+        player.DoubleJumpAvailable = true;
+
+        Destroy(gameObject);
     }
 }
