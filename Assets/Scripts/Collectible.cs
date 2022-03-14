@@ -14,11 +14,13 @@ public class Collectible : MonoBehaviour
     private GameObject nosprite;
     private GameObject gemsprite;
 
+    public GameObject visual;
+
+    public Transform quickspawn;
+
     private Player player;
     private CanvasManager canvasManager;
     private Level level;
-
-    public bool ChasingPlayer { get; private set; }
 
     private void Start()
     {
@@ -32,7 +34,7 @@ public class Collectible : MonoBehaviour
     {
         if (player == null) return;
 
-        transform.Rotate(0, 0, 50 * Time.deltaTime);
+        visual.transform.Rotate(0, 0, 50 * Time.deltaTime);
         if (RequirementsMet)
         {
             if (gemsprite == null)
@@ -156,6 +158,20 @@ public class Collectible : MonoBehaviour
         player.Recharge();
         player.DoubleJumpAvailable = true;
 
+        if (quickspawn != null)
+            player.SetQuickDeathPosition(quickspawn.position, quickspawn.rotation.eulerAngles.y);
+
         Destroy(gameObject);
+    }
+    
+    private void OnDrawGizmos()
+    {
+        if (quickspawn != null)
+        {
+            Gizmos.color = Color.cyan;
+            
+            Gizmos.DrawRay(quickspawn.position, quickspawn.forward);
+            Gizmos.DrawSphere(quickspawn.position, 0.5f);
+        }
     }
 }

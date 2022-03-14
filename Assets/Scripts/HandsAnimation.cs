@@ -52,7 +52,7 @@ public class HandsAnimation : MonoBehaviour
         else setSpeed = true;
 
         if ((player.ApproachingWall || player.IsOnWall) &&
-            Vector3.Angle(Flatten(-player.WallNormal), Flatten(player.CrosshairDirection)) > 20)
+            Vector3.Angle(Flatten(-player.WallNormal), Flatten(player.CrosshairDirection)) > 45)
         {
             if (player.WallRightSide)
             {

@@ -21,31 +21,15 @@ public class Player : MonoBehaviour
     private float quickDeathLerp = 1;
     private const float QUICKDEATH_SPEED = 1;
 
-    private List<GameObject> quickSpawnObjects = new();
-
-    public void SetQuickDeathPosition()
+    public void SetQuickDeathPosition(Vector3 position, float yaw)
     {
         if (quickDeathLerp < 1) return;
-        if (IsOnRail) return;
-        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
+        if (Physics.Raycast(position, Vector3.down, out var hit, 15f, ExcludePlayerMask,
                 QueryTriggerInteraction.Ignore) &&
             Vector3.Angle(hit.normal, Vector3.up) < GROUND_ANGLE)
         {
-            if (quickSpawnObjects.Contains(hit.collider.gameObject)) return;
-            quickSpawnObjects.Add(hit.collider.gameObject);
             quickDeathToLocation = hit.point + Vector3.up * 0.8f;
-            quickDeathToYaw = Yaw;
-        }
-    }
-
-    public void SetQuickDeathPositionForce()
-    {
-        if (quickDeathLerp < 1) return;
-        if (Physics.Raycast(transform.position, Vector3.down, out var hit, 5f, ExcludePlayerMask,
-            QueryTriggerInteraction.Ignore))
-        {
-            quickDeathToLocation = hit.point + Vector3.up * 0.8f;
-            quickDeathToYaw = Yaw;
+            quickDeathToYaw = yaw % 360;
         }
     }
 
@@ -1796,7 +1780,6 @@ public class Player : MonoBehaviour
         if (IsDashing)
         {
             groundTickCount = -1;
-            SetQuickDeathPosition();
         }
 
         groundTickCount++;
@@ -1805,7 +1788,6 @@ public class Player : MonoBehaviour
         if (groundTickCount == 1)
         {
             if (!IsSliding && quickDeathLerp >= 1) AudioManager.PlayAudio(groundLand);
-            SetQuickDeathPosition();
         }
 
         // Stop sliding if you slow down enough
