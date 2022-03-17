@@ -1569,7 +1569,7 @@ public class Player : MonoBehaviour
     public bool WallRightSide { get; set; }
     public Vector3 WallNormal { get; set; }
     public const float WALL_JUMP_ANGLE = 14f;
-    public const float WALL_VERTICAL_ANGLE_GIVE = 10f;
+    public const float WALL_VERTICAL_ANGLE_GIVE = 25f;
     public const float WALL_AIR_ACCEL_RECOVERY = 0.35f;
     public const float WALL_END_BOOST_SPEED = 2;
     public const float WALL_LEAN_DEGREES = 15f;
