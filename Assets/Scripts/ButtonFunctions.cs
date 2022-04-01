@@ -53,6 +53,11 @@ public class ButtonFunctions : MonoBehaviour
         canvasManager.OpenMenu(canvasManager.Chapter1Select);
     }
 
+    public void OpenReplays()
+    {
+        canvasManager.OpenMenu(canvasManager.Replays);
+    }
+
     public void ResetTimes()
     {
         timers.ResetTimes();
@@ -66,13 +71,13 @@ public class ButtonFunctions : MonoBehaviour
     public AudioClip buttonHover;
     public void PlayButtonHover()
     {
-        audio.PlayAudio(buttonHover, false, 0.4f);
+        audio.PlayAudio(buttonHover, false, 0.4f, true);
     }
 
     public AudioClip buttonClick;
     public void PlayButtonClick()
     {
-        audio.PlayOneShot(buttonClick);
+        audio.PlayOneShot(buttonClick, false, 1, true);
     }
 
 }

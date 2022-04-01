@@ -5,23 +5,25 @@ using UnityEngine;
 
 public class PlayerAudioManager : MonoBehaviour
 {
-    private Dictionary<string, PlayingAudio> playingAudio = new();
+    private Dictionary<string, PlayingAudio> playingAudio = new Dictionary<string, PlayingAudio>();
 
     public struct PlayingAudio
     {
-        public PlayingAudio(GameObject obj, float volume = 1)
+        public PlayingAudio(GameObject obj, float volume = 1,bool ignoreTimescale = false)
         {
             this.obj = obj;
             this.volume = volume;
+            this.ignoreTimescale = ignoreTimescale;
         }
 
         public GameObject obj;
         public float volume;
+        public bool ignoreTimescale;
     }
 
     int i = 0;
 
-    public void PlayOneShot(AudioClip clip, bool looping = false, float volume = 1)
+    public void PlayOneShot(AudioClip clip, bool looping = false, float volume = 1, bool ignoreTimescale = false)
     {
         var name = clip.name + i++;
         if (i > 500000) i = 0;
@@ -33,15 +35,16 @@ public class PlayerAudioManager : MonoBehaviour
         var audio = obj.AddComponent<AudioSource>();
         audio.clip = clip;
         audio.volume = GameSettings.SoundVolume;
+        if (!ignoreTimescale) audio.pitch = Time.timeScale;
         audio.loop = looping;
         audio.Play();
 
-        var playing = new PlayingAudio(obj, volume);
+        var playing = new PlayingAudio(obj, volume, ignoreTimescale);
 
         playingAudio[name] = playing;
     }
 
-    public void PlayAudio(AudioClip clip, bool looping = false, float volume = 1)
+    public void PlayAudio(AudioClip clip, bool looping = false, float volume = 1, bool ignoreTimescale = false)
     {
         if (IsPlaying(clip))
         {
@@ -55,11 +58,11 @@ public class PlayerAudioManager : MonoBehaviour
         var audio = obj.AddComponent<AudioSource>();
         audio.clip = clip;
         audio.volume = GameSettings.SoundVolume * volume;
-        audio.pitch = Time.timeScale;
+        if (!ignoreTimescale) audio.pitch = Time.timeScale;
         audio.loop = looping;
         audio.Play();
 
-        var playing = new PlayingAudio(obj, volume);
+        var playing = new PlayingAudio(obj, volume, ignoreTimescale);
 
         playingAudio[clip.name] = playing;
     }
@@ -97,7 +100,7 @@ public class PlayerAudioManager : MonoBehaviour
         {
             var playing = e.Value;
             var source = playing.obj.GetComponent<AudioSource>();
-            source.pitch = Time.timeScale;
+            if (!e.Value.ignoreTimescale) source.pitch = Time.timeScale;
             source.volume = GameSettings.SoundVolume * playing.volume;
         }
     }

@@ -88,19 +88,6 @@ public class HandsAnimation : MonoBehaviour
             {
                 animator.Play("Dash");
             }
-
-            if (Mathf.Abs(Vector3.Angle(player.DashTargetNormal, Vector3.up) - 90) < Player.WALL_VERTICAL_ANGLE_GIVE
-                && Vector3.Angle(Flatten(-player.DashTargetNormal), Flatten(player.CrosshairDirection)) > 20)
-            {
-                if (Vector3.Dot(player.DashTargetNormal, player.camera.transform.right) < 0)
-                {
-                    animator.SetBool("WallRunRight", true);
-                }
-                else
-                {
-                    animator.SetBool("WallRunLeft", true);
-                }
-            }
         }
         else if (!player.IsSliding && player.IsOnGround && player.Speed > 0.1f)
         {
@@ -133,8 +120,8 @@ public class HandsAnimation : MonoBehaviour
         if (player.IsDashing)
         {
             var angle = Vector3.Angle(player.camera.transform.right, player.DashTargetNormal) - 90;
-            angle *= player.DashTime / totalDashTime;
-            angle *= 1.5f;
+            //angle *= player.DashTime / totalDashTime;
+            angle *= 0.7f;
             if (totalDashTime > 0 && Mathf.Abs(angle) > 0)
             {
                 rightHand.RotateAround(transform.position, player.camera.transform.forward, angle);

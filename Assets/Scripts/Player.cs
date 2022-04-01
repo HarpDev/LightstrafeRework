@@ -234,9 +234,11 @@ public class Player : MonoBehaviour
     private Level level;
     private KickFeedback kickFeedback;
     private PlayerInput input;
+    private Timers timers;
 
     private void Start()
     {
+        timers = Game.OnStartResolve<Timers>();
         input = Game.OnStartResolve<PlayerInput>();
         level = Game.OnStartResolve<Level>();
         kickFeedback = Game.OnStartResolve<KickFeedback>();
@@ -388,9 +390,8 @@ public class Player : MonoBehaviour
 
     private bool uncrouchBlocked;
     private int startGrounded = 5;
-    private bool allowHardRestart;
-    private int ignoreRestarts = 50;
     private int groundRechargeCooldown;
+    private int hardRestartCharge;
 
     private void FixedUpdate()
     {
@@ -410,7 +411,6 @@ public class Player : MonoBehaviour
             }
 
             startGrounded--;
-            allowHardRestart = false;
             IsOnGround = true;
             groundTickCount = 2;
         }
@@ -420,19 +420,24 @@ public class Player : MonoBehaviour
         eatJumpInputs = Mathf.Max(eatJumpInputs - Time.fixedDeltaTime, 0);
         wallJumpDiagonalRecovery -= Mathf.Min(wallJumpDiagonalRecovery, Time.fixedDeltaTime);
 
-        if (ignoreRestarts > 0) ignoreRestarts--;
-        if (ignoreRestarts <= 0)
+        if (timers.TimerRunning)
         {
-            if (input.SincePressed(PlayerInput.RestartLevel) == 0 && startGrounded <= 0)
+            if (input.SincePressed(PlayerInput.RestartLevel) == 1)
             {
                 DoQuickDeath();
-                allowHardRestart = true;
             }
 
-            if (input.SincePressed(PlayerInput.RestartLevel) == 60 && input.GetKey(PlayerInput.RestartLevel) &&
-                allowHardRestart)
+            if (input.GetKey(PlayerInput.RestartLevel))
             {
-                level.RestartLevel();
+                if (hardRestartCharge++ == 60)
+                {
+                    level.RestartLevel();
+                    hardRestartCharge = 0;
+                }
+            }
+            else
+            {
+                hardRestartCharge = 0;
             }
         }
 
@@ -776,6 +781,7 @@ public class Player : MonoBehaviour
         {
             DoQuickDeath();
         }
+
         if (!IsOnWall && Vector3.Dot(Flatten(CrosshairDirection).normalized, Flatten(normal).normalized) < -0.5f &&
             surfAccelTime <= 0)
         {
@@ -1616,7 +1622,7 @@ public class Player : MonoBehaviour
         wallTickCount++;
 
         // Apply friction on walls only for a few ticks at the start of the wall
-        if (wallTickCount is > 0 and <= WALL_FRICTION_TICKS)
+        if (wallTickCount > 0 && wallTickCount <= WALL_FRICTION_TICKS)
         {
             ApplyFriction(f * WALL_FRICTION, BASE_SPEED);
             wallFrictionTicks++;
@@ -1821,7 +1827,7 @@ public class Player : MonoBehaviour
             if (IsSliding)
             {
                 // Sliding on ground has same movement as in the air
-                if (groundTickCount is > GROUND_JUMP_BUFFERING and <= SLIDE_FRICTION_TICKS + GROUND_JUMP_BUFFERING)
+                if (groundTickCount > GROUND_JUMP_BUFFERING && groundTickCount <= SLIDE_FRICTION_TICKS + GROUND_JUMP_BUFFERING)
                 {
                     var slideFriction = f * SLIDE_FRICTION;
                     if (Speed > slideFriction)

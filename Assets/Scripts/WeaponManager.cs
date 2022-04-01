@@ -11,7 +11,7 @@ public class WeaponManager : MonoBehaviour
 
     public Material tracerMaterial;
 
-    private Dictionary<GunType, Dictionary<string, object>> parameters = new();
+    private Dictionary<GunType, Dictionary<string, object>> parameters = new Dictionary<GunType, Dictionary<string, object>>();
 
     public GunType startGun = GunType.Rifle;
 

@@ -28,21 +28,30 @@ public class Level : MonoBehaviour
         Time.timeScale = 1;
     }
 
-    private bool togglePauseOnNextTick;
-
     private void Update()
     {
         if (Input.GetKeyDown((KeyCode) PlayerInput.Pause))
         {
             if (canvasManager.MenuLayerCount == 1)
             {
-                Time.timeScale = 1;
+                if (!Game.playingReplay || !Game.replayFinishedPlaying) Time.timeScale = 1;
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
             if (canvasManager.MenuLayerCount == 0)
             {
-                togglePauseOnNextTick = true;
+                if (IsLevelFinished)
+                {
+                    Time.timeScale = 0;
+                }
+                else
+                {
+                    if (canvasManager.MenuLayerCount == 0)
+                    {
+                        Time.timeScale = 0;
+                        canvasManager.OpenMenu(canvasManager.Pause);
+                    }
+                }
             }
         }
     }
@@ -52,23 +61,6 @@ public class Level : MonoBehaviour
         if (player != null && player.transform.position.y <= KILL_LEVEL)
         {
             player.DoQuickDeath();
-        }
-        
-        if (togglePauseOnNextTick)
-        {
-            togglePauseOnNextTick = false;
-            if (IsLevelFinished)
-            {
-                Time.timeScale = 0;
-            }
-            else
-            {
-                if (canvasManager.MenuLayerCount == 0)
-                {
-                    Time.timeScale = 0;
-                    canvasManager.OpenMenu(canvasManager.Pause);
-                }
-            }
         }
         
         if (IsLevelFinished)
@@ -88,6 +80,7 @@ public class Level : MonoBehaviour
     public void LevelFinished()
     {
         IsLevelFinished = true;
+        Game.SaveReplay = true;
     }
 
     public void RestartLevel()

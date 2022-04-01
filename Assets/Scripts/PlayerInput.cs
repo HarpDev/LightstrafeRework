@@ -9,6 +9,8 @@ public class PlayerInput : MonoBehaviour
 
     private static PlayerInput I;
 
+    private Player player;
+
     private void Awake()
     {
         if (I == null) Game.OnAwakeBind(this);
@@ -27,6 +29,12 @@ public class PlayerInput : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
+        player = Game.OnStartResolve<Player>();
+        tickCount = 0;
+
+        keyPressTimestamps = new Dictionary<int, int>();
+        keyReleaseTimestamps = new Dictionary<int, int>();
     }
 
     // Binds must have the same variable name as their playerprefs entry
@@ -90,8 +98,8 @@ public class PlayerInput : MonoBehaviour
         private set { PlayerPrefs.SetInt("p", (int) value); }
     }
 
-    public Dictionary<int, int> keyPressTimestamps = new();
-    public Dictionary<int, int> keyReleaseTimestamps = new();
+    public Dictionary<int, int> keyPressTimestamps = new Dictionary<int, int>();
+    public Dictionary<int, int> keyReleaseTimestamps = new Dictionary<int, int>();
 
     public enum AlternateCode
     {
@@ -209,13 +217,11 @@ public class PlayerInput : MonoBehaviour
     public void SimulateKeyPress(int key)
     {
         keyPressTimestamps[key] = tickCount;
-        keyReleaseTimestamps[key] = tickCount;
     }
 
-    private void FixedUpdate()
+    public void SimulateKeyRelease(int key)
     {
-        usingAnalog = Mathf.Abs(Input.GetAxis("Joy 1 Y")) > 0.1f || Mathf.Abs(Input.GetAxis("Joy 1 X")) > 0.1f;
-        tickCount++;
+        keyReleaseTimestamps[key] = tickCount;
     }
 
     public static int GetBindByName(string name)
@@ -280,6 +286,12 @@ public class PlayerInput : MonoBehaviour
         {
             PlayerPrefs.DeleteKey(prop.Name);
         }
+    }
+
+    private void FixedUpdate()
+    {
+        usingAnalog = Mathf.Abs(Input.GetAxis("Joy 1 Y")) > 0.1f || Mathf.Abs(Input.GetAxis("Joy 1 X")) > 0.1f;
+        tickCount++;
     }
 
     private void Update()
