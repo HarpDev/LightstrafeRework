@@ -27,17 +27,17 @@ public class MusicPlayer : MonoBehaviour
         else if (I != this)
         {
             I.Start();
+            var newMusic = GetComponent<MusicPlayer>();
+            if (I.musicLoop.name != newMusic.musicLoop.name)
+            {
+                I.musicLoop = newMusic.musicLoop;
+                I.PlayMusic();
+            }
             Destroy(gameObject);
             return;
         }
 
         player = Game.OnStartResolve<Player>();
-        var newMusic = GetComponent<MusicPlayer>();
-        if (I.musicLoop.name != newMusic.musicLoop.name)
-        {
-            I.musicLoop = newMusic.musicLoop;
-            I.PlayMusic();
-        }
     }
 
     public void PlayMusic()
