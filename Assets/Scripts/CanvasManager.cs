@@ -18,7 +18,7 @@ public class CanvasManager : MonoBehaviour
 
     public Canvas screenSizeCanvas;
 
-    private List<Canvas> UiTree { get; set; }
+    public List<Canvas> UiTree { get; set; }
     public int MenuLayerCount => UiTree.Count;
 
     public Canvas GetCanvasAtLayer(int layer)

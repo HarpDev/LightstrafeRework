@@ -43,6 +43,9 @@ public class Level : MonoBehaviour
                 if (IsLevelFinished)
                 {
                     Time.timeScale = 0;
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                    canvasManager.OpenMenuAndSetAsBaseCanvas(LevelCompletedUIPrefab);
                 }
                 else
                 {

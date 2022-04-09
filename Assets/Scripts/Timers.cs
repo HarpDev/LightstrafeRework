@@ -134,10 +134,13 @@ public class Timers : MonoBehaviour
 
             if (CurrentLevelTickCount < GetBestLevelTime(level.LevelName) || GetBestLevelTime(level.LevelName) < 0f)
             {
-                SetBestLevelTime(level.LevelName, CurrentLevelTickCount);
-                if (!GameSettings.FullGameTimer || CurrentFullRunTickCount < 0)
+                if (!Game.playingReplay)
                 {
-                    PB = true;
+                    SetBestLevelTime(level.LevelName, CurrentLevelTickCount);
+                    if (!GameSettings.FullGameTimer || CurrentFullRunTickCount < 0)
+                    {
+                        PB = true;
+                    }
                 }
             }
         }

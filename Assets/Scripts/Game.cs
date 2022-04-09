@@ -1,9 +1,9 @@
-﻿using System;
+﻿using FullSerializer;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -51,7 +51,7 @@ public class Game : MonoBehaviour
 
     private PlayerInput input;
     private Player player;
-    private Level level;
+    private Timers timers;
 
     private void Start()
     {
@@ -70,7 +70,7 @@ public class Game : MonoBehaviour
 
         input = OnStartResolve<PlayerInput>();
         player = OnStartResolve<Player>();
-        level = OnStartResolve<Level>();
+        timers = OnStartResolve<Timers>();
     }
 
     private void OnEnable()
@@ -87,8 +87,6 @@ public class Game : MonoBehaviour
 
     public class ReplayTick
     {
-        //public List<int> kp;
-        //public List<int> kr;
         public Vector3 pV;
         public Vector3 pP;
         public float py;
@@ -102,6 +100,7 @@ public class Game : MonoBehaviour
         public int scene;
         public Dictionary<int, ReplayTick> ticks = new Dictionary<int, ReplayTick>();
         public int everyNTicks = 2;
+        public int finalTimeTickCount;
     }
 
     private static Replay currentReplay;
@@ -128,11 +127,6 @@ public class Game : MonoBehaviour
             SaveReplay = false;
             if (currentReplay.ticks.Count > 0 && !playingReplay)
             {
-                var sets = new JsonSerializerSettings
-                {
-                    PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                };
                 var replaysFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) +
                                     @"\Lightstrafe\replays";
                 Directory.CreateDirectory(replaysFolder);
@@ -141,9 +135,30 @@ public class Game : MonoBehaviour
                 dateTime = dateTime.Replace("/", "-");
                 dateTime = dateTime.Replace(":", "-");
 
-                using var file = File.CreateText(replaysFolder + @"\" + scene.name + " " + dateTime + ".json");
-                var serializer = JsonSerializer.Create(sets);
-                serializer.Serialize(file, currentReplay);
+                currentReplay.finalTimeTickCount = timers.CurrentLevelTickCount;
+                var secondformat = "0.00";
+                var secondformat2 = "00.00";
+                var minuteformat = "0";
+
+                var ticks = currentReplay.finalTimeTickCount;
+                var seconds = (ticks % 6000) * Time.fixedDeltaTime;
+                var minutes = Mathf.Floor(ticks / 6000f);
+
+                string finalTime;
+                if (minutes > 0)
+                {
+                    finalTime = minutes.ToString(minuteformat) + "." + seconds.ToString(secondformat2);
+                }
+                else
+                {
+                    finalTime = seconds.ToString(secondformat);
+                }
+
+                string path = replaysFolder + @"\" + finalTime + " - " + scene.name + " " + dateTime + ".json";
+                //using var file = File.CreateText(path);
+                var fs = new fsSerializer();
+                fs.TrySerialize(currentReplay, out fsData data);
+                File.WriteAllText(path, fsJsonPrinter.CompressedJson(data));
             }
         }
 
@@ -175,17 +190,17 @@ public class Game : MonoBehaviour
         
         if (input != null && player != null && playingReplay)
         {
-            var interpolatedYaw = Mathf.Lerp(lastYaw, currentYaw, interpolationDelta / (Time.fixedDeltaTime * currentReplay.everyNTicks));
-            var interpolatedPitch = Mathf.Lerp(lastPitch, currentPitch, interpolationDelta / (Time.fixedDeltaTime * currentReplay.everyNTicks));
+            var interpolatedYaw = Mathf.Lerp(currentYaw, nextYaw, interpolationDelta / (Time.fixedDeltaTime * currentReplay.everyNTicks));
+            var interpolatedPitch = Mathf.Lerp(currentPitch, nextPitch, interpolationDelta / (Time.fixedDeltaTime * currentReplay.everyNTicks));
 
             player.Yaw = interpolatedYaw;
             player.Pitch = interpolatedPitch;
         }
     }
 
-    private float lastYaw;
+    private float nextYaw;
     private float currentYaw;
-    private float lastPitch;
+    private float nextPitch;
     private float currentPitch;
 
     private float interpolationDelta;
@@ -220,10 +235,18 @@ public class Game : MonoBehaviour
                         var tick = currentReplay.ticks[input.tickCount];
                         player.velocity = tick.pV;
                         player.transform.position = tick.pP;
-                        lastYaw = currentYaw;
-                        lastPitch = currentPitch;
                         currentYaw = tick.py;
                         currentPitch = tick.pp;
+                        if (currentReplay.ticks.ContainsKey(input.tickCount + currentReplay.everyNTicks))
+                        {
+                            nextYaw = currentReplay.ticks[input.tickCount + currentReplay.everyNTicks].py;
+                            nextPitch = currentReplay.ticks[input.tickCount + currentReplay.everyNTicks].pp;
+                        }
+                        else
+                        {
+                            nextYaw = currentYaw;
+                            nextPitch = currentPitch;
+                        }
                         interpolationDelta = 0;
                     }
                 }

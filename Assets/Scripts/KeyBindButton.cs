@@ -26,17 +26,7 @@ public class KeyBindButton : MonoBehaviour
         {
             foreach (KeyCode kcode in Enum.GetValues(typeof(KeyCode)))
             {
-                if (input.GetKeyDown(kcode))
-                {
-                    PlayerInput.SetBind(bindName, kcode);
-                    text.text = kcode.ToString();
-                    rebinding = false;
-                    break;
-                }
-            }
-            foreach (PlayerInput.AlternateCode kcode in Enum.GetValues(typeof(PlayerInput.AlternateCode)))
-            {
-                if (input.GetKeyDown(kcode))
+                if (Input.GetKeyDown(kcode))
                 {
                     PlayerInput.SetBind(bindName, kcode);
                     text.text = kcode.ToString();

@@ -4,7 +4,7 @@ public class MenuAnimation : MonoBehaviour
 {
     public Camera MenuCamera;
     public Transform OptionsPosition;
-    public Transform LevelSelectPosition;
+    public Transform OtherPosition;
 
     public float lerpSpeed = 2;
 
@@ -40,9 +40,9 @@ public class MenuAnimation : MonoBehaviour
         SendToTransform(OptionsPosition);
     }
 
-    public void SendToLevelSelectPosition()
+    public void SendToOtherPosition()
     {
-        SendToTransform(LevelSelectPosition);
+        SendToTransform(OtherPosition);
     }
 
     public void SendToStartPosition()
@@ -84,9 +84,9 @@ public class MenuAnimation : MonoBehaviour
             {
                 SendToOptionsPosition();
             }
-            else if (currentCanvas.ToLower().Contains("chapter"))
+            else if (canvasManager.UiTree.Count > 0)
             {
-                SendToLevelSelectPosition();
+                SendToOtherPosition();
             }
             else
             {

@@ -4,6 +4,8 @@ public class AnimatedTexture : MonoBehaviour
 {
 
     public Texture2D[] fzzySodaFrames;
+    public Texture2D[] bigBlockRightArrowFrames;
+    public Texture2D[] bigBlockLeftArrowFrames;
 
     private MusicPlayer music;
 
@@ -43,8 +45,8 @@ public class AnimatedTexture : MonoBehaviour
             }
             if (mat.name.StartsWith("fzzySodaMat"))
             {
-                var time = music.Audio.timeSamples / (float)music.musicLoop.frequency;
-                var fps = music.bpm / 60;
+                var time = music.Audio.timeSamples / (float)music.musicList[music.currentlyPlayingIndex].frequency;
+                var fps = music.bpmList[music.currentlyPlayingIndex] / 60;
                 var musicDelta = time * fps;
                 var index = Mathf.RoundToInt(musicDelta);
                 index %= fzzySodaFrames.Length;
@@ -52,6 +54,34 @@ public class AnimatedTexture : MonoBehaviour
                 if (index != lastIndex && Time.timeScale > 0)
                 {
                     mat.mainTexture = fzzySodaFrames[index];
+                }
+                lastIndex = index;
+            }
+            if (mat.name.StartsWith("bigBlockArrowMat"))
+            {
+                var time = music.Audio.timeSamples / (float)music.musicList[music.currentlyPlayingIndex].frequency;
+                var fps = music.bpmList[music.currentlyPlayingIndex] / 60;
+                var musicDelta = time * fps;
+                var index = Mathf.RoundToInt(musicDelta);
+                index %= bigBlockRightArrowFrames.Length;
+
+                if (index != lastIndex && Time.timeScale > 0)
+                {
+                    mat.mainTexture = bigBlockRightArrowFrames[index];
+                }
+                lastIndex = index;
+            }
+            if (mat.name.StartsWith("bigBlockArrowLeftMat"))
+            {
+                var time = music.Audio.timeSamples / (float)music.musicList[music.currentlyPlayingIndex].frequency;
+                var fps = music.bpmList[music.currentlyPlayingIndex] / 60;
+                var musicDelta = time * fps;
+                var index = Mathf.RoundToInt(musicDelta);
+                index %= bigBlockLeftArrowFrames.Length;
+
+                if (index != lastIndex && Time.timeScale > 0)
+                {
+                    mat.mainTexture = bigBlockLeftArrowFrames[index];
                 }
                 lastIndex = index;
             }

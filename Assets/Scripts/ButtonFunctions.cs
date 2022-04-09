@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -8,7 +9,7 @@ public class ButtonFunctions : MonoBehaviour
     private Level level;
     private Timers timers;
     private CanvasManager canvasManager;
-    private PlayerAudioManager audio;
+    private new PlayerAudioManager audio;
     private void Start()
     {
         audio = Game.OnStartResolve<PlayerAudioManager>();
@@ -56,6 +57,14 @@ public class ButtonFunctions : MonoBehaviour
     public void OpenReplays()
     {
         canvasManager.OpenMenu(canvasManager.Replays);
+    }
+
+    public void OpenReplaysFolder()
+    {
+        var replaysFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) +
+                            @"\Lightstrafe\replays";
+        Directory.CreateDirectory(replaysFolder);
+        Process.Start("explorer.exe", replaysFolder);
     }
 
     public void ResetTimes()

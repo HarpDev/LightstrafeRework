@@ -111,8 +111,8 @@ public class Rifle: WeaponManager.Gun
 
         shotAvailable = true;
 
-        if (fireInputConsumed && !input.GetKey(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
-        if (input.GetKey(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") 
+        if (fireInputConsumed && !input.IsKeyPressed(PlayerInput.PrimaryInteract)) fireInputConsumed = false;
+        if (input.IsKeyPressed(PlayerInput.PrimaryInteract) && Time.timeScale > 0 && !animator.GetBool("Unequip") 
             && !animator.GetBool("Reload") && !fireInputConsumed && shotAvailable)
             //&& (player.IsOnGround || player.IsOnWall || player.ApproachingGround || player.ApproachingWall || player.IsInCoyoteTime()))
         {

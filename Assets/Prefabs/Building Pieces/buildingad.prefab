@@ -29,7 +29,6 @@ Transform:
   m_LocalRotation: {x: 1, y: 0.000000059604645, z: -0.000000059604638, w: 0.00000005960465}
   m_LocalPosition: {x: -31, y: -106, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -53,7 +52,6 @@ MeshRenderer:
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -102,3 +100,11 @@ MonoBehaviour:
   - {fileID: 2800000, guid: a204702505d2240428854794ae131cfd, type: 3}
   - {fileID: 2800000, guid: 49996ac367834af4a9cbf790754e16f7, type: 3}
   - {fileID: 2800000, guid: 350d54b034dc71b4e81106f174ba951f, type: 3}
+  bigBlockRightArrowFrames:
+  - {fileID: 2800000, guid: 42a855e2f9ad21d42861819bacf83c5a, type: 3}
+  - {fileID: 2800000, guid: 47ad3855a9b5a6743b470514465162c4, type: 3}
+  - {fileID: 2800000, guid: 467e35b0fe4661e47b08f69de0cadef1, type: 3}
+  bigBlockLeftArrowFrames:
+  - {fileID: 2800000, guid: 34ca89d5ca82e64439e7e342ac3112b8, type: 3}
+  - {fileID: 2800000, guid: 124671bf070da914fb5fe861f095e7f9, type: 3}
+  - {fileID: 2800000, guid: c790c62015d4d4641a7b7f7bddaa77d3, type: 3}

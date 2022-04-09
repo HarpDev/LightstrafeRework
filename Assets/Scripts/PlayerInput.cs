@@ -136,59 +136,24 @@ public class PlayerInput : MonoBehaviour
         return tickCount - data;
     }
 
-    public bool GetKeyDown(KeyCode key)
-    {
-        return GetKeyDown((int) key);
-    }
-
-    public bool GetKeyDown(AlternateCode key)
-    {
-        return GetKeyDown((int) key);
-    }
-
-    private bool GetKeyDown(int key)
-    {
-        if (key > 0) return Input.GetKeyDown((KeyCode) key);
-
-        if (key == -1)
-        {
-            return Input.mouseScrollDelta.y == 1;
-        }
-        else if (key == -2)
-        {
-            return Input.mouseScrollDelta.y == -1;
-        }
-
-        return false;
-    }
-
-    public bool GetKeyUp(int key)
-    {
-        if (key > 0) return Input.GetKeyUp((KeyCode) key);
-
-        return false;
-    }
-
-    public bool GetKey(int key)
-    {
-        if (key > 0) return Input.GetKey((KeyCode) key);
-
-        return false;
-    }
-
     public void ConsumeBuffer(int key)
     {
         keyPressTimestamps[key] = -1;
         keyReleaseTimestamps[key] = -1;
     }
 
+    public bool IsKeyPressed(int key)
+    {
+        return SincePressed(key) < SinceReleased(key);
+    }
+
     public float GetAxisStrafeRight()
     {
         float v;
         if (Input.GetKey((KeyCode) MoveRight))
-            v = Input.GetKey((KeyCode) MoveLeft) ? 0 : 1;
+            v = IsKeyPressed(MoveLeft) ? 0 : 1;
         else
-            v = Input.GetKey((KeyCode) MoveLeft) ? -1 : 0;
+            v = IsKeyPressed(MoveLeft) ? -1 : 0;
 
         if (v == 0)
         {
@@ -202,9 +167,9 @@ public class PlayerInput : MonoBehaviour
     {
         float v;
         if (Input.GetKey((KeyCode) MoveForward))
-            v = Input.GetKey((KeyCode) MoveBackward) ? 0 : 1;
+            v = IsKeyPressed(MoveBackward) ? 0 : 1;
         else
-            v = Input.GetKey((KeyCode) MoveBackward) ? -1 : 0;
+            v = IsKeyPressed(MoveBackward) ? -1 : 0;
 
         if (v == 0)
         {
@@ -302,6 +267,7 @@ public class PlayerInput : MonoBehaviour
         foreach (var prop in properties)
         {
             var key = (int) prop.GetValue(null, null);
+            if (Game.playingReplay && key != Pause) return;
             if (key != Pause && Time.timeScale == 0) continue;
             if (key > 0)
             {

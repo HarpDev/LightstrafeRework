@@ -1,9 +1,14 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MusicPlayer : MonoBehaviour
 {
-    public AudioClip musicLoop;
-    public float bpm = 140f;
+    public List<AudioClip> musicList;
+    public List<float> bpmList;
+
+    private float bpm = 140f;
+
+    public int currentlyPlayingIndex;
 
     public AudioSource Audio { get; set; }
 
@@ -22,16 +27,27 @@ public class MusicPlayer : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             I = this;
             Audio = GetComponent<AudioSource>();
-            PlayMusic();
+            PlayMusic(1);
         }
         else if (I != this)
         {
             I.Start();
-            var newMusic = GetComponent<MusicPlayer>();
-            if (I.musicLoop.name != newMusic.musicLoop.name)
+            currentlyPlayingIndex = -1;
+            for (var i = 0; i < musicList.Count; i++)
             {
-                I.musicLoop = newMusic.musicLoop;
-                I.PlayMusic();
+                var music = musicList[i];
+                if (I.musicList[I.currentlyPlayingIndex].name == music.name)
+                {
+                    I.currentlyPlayingIndex = i;
+                    currentlyPlayingIndex = 0;
+                    break;
+                }
+            }
+            I.musicList = musicList;
+            I.bpmList = bpmList;
+            if (I.currentlyPlayingIndex == -1)
+            {
+                I.PlayMusic(0);
             }
             Destroy(gameObject);
             return;
@@ -40,14 +56,16 @@ public class MusicPlayer : MonoBehaviour
         player = Game.OnStartResolve<Player>();
     }
 
-    public void PlayMusic()
+    public void PlayMusic(int index)
     {
         if (Audio.isPlaying) Audio.Stop();
 
-        Audio.clip = musicLoop;
+        currentlyPlayingIndex = index;
+        Audio.clip = musicList[index];
+        bpm = bpmList[index];
         Audio.volume = GameSettings.MusicVolume * GameSettings.SoundVolume;
         Audio.pitch = 1;
-        Audio.loop = true;
+        Audio.loop = false;
         Audio.Play();
     }
 
@@ -56,8 +74,10 @@ public class MusicPlayer : MonoBehaviour
     {
         if (!Audio.isPlaying)
         {
-            Audio.clip = musicLoop;
-            Audio.loop = true;
+            currentlyPlayingIndex++;
+            if (currentlyPlayingIndex >= bpmList.Count) currentlyPlayingIndex = 0;
+            Audio.clip = musicList[currentlyPlayingIndex];
+            bpm = bpmList[currentlyPlayingIndex];
             Audio.Play();
         }
 

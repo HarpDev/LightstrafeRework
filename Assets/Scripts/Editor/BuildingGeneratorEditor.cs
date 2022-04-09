@@ -11,74 +11,90 @@ public class BuildingGeneratorEditor : Editor
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
-        BuildingGenerator generator = (BuildingGenerator) target;
+        if (GUILayout.Button("Build All"))
+        {
+            foreach (var generator in FindObjectsOfType<BuildingGenerator>())
+            {
+                Build(generator);
+            }
+        }
         if (GUILayout.Button("Build"))
         {
-            generator.top.transform.localPosition = Vector3.up * 0.001f;
-        
-            var renderer = generator.top.GetComponent<Renderer>();
-            var offset = (generator.top.transform.position.y - renderer.bounds.center.y) + (renderer.bounds.size.y / 2f);
-            generator.sliceContainer.transform.localPosition = Vector3.down * offset;
-            
-            var beforePosition = generator.transform.position;
-            var beforeRotation = generator.transform.rotation;
-            generator.transform.position = Vector3.zero;
-            generator.transform.rotation = Quaternion.identity;
-            for (var i = generator.sliceContainer.transform.childCount - 1; i >= 0; i--)
-            {
-                DestroyImmediate(generator.sliceContainer.transform.GetChild(i).gameObject);
-            }
-
-            var selectionDigits = ("" + generator.pattern).Select(digit => int.TryParse(digit.ToString(), out var n) ? n : 0)
-                .ToArray();
-
-            var combine = new CombineInstance[selectionDigits.Length + 1];
-
-            for (var i = 0; i < selectionDigits.Length; i++)
-            {
-                var indexToBuild = Random.Range(0, generator.slicePrefabs.Length);
-                if (i < selectionDigits.Length)
-                {
-                    if (selectionDigits[i] < generator.slicePrefabs.Length && selectionDigits[i] >= 0)
-                        indexToBuild = selectionDigits[i];
-                }
-
-                var addedSlice = (GameObject)PrefabUtility.InstantiatePrefab(generator.slicePrefabs[indexToBuild], generator.sliceContainer.transform);
-                if (generator.randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
-                addedSlice.isStatic = true;
-    
-                generator.transform.position = beforePosition;
-                PositionSlices(generator);
-                if (addedSlice.transform.position.y < -40)
-                {
-                    generator.transform.position = Vector3.zero;
-                    break;
-                }
-                generator.transform.position = Vector3.zero;
-            }
-
-            PositionSlices(generator);
-            ResizeTop(generator);
-            combine[0].mesh = generator.top.GetComponent<MeshFilter>().sharedMesh;
-            combine[0].transform = generator.top.transform.localToWorldMatrix;
-            for (var i = 0; i < generator.sliceContainer.transform.childCount; i++)
-            {
-                var meshFilter = generator.sliceContainer.transform.GetChild(i).GetComponent<MeshFilter>();
-                //combine[i + 1].mesh = meshFilter.sharedMesh;
-                //combine[i + 1].transform = meshFilter.transform.localToWorldMatrix;
-            }
-
-            var hitboxMesh = new Mesh
-            {
-                name = "hitbox"
-            };
-            hitboxMesh.indexFormat = IndexFormat.UInt32;
-            hitboxMesh.CombineMeshes(combine);
-            //GetComponent<MeshCollider>().sharedMesh = hitboxMesh;
-            generator.top.isStatic = true;
-            generator.transform.position = beforePosition;
-            generator.transform.rotation = beforeRotation;
+            BuildingGenerator generator = (BuildingGenerator)target;
+            Build(generator);
         }
+    }
+
+    public void Build(BuildingGenerator generator)
+    {
+        generator.top.transform.localPosition = Vector3.up * 0.001f;
+
+        var renderer = generator.top.GetComponent<Renderer>();
+        var offset = (generator.top.transform.position.y - renderer.bounds.center.y) + (renderer.bounds.size.y / 2f);
+        generator.sliceContainer.transform.localPosition = Vector3.down * offset;
+
+        var beforePosition = generator.transform.position;
+        var beforeRotation = generator.transform.rotation;
+        generator.transform.position = Vector3.zero;
+        generator.transform.rotation = Quaternion.identity;
+        for (var i = generator.sliceContainer.transform.childCount - 1; i >= 0; i--)
+        {
+            DestroyImmediate(generator.sliceContainer.transform.GetChild(i).gameObject);
+        }
+
+        var selectionDigits = ("" + generator.pattern).Select(digit => int.TryParse(digit.ToString(), out var n) ? n : 0)
+            .ToArray();
+
+        var combine = new CombineInstance[selectionDigits.Length + 1];
+
+        for (var i = 0; i < selectionDigits.Length; i++)
+        {
+            var indexToBuild = Random.Range(0, generator.slicePrefabs.Length);
+            if (i < selectionDigits.Length)
+            {
+                if (selectionDigits[i] < generator.slicePrefabs.Length && selectionDigits[i] >= 0)
+                    indexToBuild = selectionDigits[i];
+            }
+
+            var addedSlice = (GameObject)PrefabUtility.InstantiatePrefab(generator.slicePrefabs[indexToBuild], generator.sliceContainer.transform);
+            if (generator.randomizeRotation) addedSlice.transform.Rotate(0, 0, Random.Range(0, 4) * 90);
+            addedSlice.isStatic = true;
+            var r = addedSlice.GetComponent<Renderer>();
+            SerializedObject so = new SerializedObject(r);
+            so.FindProperty("m_ScaleInLightmap").floatValue = 0.1f;
+            so.ApplyModifiedProperties();
+
+            generator.transform.position = beforePosition;
+            PositionSlices(generator);
+            if (addedSlice.transform.position.y < -40)
+            {
+                generator.transform.position = Vector3.zero;
+                break;
+            }
+            generator.transform.position = Vector3.zero;
+        }
+
+        PositionSlices(generator);
+        ResizeTop(generator);
+        combine[0].mesh = generator.top.GetComponent<MeshFilter>().sharedMesh;
+        combine[0].transform = generator.top.transform.localToWorldMatrix;
+        for (var i = 0; i < generator.sliceContainer.transform.childCount; i++)
+        {
+            var meshFilter = generator.sliceContainer.transform.GetChild(i).GetComponent<MeshFilter>();
+            //combine[i + 1].mesh = meshFilter.sharedMesh;
+            //combine[i + 1].transform = meshFilter.transform.localToWorldMatrix;
+        }
+
+        var hitboxMesh = new Mesh
+        {
+            name = "hitbox"
+        };
+        hitboxMesh.indexFormat = IndexFormat.UInt32;
+        //hitboxMesh.CombineMeshes(combine);
+        //GetComponent<MeshCollider>().sharedMesh = hitboxMesh;
+        generator.top.isStatic = true;
+        generator.transform.position = beforePosition;
+        generator.transform.rotation = beforeRotation;
     }
 
     public void ResizeTop(BuildingGenerator generator)

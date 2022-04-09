@@ -47,6 +47,7 @@ public class Player : MonoBehaviour
         quickDeathFromLocation = camera.transform.position;
         quickDeathFromYaw = Yaw;
         quickDeathLerp = 0;
+        Charges = CHARGES;
     }
 
     public int ExcludePlayerMask => ~((1 << 10) | (1 << 2));
@@ -155,10 +156,10 @@ public class Player : MonoBehaviour
         {
             if (uncrouchBlocked) return true;
             if (IsOnRail) return false;
-            if (!input.GetKey(PlayerInput.MoveForward) &&
-                !input.GetKey(PlayerInput.MoveBackward) &&
-                !input.GetKey(PlayerInput.MoveRight) &&
-                !input.GetKey(PlayerInput.MoveLeft) &&
+            if (!input.IsKeyPressed(PlayerInput.MoveForward) &&
+                !input.IsKeyPressed(PlayerInput.MoveBackward) &&
+                !input.IsKeyPressed(PlayerInput.MoveRight) &&
+                !input.IsKeyPressed(PlayerInput.MoveLeft) &&
                 Wishdir.magnitude <= 0.05f &&
                 Speed < SLIDE_BOOST_SPEED) return false;
             if (Vector3.Dot(Wishdir, Flatten(velocity).normalized) < -0.2f &&
@@ -271,6 +272,7 @@ public class Player : MonoBehaviour
         {
             YawIncrease = Input.GetAxis("Mouse X") * (GameSettings.Sensitivity / 10) * LookScale;
             YawIncrease += Input.GetAxis("Joy 1 X 2") * GameSettings.Sensitivity * LookScale;
+            if (Game.playingReplay) YawIncrease = 0;
 
             if (quickDeathLerp < 1)
                 quickDeathToYaw += YawIncrease;
@@ -281,8 +283,11 @@ public class Player : MonoBehaviour
             Yaw += yawinterpolation;
             YawFutureInterpolation -= yawinterpolation;
 
-            Pitch -= Input.GetAxis("Mouse Y") * (GameSettings.Sensitivity / 10) * LookScale;
-            Pitch += Input.GetAxis("Joy 1 Y 2") * GameSettings.Sensitivity * LookScale;
+            if (!Game.playingReplay)
+            {
+                Pitch -= Input.GetAxis("Mouse Y") * (GameSettings.Sensitivity / 10) * LookScale;
+                Pitch += Input.GetAxis("Joy 1 Y 2") * GameSettings.Sensitivity * LookScale;
+            }
 
             var pitchinterpolation = Mathf.Lerp(Pitch, Pitch + PitchFutureInterpolation, Time.deltaTime * 10) - Pitch;
             Pitch += pitchinterpolation;
@@ -427,7 +432,7 @@ public class Player : MonoBehaviour
                 DoQuickDeath();
             }
 
-            if (input.GetKey(PlayerInput.RestartLevel))
+            if (input.IsKeyPressed(PlayerInput.RestartLevel))
             {
                 if (hardRestartCharge++ == 60)
                 {
@@ -489,7 +494,6 @@ public class Player : MonoBehaviour
                 if (GrappleDashCast(out var hit))
                 {
                     AttachGrapple(hit.point);
-                    input.ConsumeBuffer(PlayerInput.PrimaryInteract);
                 }
             }
         }
@@ -998,14 +1002,13 @@ public class Player : MonoBehaviour
 
     public void Dash()
     {
-        var wishdir = CrosshairDirection;
         if (!DashAvailable) return;
         if (IsDashing) return;
         if (GrappleDashCast(out var hit))
         {
             AudioManager.PlayOneShot(dash);
             StopDash();
-            wishdir = (hit.point - transform.position).normalized;
+            Vector3 wishdir = (hit.point - transform.position).normalized;
 
             if (velocity.magnitude < SLIDE_BOOST_SPEED)
                 velocity = wishdir.normalized * SLIDE_BOOST_SPEED;
@@ -1086,7 +1089,7 @@ public class Player : MonoBehaviour
     public bool IsOnRail => currentRail != null;
 
     public const int RAIL_COOLDOWN_TICKS = 100;
-    public const float RAIL_SPEED = 25;
+    public const float RAIL_SPEED = 35;
     public const float RAIL_ACCELERATION = 1;
     public const float RAIL_SLANT_EFFICIENCY = 0.1f;
     public const float RAIL_VERTICAL_VELCITYLIMIT = 30f;
@@ -1471,14 +1474,14 @@ public class Player : MonoBehaviour
         var projection = Mathf.Sqrt(swingProjection) * Vector3.Dot(-transform.right, towardPoint) * absolute;
         SetCameraRoll(projection, CAMERA_ROLL_CORRECT_SPEED);
 
-        if (grappleTickCount == 25 && input.GetKey(PlayerInput.PrimaryInteract))
+        if (grappleTickCount == 25 && input.IsKeyPressed(PlayerInput.PrimaryInteract))
         {
             grappleHoldMode = true;
         }
 
         if (grappleHoldMode)
         {
-            if (!input.GetKey(PlayerInput.PrimaryInteract))
+            if (!input.IsKeyPressed(PlayerInput.PrimaryInteract))
             {
                 DetachGrapple();
             }
@@ -1524,6 +1527,7 @@ public class Player : MonoBehaviour
             }
 
             AudioManager.PlayOneShot(grappleRelease);
+            input.ConsumeBuffer(PlayerInput.PrimaryInteract);
         }
     }
 
@@ -2056,6 +2060,7 @@ public class Player : MonoBehaviour
 
     public void AirAccelerate(ref Vector3 vel, float f, float accelMod = 1, float sideairspeedmod = 1f)
     {
+        if (IsDashing) return;
         if (Speed < BASE_SPEED / 2)
         {
             Accelerate(Wishdir, BASE_SPEED, GROUND_ACCELERATION / 3, f);

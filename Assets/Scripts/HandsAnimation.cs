@@ -25,7 +25,6 @@ public class HandsAnimation : MonoBehaviour
     }
 
     private bool wasDashing;
-    private float walkAngle;
 
     private AnimatorStateInfo info;
 
@@ -43,8 +42,7 @@ public class HandsAnimation : MonoBehaviour
                 if (setSpeed)
                 {
                     totalDashTime = player.DashTime;
-                    animator.speed = Mathf.Min(animator.GetCurrentAnimatorClipInfo(0)[0].clip.length / totalDashTime,
-                        3);
+                    animator.speed = Mathf.Min(animator.GetCurrentAnimatorClipInfo(0)[0].clip.length / totalDashTime, 3) - 0.1f;
                     setSpeed = false;
                 }
             }
@@ -89,19 +87,6 @@ public class HandsAnimation : MonoBehaviour
                 animator.Play("Dash");
             }
         }
-        else if (!player.IsSliding && player.IsOnGround && player.Speed > 0.1f)
-        {
-            animator.speed = Mathf.Max(0.2f, player.Speed / Player.BASE_SPEED);
-
-            var angle = Vector3.Angle(player.transform.forward, Flatten(player.velocity));
-            if (angle > 90) angle = 90;
-            angle /= 2f;
-            if (Vector3.Dot(player.transform.right, player.velocity) < 0) angle = -angle;
-
-            walkAngle = Mathf.Lerp(walkAngle, angle, Time.fixedDeltaTime * 10);
-
-            transform.localRotation = Quaternion.Euler(0, 180 + walkAngle, 0);
-        }
         else
         {
             animator.speed = 1;
@@ -117,7 +102,7 @@ public class HandsAnimation : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (player.IsDashing)
+        if (player.IsDashing || info.IsName("Dash"))
         {
             var angle = Vector3.Angle(player.camera.transform.right, player.DashTargetNormal) - 90;
             //angle *= player.DashTime / totalDashTime;

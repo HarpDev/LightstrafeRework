@@ -46,7 +46,7 @@ public class Collectible : MonoBehaviour
             if (nosprite != null) Destroy(nosprite);
 
             var img = gemsprite.GetComponent<Image>();
-            img.color = LeftToCollect == 1 ? Color.yellow : Color.green;
+            img.color = LeftToCollect == 1 ? Color.yellow : Color.white;
 
             var toScreen = player.camera.WorldToScreenPoint(transform.position);
             var scale = Mathf.Clamp01(1 -
@@ -93,6 +93,7 @@ public class Collectible : MonoBehaviour
                 var scaleMod = Mathf.Clamp01(-Vector3.Dot(player.CrosshairDirection,
                     (transform.position - player.camera.transform.position).normalized) * 10);
                 scale *= 1 + scaleMod;
+                scale *= 0;
             }
 
             scale /= 1.8f;
