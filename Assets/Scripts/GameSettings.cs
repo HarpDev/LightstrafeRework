@@ -15,6 +15,16 @@ public class GameSettings
         set => PlayerPrefs.SetInt("FullGameTimer", value ? 1 : 0);
     }
 
+    public static bool LowGraphics
+    {
+        get => PlayerPrefs.GetInt("LowGraphics", 0) != 0;
+        set
+        {
+            PlayerPrefs.SetInt("LowGraphics", value ? 1 : 0);
+            Game.UpdateGraphics();
+        }
+    }
+
     public static float SoundVolume
     {
         get => PlayerPrefs.GetFloat("SoundVolume", 0.4f);

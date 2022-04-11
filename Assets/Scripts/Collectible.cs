@@ -27,7 +27,7 @@ public class Collectible : MonoBehaviour
         canvasManager = Game.OnStartResolve<CanvasManager>();
         level = Game.OnStartResolve<Level>();
         player = Game.OnStartResolve<Player>();
-        LeftToCollect = 5;
+        LeftToCollect = FindObjectsOfType<Collectible>().Length;
     }
 
     private void LateUpdate()

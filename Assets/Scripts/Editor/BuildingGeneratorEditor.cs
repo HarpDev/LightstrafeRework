@@ -61,7 +61,7 @@ public class BuildingGeneratorEditor : Editor
             addedSlice.isStatic = true;
             var r = addedSlice.GetComponent<Renderer>();
             SerializedObject so = new SerializedObject(r);
-            so.FindProperty("m_ScaleInLightmap").floatValue = 0.1f;
+            so.FindProperty("m_ScaleInLightmap").floatValue = 0.2f;
             so.ApplyModifiedProperties();
 
             generator.transform.position = beforePosition;

@@ -5,6 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.SceneManagement;
 
 public class Game : MonoBehaviour
@@ -71,6 +73,12 @@ public class Game : MonoBehaviour
         input = OnStartResolve<PlayerInput>();
         player = OnStartResolve<Player>();
         timers = OnStartResolve<Timers>();
+        UpdateGraphics();
+    }
+
+    public static void UpdateGraphics()
+    {
+        QualitySettings.SetQualityLevel(GameSettings.LowGraphics ? 1 : 0);
     }
 
     private void OnEnable()
@@ -127,11 +135,10 @@ public class Game : MonoBehaviour
             SaveReplay = false;
             if (currentReplay.ticks.Count > 0 && !playingReplay)
             {
-                var replaysFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) +
-                                    @"\Lightstrafe\replays";
+                var replaysFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\Lightstrafe\replays";
                 Directory.CreateDirectory(replaysFolder);
 
-                var dateTime = DateTime.Now.ToString("MM-dd-y hh:mmtt");
+                var dateTime = DateTime.Now.ToString("MM-dd-y_hh:mmtt");
                 dateTime = dateTime.Replace("/", "-");
                 dateTime = dateTime.Replace(":", "-");
 
@@ -154,7 +161,7 @@ public class Game : MonoBehaviour
                     finalTime = seconds.ToString(secondformat);
                 }
 
-                string path = replaysFolder + @"\" + finalTime + " - " + scene.name + " " + dateTime + ".json";
+                string path = replaysFolder + @"\" + finalTime + "_" + scene.name + "_" + dateTime + ".json";
                 //using var file = File.CreateText(path);
                 var fs = new fsSerializer();
                 fs.TrySerialize(currentReplay, out fsData data);

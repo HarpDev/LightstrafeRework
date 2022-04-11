@@ -160,7 +160,6 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    m_Ints: []
     m_Floats:
     - _AORemapMax: 1
     - _AORemapMin: 0
@@ -203,7 +202,7 @@ Material:
     - _DoubleSidedNormalMode: 1
     - _DstBlend: 0
     - _EmissiveColorMode: 1
-    - _EmissiveExposureWeight: 1
+    - _EmissiveExposureWeight: 0.9
     - _EmissiveIntensity: 20
     - _EmissiveIntensityUnit: 0
     - _EnableBlendModePreserveSpecularLighting: 1
@@ -346,6 +345,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   version: 12
-  hdPluginSubTargetMaterialVersions:
-    m_Keys: []
-    m_Values: 
