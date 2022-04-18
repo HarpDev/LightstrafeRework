@@ -109,9 +109,10 @@ public class Game : MonoBehaviour
         public Dictionary<int, ReplayTick> ticks = new Dictionary<int, ReplayTick>();
         public int everyNTicks = 2;
         public int finalTimeTickCount;
+        public int startTick;
     }
 
-    private static Replay currentReplay;
+    public static Replay currentReplay;
     public static bool playingReplay;
     public static bool replayFinishedPlaying;
 
@@ -121,6 +122,12 @@ public class Game : MonoBehaviour
         playingReplay = true;
         replayIgnoreUnload = true;
         replayFinishedPlaying = false;
+        SceneManager.LoadScene(replay.scene);
+    }
+
+    public static void RaceAgainst(Replay replay)
+    {
+        ReplayGhost.replay = replay;
         SceneManager.LoadScene(replay.scene);
     }
 
@@ -135,7 +142,7 @@ public class Game : MonoBehaviour
             SaveReplay = false;
             if (currentReplay.ticks.Count > 0 && !playingReplay)
             {
-                var replaysFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\Lightstrafe\replays";
+                var replaysFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Lightstrafe", "replays");
                 Directory.CreateDirectory(replaysFolder);
 
                 var dateTime = DateTime.Now.ToString("MM-dd-y_hh:mmtt");
@@ -161,7 +168,7 @@ public class Game : MonoBehaviour
                     finalTime = seconds.ToString(secondformat);
                 }
 
-                string path = replaysFolder + @"\" + finalTime + "_" + scene.name + "_" + dateTime + ".json";
+                string path = Path.Combine(replaysFolder, finalTime + "_" + scene.name + "_" + dateTime + ".json");
                 //using var file = File.CreateText(path);
                 var fs = new fsSerializer();
                 fs.TrySerialize(currentReplay, out fsData data);

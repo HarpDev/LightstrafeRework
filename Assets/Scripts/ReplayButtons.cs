@@ -14,8 +14,7 @@ public class ReplayButtons : MonoBehaviour
 
     private void Start()
     {
-
-        var replaysFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\Lightstrafe\replays";
+        var replaysFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Lightstrafe", "replays");
         Directory.CreateDirectory(replaysFolder);
         var files = Directory.GetFiles(replaysFolder);
 
