@@ -18,11 +18,10 @@ public class Player : MonoBehaviour
     private float quickDeathFromYaw;
     private Vector3 quickDeathToLocation;
     private float quickDeathToYaw;
-    private Vector3 quickDeathVelocity;
     private float quickDeathLerp = 1;
     private const float QUICKDEATH_SPEED = 1;
 
-    public void SetQuickDeathPosition(Vector3 position, float yaw, Vector3 vel)
+    public void SetQuickDeathPosition(Vector3 position, float yaw)
     {
         if (quickDeathLerp < 1) return;
         if (Physics.Raycast(position, Vector3.down, out var hit, 15f, ExcludePlayerMask,
@@ -31,15 +30,6 @@ public class Player : MonoBehaviour
         {
             quickDeathToLocation = hit.point + Vector3.up * 0.8f;
             quickDeathToYaw = yaw % 360;
-        } else
-        {
-            quickDeathToLocation = position;
-            quickDeathToYaw = yaw % 360;
-        }
-        quickDeathVelocity = vel;
-        foreach (var col in FindObjectsOfType<Collectible>())
-        {
-            col.CollectedInQuickspawn = !col.gameObject.activeSelf;
         }
     }
 
@@ -58,10 +48,6 @@ public class Player : MonoBehaviour
         quickDeathFromYaw = Yaw;
         quickDeathLerp = 0;
         Charges = CHARGES;
-        foreach (var col in FindObjectsOfType<Collectible>())
-        {
-            col.gameObject.SetActive(!col.CollectedInQuickspawn);
-        }
     }
 
     public int ExcludePlayerMask => ~((1 << 10) | (1 << 2));
@@ -142,14 +128,11 @@ public class Player : MonoBehaviour
         hit = new RaycastHit();
         howFarBeyond = beyond;
         if (quickDeathLerp < 1) return false;
+        if (Charges < 1) return false;
 
         if (Physics.Raycast(origin, direction, out var rayhit, GRAPPLE_DASH_RANGE + beyond, GrappleDashMask,
             QueryTriggerInteraction.Collide))
         {
-            if (rayhit.transform.gameObject.GetComponent<MapInteractable>() == null && Charges < 1)
-            {
-                return false;
-            }
             hit = rayhit;
             howFarBeyond = hit.distance - GRAPPLE_DASH_RANGE;
             return hit.distance < GRAPPLE_DASH_RANGE;
@@ -159,10 +142,6 @@ public class Player : MonoBehaviour
             GrappleDashMask,
             QueryTriggerInteraction.Collide))
         {
-            if (spherehit.transform.gameObject.GetComponent<MapInteractable>() == null && Charges < 1)
-            {
-                return false;
-            }
             hit = spherehit;
             howFarBeyond = hit.distance - GRAPPLE_DASH_RANGE;
             return hit.distance < GRAPPLE_DASH_RANGE;
@@ -229,7 +208,6 @@ public class Player : MonoBehaviour
     public AudioClip railEnd;
     public AudioClip wow;
     public AudioClip trick;
-    public AudioClip tp;
 
     /*
 ░█████╗░░██╗░░░░░░░██╗░█████╗░██╗░░██╗███████╗
@@ -417,6 +395,7 @@ public class Player : MonoBehaviour
 
     private bool uncrouchBlocked;
     private int startGrounded = 5;
+    private int groundRechargeCooldown;
     private int hardRestartCharge;
 
     private void FixedUpdate()
@@ -446,13 +425,6 @@ public class Player : MonoBehaviour
         eatJumpInputs = Mathf.Max(eatJumpInputs - Time.fixedDeltaTime, 0);
         wallJumpDiagonalRecovery -= Mathf.Min(wallJumpDiagonalRecovery, Time.fixedDeltaTime);
 
-        if (quickDeathLerp > 1)
-        {
-            quickDeathLerp = 1;
-            velocity = quickDeathVelocity;
-            DoubleJumpAvailable = true;
-        }
-
         if (timers.TimerRunning)
         {
             if (input.SincePressed(PlayerInput.RestartLevel) == 1)
@@ -462,7 +434,7 @@ public class Player : MonoBehaviour
 
             if (input.IsKeyPressed(PlayerInput.RestartLevel))
             {
-                if (hardRestartCharge++ == 40)
+                if (hardRestartCharge++ == 60)
                 {
                     level.RestartLevel();
                     hardRestartCharge = 0;
@@ -490,16 +462,21 @@ public class Player : MonoBehaviour
 
         if (sameFacingWallCooldown > 0) sameFacingWallCooldown -= Time.fixedDeltaTime;
 
+        if (groundRechargeCooldown > 0) groundRechargeCooldown--;
         if (IsOnGround || IsOnWall)
         {
             if (!surfaceTouched)
             {
                 surfaceTouched = true;
-                // Dont recharge if surface touched because of dash
-                if (!IsDashing && input.tickCount - dashEndTimestamp > 5)
+                if (IsOnGround)
                 {
-                    Recharge();
+                    if (groundRechargeCooldown <= 0)
+                    {
+                        Recharge();
+                    }
                 }
+
+                if (IsOnWall) Recharge();
             }
         }
         else surfaceTouched = false;
@@ -518,7 +495,6 @@ public class Player : MonoBehaviour
                 if (mapInteract != null)
                 {
                     mapInteract.Proc(hit);
-                    input.ConsumeBuffer(PlayerInput.PrimaryInteract);
                 }
                 else if (!GrappleHooked)
                 {
@@ -535,9 +511,8 @@ public class Player : MonoBehaviour
                 if (mapInteract != null)
                 {
                     mapInteract.Proc(hit);
-                    input.ConsumeBuffer(PlayerInput.SecondaryInteract);
                 }
-                else if (DashAvailable)
+                else if(DashAvailable)
                 {
                     input.ConsumeBuffer(PlayerInput.SecondaryInteract);
                     Dash(hit);
@@ -592,11 +567,12 @@ public class Player : MonoBehaviour
             {
                 teleportTime = 0;
 
-                var tpVector = teleportTarget.point - teleportStartPosition;
+                var tpVector = teleportToPosition - teleportStartPosition;
                 velocity = Speed * Flatten(tpVector).normalized;
+                lastWall = null;
                 EndRail();
                 ConsumeCoyoteTimeBuffer();
-                transform.position = teleportTarget.point + (Vector3.up * 0.9f);
+                transform.position = teleportToPosition + (Vector3.up * 0.9f);
                 tpThisTick = true;
             }
         }
@@ -634,52 +610,9 @@ public class Player : MonoBehaviour
 
         if (launchCooldown > 0) launchCooldown--;
 
-        if (attachedSurface != null)
-        {
-            attachedSurface.hasChanged = false;
-            var target = attachedSurface.TransformPoint(attachedPosition);
-
-            var diff = target - transform.position;
-            transform.position += diff;
-            // add to previous position to compensate for camera interpolation
-            // we dont want to interpolate camera position for moving platforms because they already move in Update()
-            previousPosition += diff;
-        }
-
-        // on exit
-        if (attachedSurface == null && wasAttached)
-        {
-            var target = lastAttachedSurface.TransformPoint(attachedPosition);
-            var platformVelocity = (target - attachedPreviousPosition) / Time.fixedDeltaTime;
-
-            velocity += platformVelocity;
-        }
-        // on enter
-        if (attachedSurface != null && !wasAttached)
-        {
-            var target = lastAttachedSurface.TransformPoint(attachedPosition);
-            var platformVelocity = (target - attachedPreviousPosition) / Time.fixedDeltaTime;
-
-            var projection = Vector3.Dot(velocity, platformVelocity.normalized);
-            if (projection < platformVelocity.magnitude && platformVelocity.magnitude > 1)
-            {
-                velocity += platformVelocity.normalized * Mathf.Max(platformVelocity.magnitude - projection, 0);
-            }
-
-            velocity -= platformVelocity;
-        }
-        wasAttached = attachedSurface != null;
-
         CheckForCollision(IsDashing && dashThrough);
-        if (attachedSurface != null) lastAttachedSurface = attachedSurface;
 
         previousSpeed = Speed;
-
-        if (lastAttachedSurface != null)
-        {
-            attachedPosition = lastAttachedSurface.InverseTransformPoint(transform.position);
-            attachedPreviousPosition = transform.position;
-        }
     }
 
     /*
@@ -698,12 +631,6 @@ public class Player : MonoBehaviour
     private float surfAccelTime;
     private Vector3 groundNormal;
 
-    private Transform attachedSurface;
-    private Transform lastAttachedSurface;
-    private Vector3 attachedPosition;
-    private Vector3 attachedPreviousPosition;
-    private bool wasAttached;
-
     private bool CanCollide(Component other, bool ignoreUninteractable = true)
     {
         if (other.gameObject.layer == 9) return false;
@@ -716,7 +643,6 @@ public class Player : MonoBehaviour
     private void CheckForCollision(bool noclip = false)
     {
         IsSurfing = false;
-        attachedSurface = null;
 
         // This variable is the total movement that will occur in this tick
         var movement = velocity * Time.fixedDeltaTime;
@@ -906,8 +832,6 @@ public class Player : MonoBehaviour
 
             currentGround = collider.gameObject;
             groundNormal = normal;
-            attachedSurface = currentGround.transform;
-            attachedSurface.hasChanged = false;
 
             // If youre standing on slanted ground and not sliding, we want the player not to slowly slide down
             // So we treat all slanted ground as perfectly flat when not sliding
@@ -978,8 +902,6 @@ public class Player : MonoBehaviour
                 WallNormal = Flatten(normal).normalized;
 
                 currentWall = collider.gameObject;
-                attachedSurface = currentWall.transform;
-                attachedSurface.hasChanged = false;
 
                 if (Speed < WALL_COLLIDE_REFUND_MAX && wallTickCount == 0)
                 {
@@ -1053,19 +975,16 @@ public class Player : MonoBehaviour
 ░░░╚═╝░░░╚══════╝╚══════╝╚══════╝╚═╝░░░░░░╚════╝░╚═╝░░╚═╝░░░╚═╝░░░
     */
     private float teleportTime;
+    private Vector3 teleportToPosition;
     private Vector3 teleportStartPosition;
     private bool tpThisTick;
-    private RaycastHit teleportTarget;
-    public const float TELEPORT_TIME = 0.25f;
 
-    public void Teleport(RaycastHit target)
+    public void Teleport(Vector3 position)
     {
-        if (teleportTime > 0) return;
-        teleportTarget = target;
-        teleportTime = TELEPORT_TIME;
+        teleportToPosition = position;
+        teleportTime = 0.2f;
+        //teleportTotalTime = 0.2f;
         teleportStartPosition = transform.position;
-        sameFacingWallCooldown = 0;
-        AudioManager.PlayOneShot(tp);
     }
 
     /*
@@ -1119,7 +1038,6 @@ public class Player : MonoBehaviour
         dashThrough = false;
         velocity = wishdir.normalized * Mathf.Max(DASH_SPEED, velocity.magnitude);
         DashTime = hit.distance / velocity.magnitude;
-        sameFacingWallCooldown = 0;
     }
 
     public bool StopDash()
@@ -1132,12 +1050,19 @@ public class Player : MonoBehaviour
 
             var wishdir = velocity.normalized;
 
-            var y = CalculateYForDirectionAndSpeed(wishdir, Flatten(velocityBeforeDash).magnitude, 30);
+            var y = CalculateYForDirectionAndSpeed(wishdir, Flatten(velocityBeforeDash).magnitude);
 
             var onlyYChange = Flatten(velocityBeforeDash).magnitude * Flatten(wishdir).normalized;
             onlyYChange.y = y;
 
-            velocity = onlyYChange.magnitude * wishdir.normalized;
+            if (Mathf.Abs(y) > DASH_UPVELOCITY_LIMIT)
+            {
+                velocity = velocityBeforeDash.magnitude * wishdir.normalized;
+            }
+            else
+            {
+                velocity = onlyYChange.magnitude * wishdir.normalized;
+            }
 
             var rawgain = DASH_SPEEDGAIN *
                           Mathf.Clamp01((DASH_SPEEDGAIN_CAP - Speed) / DASH_SPEEDGAIN_CAP);
@@ -1673,7 +1598,7 @@ public class Player : MonoBehaviour
     public const float WALL_TURNAROUND_ACCELERATION = 1.2f;
     public const float WALL_LEAN_PREDICTION_TIME = 0.25f;
     public const float WALL_JUMP_SPEED = 8;
-    public const int WALL_FRICTION_TICKS = 6;
+    public const int WALL_FRICTION_TICKS = 8;
     public const float WALL_FRICTION = 5f;
     public const float WALLRUN_TIME = 1.2f;
     public const float WALLRUN_FALLOFF_START = 0.4f;
@@ -1713,21 +1638,8 @@ public class Player : MonoBehaviour
         // Apply friction on walls only for a few ticks at the start of the wall
         if (wallTickCount > 0 && wallTickCount <= WALL_FRICTION_TICKS)
         {
-            if (FORCED_BAD_KICKS)
-            {
-                if (wallTickCount == 1)
-                {
-                    for (int i = 0; i < WALL_FRICTION_TICKS; i++)
-                    {
-                        ApplyFriction(f * WALL_FRICTION, BASE_SPEED);
-                        wallFrictionTicks++;
-                    }
-                }
-            }else
-            {
-                ApplyFriction(f * WALL_FRICTION, BASE_SPEED);
-                wallFrictionTicks++;
-            }
+            ApplyFriction(f * WALL_FRICTION, BASE_SPEED);
+            wallFrictionTicks++;
         }
 
         // Apply camera roll from the wall
@@ -2012,8 +1924,8 @@ public class Player : MonoBehaviour
     */
     public bool ApproachingGround { get; set; }
     private const float AIR_SPEED = 2.4f;
-    private const float SIDE_AIR_ACCELERATION = 60;
-    private const float FORWARD_AIR_ACCELERATION = 75;
+    private const float SIDE_AIR_ACCELERATION = 50;
+    private const float FORWARD_AIR_ACCELERATION = 70;
     private const float DIAGONAL_AIR_ACCEL_BONUS = 30;
     private const float BACKWARD_AIR_ACCELERATION = 35;
     private int airTickCount;
@@ -2037,13 +1949,6 @@ public class Player : MonoBehaviour
         var movement = velocity;
         var didHit = rigidbody.SweepTest(movement.normalized, out var hit,
             movement.magnitude * WALL_LEAN_PREDICTION_TIME, QueryTriggerInteraction.Ignore);
-
-        if (teleportTime > 0)
-        {
-            didHit = true;
-            hit = teleportTarget;
-            hit.distance = (teleportTime / TELEPORT_TIME) * movement.magnitude * WALL_LEAN_PREDICTION_TIME;
-        }
 
         var eatJump = false;
 
@@ -2137,7 +2042,7 @@ public class Player : MonoBehaviour
 
         // If we're eating jump inputs, dont check for PlayerJump()
         // Also set jumpBuffered higher than needed so that when PlayerJump() does eventually run it'll use the buffer
-        if ((eatJump || jumpBuffered > 0) && teleportTime <= 0)
+        if (eatJump || jumpBuffered > 0)
         {
             if (input.SincePressed(PlayerInput.Jump) == 0)
             {
@@ -2314,8 +2219,7 @@ public class Player : MonoBehaviour
     public const int COYOTE_TICKS = 20;
     public const int GROUND_JUMP_BUFFERING = 4;
     public const int WALL_JUMP_BUFFERING = 8;
-
-    public const bool FORCED_BAD_KICKS = true;
+    public const int GROUNDJUMP_RECHARGE_COOLDOWN = 40;
 
     private float jumpBuffered;
     private float eatJumpInputs;
@@ -2329,7 +2233,7 @@ public class Player : MonoBehaviour
             // Infinite buffering while teleporting
             if (teleportTime > 0)
             {
-                jumpBuffered = Mathf.Max(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) * Time.fixedDeltaTime;
+                jumpBuffered = Mathf.Min(WALL_JUMP_BUFFERING, GROUND_JUMP_BUFFERING) * Time.fixedDeltaTime;
                 return false;
             }
 
@@ -2375,28 +2279,22 @@ public class Player : MonoBehaviour
                 IsOnWall = false;
 
                 var negativeFrictionTicks = Mathf.Min(sinceJump, WALL_FRICTION_TICKS);
-                if (FORCED_BAD_KICKS) negativeFrictionTicks = 0;
-                var speedGain = WALL_JUMP_SPEED * (tpThisTick ? 0.7f : 1);
+                var speedGain = WALL_JUMP_SPEED;
 
                 if (CancelDash(false))
                 {
                     wallFrictionTicks = 0;
-                    var dashCancelFrictionTicks = Mathf.Min(wallTickCount, WALL_FRICTION_TICKS);
-                    if (FORCED_BAD_KICKS) dashCancelFrictionTicks = WALL_FRICTION_TICKS;
-                    for (var i = 0; i < dashCancelFrictionTicks; i++)
+                    for (var i = 0; i < Mathf.Min(wallTickCount, WALL_FRICTION_TICKS); i++)
                     {
                         ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
                         wallFrictionTicks++;
                     }
                 }
 
-                if (!tpThisTick)
+                for (var i = 0; i < negativeFrictionTicks; i++)
                 {
-                    for (var i = 0; i < negativeFrictionTicks; i++)
-                    {
-                        ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
-                        wallFrictionTicks++;
-                    }
+                    ApplyFriction(Time.fixedDeltaTime * WALL_FRICTION, BASE_SPEED);
+                    wallFrictionTicks++;
                 }
 
                 if (negativeFrictionTicks > 0) wallFrictionTicks *= -1;
@@ -2448,8 +2346,9 @@ public class Player : MonoBehaviour
                     AudioManager.PlayOneShot(jump);
                     IsOnGround = false;
                     var height = jumpHeight;
-                    if (velocity.y > 0) height += velocity.y;
+                    if (velocity.y > 0 && !coyoteJump) height += velocity.y;
                     CancelDash(true);
+                    groundRechargeCooldown = GROUNDJUMP_RECHARGE_COOLDOWN;
 
                     velocity.y = Mathf.Max(height, velocity.y);
                 }

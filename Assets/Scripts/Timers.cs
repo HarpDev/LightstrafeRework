@@ -20,7 +20,6 @@ public class Timers : MonoBehaviour
 
     private Player player;
     private Level level;
-    private PlayerInput input;
 
     private void Start()
     {
@@ -40,7 +39,6 @@ public class Timers : MonoBehaviour
         PB = false;
         level = Game.OnStartResolve<Level>();
         player = Game.OnStartResolve<Player>();
-        input = Game.OnStartResolve<PlayerInput>();
         CurrentLevelTickCount = 0;
         TimerRunning = false;
     }
@@ -60,7 +58,6 @@ public class Timers : MonoBehaviour
                 CurrentLevelTickCount++;
                 if (CurrentFullRunTickCount >= 0) CurrentFullRunTickCount++;
                 TimerRunning = true;
-                Game.currentReplay.startTick = input.tickCount;
             }
         }
         if (TimerRunning)
