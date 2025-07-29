@@ -10,8 +10,6 @@ public class FollowPlayer : MonoBehaviour
     public bool y;
     public bool z;
 
-    public Vector3 offset;
-
     private Player player;
 
     private void Start()
@@ -27,6 +25,5 @@ public class FollowPlayer : MonoBehaviour
         if (y) position.y = player.camera.transform.position.y;
         if (z) position.z = player.camera.transform.position.z;
         transform.position = position;
-        transform.position += offset;
     }
 }

@@ -376,7 +376,7 @@ public class Player : MonoBehaviour
         if (IsDashing) targetFOV += 20;
         if (teleportTime > 0)
         {
-            targetFOV += 20;
+            targetFOV += 50;
         }
 
         var lerpSpeed = 5;
@@ -489,14 +489,9 @@ public class Player : MonoBehaviour
 
         if (input.SincePressed(PlayerInput.PrimaryInteract) <= 15 && GrappleEnabled)
         {
-            if (GrappleDashCast(out var hit))
+            if (!GrappleHooked)
             {
-                var mapInteract = hit.transform.gameObject.GetComponent<MapInteractable>();
-                if (mapInteract != null)
-                {
-                    mapInteract.Proc(hit);
-                }
-                else if (!GrappleHooked)
+                if (GrappleDashCast(out var hit))
                 {
                     AttachGrapple(hit.point);
                 }
@@ -505,18 +500,10 @@ public class Player : MonoBehaviour
 
         if (input.SincePressed(PlayerInput.SecondaryInteract) <= 15 && DashEnabled)
         {
-            if (GrappleDashCast(out var hit))
+            if (DashAvailable)
             {
-                var mapInteract = hit.transform.gameObject.GetComponent<MapInteractable>();
-                if (mapInteract != null)
-                {
-                    mapInteract.Proc(hit);
-                }
-                else if(DashAvailable)
-                {
-                    input.ConsumeBuffer(PlayerInput.SecondaryInteract);
-                    Dash(hit);
-                }
+                input.ConsumeBuffer(PlayerInput.SecondaryInteract);
+                Dash();
             }
         }
 
@@ -1013,31 +1000,34 @@ public class Player : MonoBehaviour
 
     private bool dashThrough;
 
-    public void Dash(RaycastHit hit)
+    public void Dash()
     {
         if (!DashAvailable) return;
         if (IsDashing) return;
-        AudioManager.PlayOneShot(dash);
-        StopDash();
-        Vector3 wishdir = (hit.point - transform.position).normalized;
+        if (GrappleDashCast(out var hit))
+        {
+            AudioManager.PlayOneShot(dash);
+            StopDash();
+            Vector3 wishdir = (hit.point - transform.position).normalized;
 
-        if (velocity.magnitude < SLIDE_BOOST_SPEED)
-            velocity = wishdir.normalized * SLIDE_BOOST_SPEED;
-        velocityBeforeDash = velocity;
+            if (velocity.magnitude < SLIDE_BOOST_SPEED)
+                velocity = wishdir.normalized * SLIDE_BOOST_SPEED;
+            velocityBeforeDash = velocity;
 
-        var y = CalculateYForDirection(wishdir);
+            var y = CalculateYForDirection(wishdir);
 
-        var onlyYChange = Speed * Flatten(wishdir).normalized;
-        onlyYChange.y = y;
+            var onlyYChange = Speed * Flatten(wishdir).normalized;
+            onlyYChange.y = y;
 
-        velocity = Mathf.Min(velocity.magnitude, onlyYChange.magnitude) * wishdir.normalized;
+            velocity = Mathf.Min(velocity.magnitude, onlyYChange.magnitude) * wishdir.normalized;
 
-        Charges--;
-        DashTargetNormal = hit.normal;
+            Charges--;
+            DashTargetNormal = hit.normal;
 
-        dashThrough = false;
-        velocity = wishdir.normalized * Mathf.Max(DASH_SPEED, velocity.magnitude);
-        DashTime = hit.distance / velocity.magnitude;
+            dashThrough = false;
+            velocity = wishdir.normalized * Mathf.Max(DASH_SPEED, velocity.magnitude);
+            DashTime = hit.distance / velocity.magnitude;
+        }
     }
 
     public bool StopDash()
