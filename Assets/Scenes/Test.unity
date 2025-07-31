@@ -179,8 +179,6 @@ MonoBehaviour:
   renderSettingsMinAutoResolution: 16
   renderSettingsUnloadScenes: 1
   renderSettingsAdjustSamples: 1
-  renderSettingsGILODMode: 2
-  renderSettingsGILODModeEnabled: 0
   renderSettingsCheckOverlaps: 0
   renderSettingsSkipOutOfBoundsUVs: 1
   renderSettingsHackEmissiveBoost: 1
@@ -190,12 +188,16 @@ MonoBehaviour:
   renderSettingsUseScenePath: 0
   renderSettingsHackAOIntensity: 0
   renderSettingsHackAOSamples: 16
+  renderSettingsHackAOSofter: 0
   renderSettingsHackAORadius: 1
   renderSettingsShowAOSettings: 0
   renderSettingsShowTasks: 1
   renderSettingsShowTasks2: 0
   renderSettingsShowPaths: 1
   renderSettingsShowNet: 1
+  renderSettingsShowSettingsAsset: 1
+  renderSettingsShowAPV: 0
+  renderSettingsUseAPVSkyOcclusion: 0
   renderSettingsOcclusionProbes: 0
   renderSettingsTexelsPerMap: 0
   renderSettingsTexelsColor: 1
@@ -206,12 +208,16 @@ MonoBehaviour:
   renderSettingsShowCheckerSettings: 0
   renderSettingsSamplesWarning: 1
   renderSettingsSuppressPopups: 0
+  renderSettingsSectorWarning: 0
   renderSettingsPrefabWarning: 1
   renderSettingsSplitByScene: 0
   renderSettingsSplitByTag: 0
   renderSettingsUVPaddingMax: 0
+  renderSettingsUVPaddingPreserveIfExisted: 0
   renderSettingsPostPacking: 1
   renderSettingsHoleFilling: 0
+  renderSettingsBruteForce: 1
+  renderSettingsAlphaDithering: 0
   renderSettingsBeepOnFinish: 0
   renderSettingsExportTerrainAsHeightmap: 0
   renderSettingsRTXMode: 1
@@ -219,7 +225,7 @@ MonoBehaviour:
   renderSettingsClientMode: 0
   renderSettingsServerAddress: 127.0.0.1
   renderSettingsUnwrapper: 0
-  renderSettingsDenoiserType: 100
+  renderSettingsDenoiserType: 101
   renderSettingsExportTerrainTrees: 0
   renderSettingsShowPerf: 1
   renderSettingsSampleDiv: 1
@@ -228,24 +234,26 @@ MonoBehaviour:
   renderSettingsCompressVolumes: 0
   renderSettingsBatchAreaLightSampleLimit: 0
   renderSettingsSector: {fileID: 0}
+  renderSettingsAsset: {fileID: 0}
   renderSettingsRTPVExport: 1
   renderSettingsRTPVSceneView: 0
   renderSettingsRTPVHDR: 0
   renderSettingsRTPVWidth: 640
   renderSettingsRTPVHeight: 360
+  renderSettingsRTPVExposure: 1
+  renderSettingsRemoveDuplicateLightmaps: 0
   lastBakeTime: 0
   enlightenWarningShown: 0
   enlightenWarningShown2: 0
   uniqueLights: []
-  lights: []
   implicitGroups:
-  - {fileID: 265696912}
-  - {fileID: 1422487160}
-  - {fileID: 265696912}
-  - {fileID: 265696912}
-  - {fileID: 265696912}
-  - {fileID: 265696912}
-  - {fileID: 2062322641}
+  - {fileID: 334052103}
+  - {fileID: 1736720137}
+  - {fileID: 334052103}
+  - {fileID: 334052103}
+  - {fileID: 334052103}
+  - {fileID: 334052103}
+  - {fileID: 940327222}
   implicitGroupedObjects:
   - {fileID: 593687460}
   - {fileID: 692945543}
@@ -277,8 +285,20 @@ MonoBehaviour:
   lightmapHasMask: 000000000000000000000000
   lightmapHasDir: 000000
   lightmapHasRNM: 000000
+  lights: []
   modifiedAssetPathList: []
   modifiedAssets: []
+  bakedRenderers:
+  - {fileID: 593687463}
+  - {fileID: 692945546}
+  - {fileID: 1037390815}
+  - {fileID: 1574217391}
+  - {fileID: 1796526469}
+  - {fileID: 1833763860}
+  - {fileID: 1872313973}
+  nonBakedRenderers: []
+  bakedLights: []
+  bakedRenderersTerrain: []
   maps: []
   masks: []
   dirMaps: []
@@ -286,15 +306,25 @@ MonoBehaviour:
   rnmMaps1: []
   rnmMaps2: []
   mapsMode: 
-  bakedRenderers: []
-  bakedIDs: 
-  bakedScaleOffset: []
+  bakedIDs: 01000000000000000100000001000000010000000100000002000000
+  bakedScaleOffset:
+  - {x: 0.1974817, y: 0.19740367, z: 0.678539, w: 0.8123915}
+  - {x: 1.0255822, y: 1.0145524, z: 0.0007324219, w: 0.0007324219}
+  - {x: 0.70750105, y: 0.7067065, z: -0.013416959, w: -0.01340107}
+  - {x: 0.38535896, y: 0.38559756, z: 0.67478144, w: 0.44123948}
+  - {x: 0.38535896, y: 0.38559756, z: 0.67478144, w: -0.0069788885}
+  - {x: 0.70750105, y: 0.7067065, z: -0.013416959, w: 0.43481728}
+  - {x: 1.2147123, y: 1.0522261, z: -0.023561824, w: -0.020312103}
   bakedVertexOffset: ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-  bakedVertexColorMesh: []
-  nonBakedRenderers: []
-  bakedLights: []
+  bakedVertexColorMesh:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   bakedLightChannels: 
-  bakedRenderersTerrain: []
   bakedIDsTerrain: 
   bakedScaleOffsetTerrain: []
   assetList: []
@@ -446,7 +476,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 51ce7b427d0ae2e4ea3349e2b5431fa4, type: 3}
---- !u!114 &265696912
+--- !u!114 &334052103
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -477,6 +507,7 @@ MonoBehaviour:
   renderDirMode: 1000
   atlasPacker: 1000
   holeFilling: 0
+  vertexSamplingDensity: 0
   computeSSS: 0
   sssSamples: 16
   sssDensity: 10
@@ -496,7 +527,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh134206
+  m_Name: pb_Mesh23280
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -1096,7 +1127,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh134154
+  m_Name: pb_Mesh23228
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -2816,7 +2847,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh134288
+  m_Name: pb_Mesh23362
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -2992,118 +3023,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23c1ce4fb46143f46bc5cb5224c934f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Version: 8
-  m_ObsoleteRenderingPath: 0
-  m_ObsoleteFrameSettings:
-    overrides: 0
-    enableShadow: 0
-    enableContactShadows: 0
-    enableShadowMask: 0
-    enableSSR: 0
-    enableSSAO: 0
-    enableSubsurfaceScattering: 0
-    enableTransmission: 0
-    enableAtmosphericScattering: 0
-    enableVolumetrics: 0
-    enableReprojectionForVolumetrics: 0
-    enableLightLayers: 0
-    enableExposureControl: 1
-    diffuseGlobalDimmer: 0
-    specularGlobalDimmer: 0
-    shaderLitMode: 0
-    enableDepthPrepassWithDeferredRendering: 0
-    enableTransparentPrepass: 0
-    enableMotionVectors: 0
-    enableObjectMotionVectors: 0
-    enableDecals: 0
-    enableRoughRefraction: 0
-    enableTransparentPostpass: 0
-    enableDistortion: 0
-    enablePostprocess: 0
-    enableOpaqueObjects: 0
-    enableTransparentObjects: 0
-    enableRealtimePlanarReflection: 0
-    enableMSAA: 0
-    enableAsyncCompute: 0
-    runLightListAsync: 0
-    runSSRAsync: 0
-    runSSAOAsync: 0
-    runContactShadowsAsync: 0
-    runVolumeVoxelizationAsync: 0
-    lightLoopSettings:
-      overrides: 0
-      enableDeferredTileAndCluster: 0
-      enableComputeLightEvaluation: 0
-      enableComputeLightVariants: 0
-      enableComputeMaterialVariants: 0
-      enableFptlForForwardOpaque: 0
-      enableBigTilePrepass: 0
-      isFptlEnabled: 0
-  m_Camera: {fileID: 864035395}
-  clearColorMode: 0
-  backgroundColorHDR:
-    r: 0.025
-    g: 0.07
-    b: 0.19
-    a: 0
-  clearDepth: 1
-  volumeLayerMask:
-    m_Bits: 1
-  volumeAnchorOverride: {fileID: 0}
-  antialiasing: 0
-  SMAAQuality: 2
-  dithering: 0
-  stopNaNs: 0
-  taaSharpenStrength: 0.6
-  TAAQuality: 1
-  taaHistorySharpening: 0.35
-  taaAntiFlicker: 0.5
-  taaMotionVectorRejection: 0
-  taaAntiHistoryRinging: 0
-  physicalParameters:
-    m_Iso: 200
-    m_ShutterSpeed: 0.005
-    m_Aperture: 16
-    m_BladeCount: 5
-    m_Curvature: {x: 2, y: 11}
-    m_BarrelClipping: 0.25
-    m_Anamorphism: 0
-  flipYMode: 0
-  xrRendering: 1
-  fullscreenPassthrough: 0
-  allowDynamicResolution: 0
-  customRenderingSettings: 0
-  invertFaceCulling: 0
-  probeLayerMask:
-    m_Bits: 4294967295
-  hasPersistentHistory: 0
-  exposureTarget: {fileID: 0}
-  probeCustomFixedExposure: 1
-  m_RenderingPathCustomFrameSettings:
-    bitDatas: {}
-    lodBias: 1
-    lodBiasMode: 0
-    lodBiasQualityLevel: 0
-    maximumLODLevel: 0
-    maximumLODLevelMode: 0
-    maximumLODLevelQualityLevel: 0
-    sssQualityMode: 0
-    sssQualityLevel: 0
-    sssCustomSampleBudget: 20
-    sssResolvedSampleBudget: 0
-    materialQuality: 0
-  renderingPathCustomFrameSettingsOverrideMask:
-    mask: {}
-  defaultFrameSettings: 0
-  m_IsDebugRegistered: 0
-  m_CameraRegisterName: Main Camera
-  <isEditorCameraPreview>k__BackingField: 0
---- !u!20 &864035395 stripped
-Camera:
-  m_CorrespondingSourceObject: {fileID: 1351658016518666248, guid: a5eab7d48ea91f34f899de9eb2e41928,
-    type: 3}
-  m_PrefabInstance: {fileID: 1968510924}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &864035396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3137,6 +3056,51 @@ MonoBehaviour:
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
   m_Version: 2
+--- !u!114 &940327222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec0b4dd729a12d046982652f834580a2, type: 3}
+  m_Name: Test_LMA2
+  m_EditorClassIdentifier: 
+  resolution: 1024
+  bitmask: 1
+  id: 2
+  sortingID: 2
+  isImplicit: 1
+  area: 0
+  totalVertexCount: 0
+  vertexCounter: 0
+  sceneLodLevel: -1
+  autoResolution: 0
+  sceneName: 
+  tag: -1
+  containsTerrains: 0
+  probes: 0
+  mode: 1
+  renderMode: 1000
+  renderDirMode: 1000
+  atlasPacker: 1000
+  holeFilling: 0
+  vertexSamplingDensity: 0
+  computeSSS: 0
+  sssSamples: 16
+  sssDensity: 10
+  sssColor: {r: 1, g: 1, b: 1, a: 1}
+  sssScale: 1
+  fakeShadowBias: 0
+  transparentSelfShadow: 0
+  flipNormal: 0
+  parentName: 
+  overridePath: 
+  fixPos3D: 0
+  voxelSize: {x: 1, y: 1, z: 1}
+  passedFilter: 0
 --- !u!223 &945243094 stripped
 Canvas:
   m_CorrespondingSourceObject: {fileID: 9200781313709026911, guid: 5bb7a9fdca88e5645b80e2a29069fa64,
@@ -3671,7 +3635,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh134250
+  m_Name: pb_Mesh23324
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -3883,7 +3847,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh134236
+  m_Name: pb_Mesh23310
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -4047,7 +4011,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh134270
+  m_Name: pb_Mesh23344
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -4205,50 +4169,6 @@ Mesh:
     offset: 0
     size: 0
     path: 
---- !u!114 &1422487160
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ec0b4dd729a12d046982652f834580a2, type: 3}
-  m_Name: Test_LM0
-  m_EditorClassIdentifier: 
-  resolution: 4096
-  bitmask: 1
-  id: 0
-  sortingID: 0
-  isImplicit: 1
-  area: 156003.3
-  totalVertexCount: 0
-  vertexCounter: 0
-  sceneLodLevel: -1
-  autoResolution: 0
-  sceneName: 
-  tag: -1
-  containsTerrains: 0
-  probes: 0
-  mode: 1
-  renderMode: 1000
-  renderDirMode: 1000
-  atlasPacker: 1000
-  holeFilling: 0
-  computeSSS: 0
-  sssSamples: 16
-  sssDensity: 10
-  sssColor: {r: 1, g: 1, b: 1, a: 1}
-  sssScale: 1
-  fakeShadowBias: 0
-  transparentSelfShadow: 0
-  flipNormal: 0
-  parentName: 
-  overridePath: 
-  fixPos3D: 0
-  voxelSize: {x: 1, y: 1, z: 1}
-  passedFilter: 0
 --- !u!1001 &1457516295
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4885,6 +4805,51 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d0c7c5c591fda654697a95f0b1769928, type: 3}
+--- !u!114 &1736720137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec0b4dd729a12d046982652f834580a2, type: 3}
+  m_Name: Test_LM0
+  m_EditorClassIdentifier: 
+  resolution: 4096
+  bitmask: 1
+  id: 0
+  sortingID: 0
+  isImplicit: 1
+  area: 156003.3
+  totalVertexCount: 0
+  vertexCounter: 0
+  sceneLodLevel: -1
+  autoResolution: 0
+  sceneName: 
+  tag: -1
+  containsTerrains: 0
+  probes: 0
+  mode: 1
+  renderMode: 1000
+  renderDirMode: 1000
+  atlasPacker: 1000
+  holeFilling: 0
+  vertexSamplingDensity: 0
+  computeSSS: 0
+  sssSamples: 16
+  sssDensity: 10
+  sssColor: {r: 1, g: 1, b: 1, a: 1}
+  sssScale: 1
+  fakeShadowBias: 0
+  transparentSelfShadow: 0
+  flipNormal: 0
+  parentName: 
+  overridePath: 
+  fixPos3D: 0
+  voxelSize: {x: 1, y: 1, z: 1}
+  passedFilter: 0
 --- !u!1 &1796526466
 GameObject:
   m_ObjectHideFlags: 0
@@ -5457,7 +5422,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh134168
+  m_Name: pb_Mesh23242
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -5981,13 +5946,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 441482e8936e35048a1dffac814e3ef8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Profile: {fileID: 11400000, guid: 04fd86012f353d24eab1d045f8eabbc3, type: 2}
-  m_StaticLightingSkyUniqueID: 0
-  m_LastComputedHash: 0
-  m_NeedUpdateStaticLightingSky: 0
-  m_SkySettings: {fileID: 0}
-  m_SkySettingsFromProfile: {fileID: 0}
-  m_VolumeSkyList: []
 --- !u!4 &1860258356
 Transform:
   m_ObjectHideFlags: 1
@@ -6629,50 +6587,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a5eab7d48ea91f34f899de9eb2e41928, type: 3}
---- !u!114 &2062322641
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ec0b4dd729a12d046982652f834580a2, type: 3}
-  m_Name: Test_LMA2
-  m_EditorClassIdentifier: 
-  resolution: 1024
-  bitmask: 1
-  id: 2
-  sortingID: 2
-  isImplicit: 1
-  area: 0
-  totalVertexCount: 0
-  vertexCounter: 0
-  sceneLodLevel: -1
-  autoResolution: 0
-  sceneName: 
-  tag: -1
-  containsTerrains: 0
-  probes: 0
-  mode: 1
-  renderMode: 1000
-  renderDirMode: 1000
-  atlasPacker: 1000
-  holeFilling: 0
-  computeSSS: 0
-  sssSamples: 16
-  sssDensity: 10
-  sssColor: {r: 1, g: 1, b: 1, a: 1}
-  sssScale: 1
-  fakeShadowBias: 0
-  transparentSelfShadow: 0
-  flipNormal: 0
-  parentName: 
-  overridePath: 
-  fixPos3D: 0
-  voxelSize: {x: 1, y: 1, z: 1}
-  passedFilter: 0
 --- !u!1 &2105130717
 GameObject:
   m_ObjectHideFlags: 0
