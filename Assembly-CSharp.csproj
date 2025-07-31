@@ -109,84 +109,10 @@
     <Compile Include="Assets\Scripts\PlayAudio.cs" />
     <Compile Include="Assets\Scripts\Radial.cs" />
     <Compile Include="Assets\Scripts\FollowTransform.cs" />
-    <Compile Include="Assets\Samples\High Definition RP\10.8.1\Procedural Sky\Runtime\ProceduralSky\ProceduralSky.cs" />
-    <Compile Include="Assets\Samples\High Definition RP\10.8.1\Procedural Sky\Runtime\ProceduralSky\ProceduralSkyRenderer.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\EditorPrefsStrings.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\RaymarchingQuality.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Samples\Scripts\CameraToggleBeamVisibility.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Samples\Scripts\FreeCameraController.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SD\DynamicOcclusionRaycasting.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\UtilsBeamProps.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SD\DynamicOcclusionDepthBuffer.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\Config.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\VolumetricDustParticles.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\VolumetricCookieHD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\DummyMaterial.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\Enums.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\VolumetricShadowHD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\ShaderGenerator.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Samples\Scripts\FeaturesNotSupportedMessage.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Samples\Scripts\LightGenerator.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SD\DynamicOcclusionAbstractBase.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\PolygonHelper.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\ShaderProperties.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\Version.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\MaterialModifier.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\TriggerZone.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\GlobalMeshHD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\Consts.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\MinMaxRangeFloat.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SD\VolumetricLightBeamSD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Samples\Scripts\CheckIfInsideBeam.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HighlightNullAttribute.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\MaterialManager.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\Noise3D.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\VolumetricLightBeamHD2D.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\BeamGeometryAbstractBase.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\CachedLightProperties.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SD\SkewingHandleSD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SD\GlobalMeshSD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SpotLightHelper.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\ShaderKeywords.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\Utils.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\EffectFromProfile.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\EffectPulse.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\EffectAbstractBase.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\EffectFlicker.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\VolumetricLightBeamHD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\MeshGenerator.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\PlatformHelper.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\TrackRealtimeChangesOnLightHD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SRPHelper.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\TransformUtils.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\VolumetricLightBeamAbstractBase.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\BatchingHelper.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\HD\BeamGeometryHD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Samples\Scripts\Rotater.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\SD\BeamGeometrySD.cs" />
-    <Compile Include="Assets\VolumetricLightBeam\Scripts\LODBeamGroup.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\VolumetricLightBeam\Shaders\shadergen_includes_hdrp.txt" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\VLBGeneratedShaderSD.shader" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\VolumetricLightBeamSharedSD.cginc" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\VolumetricLightBeamSharedHD.cginc" />
     <None Include="Assets\FullSerializer.dll" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\shadergen_includes_urp.txt" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderUtils.cginc" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderSpecificURP.cginc" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\shadergen_pass.txt" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderProperties.cginc" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\shadergen_base.txt" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderSpecificHDRP.hlsl" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderDefines.cginc" />
     <None Include="Assets\VolumetricLightBeamPackage\Readme.txt" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\VLBGeneratedShaderHD.shader" />
-    <None Include="Assets\Samples\High Definition RP\10.8.1\Procedural Sky\Runtime\ProceduralSky\Resources\ProceduralSky.shader" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderPropertySystem.cginc" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderMaths.cginc" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\shadergen_includes_builtin.txt" />
-    <None Include="Assets\VolumetricLightBeam\Shaders\ShaderSpecificBuiltin.cginc" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -792,9 +718,6 @@
     <Reference Include="Unity.2D.Sprite.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.2D.Sprite.Editor.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.RenderPipelines.Core.Runtime">
-      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.ProBuilder">
       <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.dll</HintPath>
     </Reference>
@@ -819,6 +742,9 @@
     <Reference Include="UnityEngine.UI">
       <HintPath>Library\ScriptAssemblies\UnityEngine.UI.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime">
+      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Analytics.DataPrivacy">
       <HintPath>Library\ScriptAssemblies\Unity.Analytics.DataPrivacy.dll</HintPath>
     </Reference>
@@ -839,6 +765,24 @@
     </Reference>
     <Reference Include="Unity.RenderPipelines.Core.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Core.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>Library\ScriptAssemblies\Unity.Mathematics.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Shaders">
+      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Shaders.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Mathematics.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.Mathematics.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipeline.Universal.ShaderLibrary">
+      <HintPath>Library\ScriptAssemblies\Unity.RenderPipeline.Universal.ShaderLibrary.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
