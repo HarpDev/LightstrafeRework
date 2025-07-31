@@ -26,6 +26,13 @@ public class BakeryProjectSettings : ScriptableObject
         HDR = 0,
         Asset = 1
     }
+
+    public enum Rounding
+    {
+        ToSmaller = 0,
+        ToLarger = 1
+    }
+
     [SerializeField]
     public FileFormatHDR formatHDR = FileFormatHDR.HDR;
 
@@ -81,6 +88,14 @@ public class BakeryProjectSettings : ScriptableObject
     [SerializeField]
     public bool alternativeScaleInLightmap = false;
 
+    // How texels are rounded
+    [SerializeField]
+    public Rounding texelRoundingBehaviour = Rounding.ToSmaller;
+
+    // Another approach to maintain better texel uniformity, suggested by Jan
+    [SerializeField]
+    public bool alternativeGroupPacking = false;
+
     // Make xatlas align charts to 4x4 block boundaries to make texture compression happy
     [SerializeField]
     public bool alignToTextureBlocksWithXatlas = true;
@@ -96,8 +111,46 @@ public class BakeryProjectSettings : ScriptableObject
     [SerializeField]
     public bool takeReceiveGIIntoAccount = true;
 
+    // Remove ringing in Legacy light probes?
     [SerializeField]
     public bool removeRinging = false;
+
+    // Remove directional/point light ringing in Legacy light probes?
+    [SerializeField]
+    public bool removeDirectRinging = true;
+
+    // Deringing parameter for L2 light probes / APVs
+    [SerializeField]
+    public int deringL2MaxLaplacian = 0;
+
+    // Render ref probes automatically after the lightmap render?
+    [SerializeField]
+    public bool autoRenderRefProbes = false;
+
+    // Use the old volume position adjustment algorithm?
+    [SerializeField]
+    public bool legacyFixPos3D = false;
+
+    // Use new fast LOD tracing technique?
+    [SerializeField]
+    public bool optimizedLODs = true;
+
+    // Enable "streaming" option on the texture importer?
+    [SerializeField]
+    public bool streamingMipmaps = false;
+
+    // Set the "streaming priority" on the texture importer
+    [SerializeField]
+    public int streamingPriority = 0;
+
+    [SerializeField]
+    public TextureImporterFormat forceSpecificColorFormat = (TextureImporterFormat)(-1);
+
+    [SerializeField]
+    public TextureImporterFormat forceSpecificDirFormat = (TextureImporterFormat)(-1);
+
+    [SerializeField]
+    public TextureImporterFormat forceSpecificMaskFormat = (TextureImporterFormat)(-1);
 }
 
 #endif

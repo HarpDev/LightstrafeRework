@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
+[HelpURL("https://geom.io/bakery/wiki/index.php?title=Manual#Bakery_Point_Light")]
 [ExecuteInEditMode]
 [DisallowMultipleComponent]
 public class BakeryPointLight : MonoBehaviour
@@ -48,6 +49,7 @@ public class BakeryPointLight : MonoBehaviour
     public float indirectIntensity = 1.0f;
     public float falloffMinRadius = 1.0f;
     public int shadowmaskGroupID = 0;
+    public bool correctCookieDistortion = false;
     public Direction directionMode = Direction.NegativeY;
     public int maskChannel;
 
@@ -75,6 +77,8 @@ public class BakeryPointLight : MonoBehaviour
 
     public void Start()
     {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        
         if (gameObject.GetComponent<BakeryDirectLight>() != null ||
             gameObject.GetComponent<BakerySkyLight>() != null ||
             gameObject.GetComponent<BakeryLightMesh>() != null)
@@ -92,7 +96,6 @@ public class BakeryPointLight : MonoBehaviour
             return;
         }
 
-        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         if (UID == 0) UID = Guid.NewGuid().GetHashCode(); // legacy
     }
 

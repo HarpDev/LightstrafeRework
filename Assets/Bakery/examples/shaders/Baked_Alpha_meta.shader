@@ -4,7 +4,7 @@
     {
         _MainTex ("Albedo", 2D) = "white" { }
         _BumpMap ("Normal map", 2D) = "bump" { }
-        _Color ("Main Color", Color) = (1,1,1,1)
+        _MyMask ("My alpha mask", 2D) = "white" {}
         [HideInInspector] BAKERY_META_ALPHA_ENABLE ("Enable Bakery alpha meta pass", Float) = 1.0
     }
     SubShader
@@ -19,6 +19,7 @@
             #include "UnityCG.cginc"
 
             sampler2D _MainTex, _BumpMap;
+            sampler2D _MyMask;
 
             struct pi
             {
@@ -39,8 +40,7 @@
                 float4 tex = tex2D(_MainTex, IN.TexCoords);
                 float3 lm = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, IN.TexCoords2));
                 tex.rgb *= lm;
-                float2 alpha2 = cos(abs(frac(IN.TexCoords*10)*2-1));
-                float alpha = alpha2.x * alpha2.y;
+                float alpha = tex2D(_MyMask, IN.TexCoords*2);
                 clip(alpha-0.5);
                 return tex;
             }
@@ -57,10 +57,12 @@
             Cull Off
             CGPROGRAM
 
-            #include "UnityStandardMeta.cginc"
+            #include"UnityStandardMeta.cginc"
 
             // Include Bakery meta pass
             #include "../../BakeryMetaPass.cginc"
+
+            sampler2D _MyMask;
 
             float4 frag_customMeta (v2f_bakeryMeta i): SV_Target
             {
@@ -71,8 +73,7 @@
                 if (unity_MetaFragmentControl.w)
                 {
                     // Calculate custom alpha
-                    float2 alpha2 = cos(abs(frac(i.uv*10)*2-1));
-                    float alpha = alpha2.x * alpha2.y;
+                    float alpha = tex2D(_MyMask, i.uv*2);
 
                     // Output
                     return alpha;

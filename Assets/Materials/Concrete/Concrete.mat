@@ -34,14 +34,13 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Concrete
-  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
-  m_ShaderKeywords: _NORMALMAP _PARALLAXMAP
+  m_Shader: {fileID: 4800000, guid: 413ff0795eddafc4384d2495a551b7de, type: 3}
+  m_ShaderKeywords: BAKERY_SHNONLINEAR _EMISSION _NORMALMAP _PARALLAXMAP
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2000
-  stringTagMap:
-    RenderType: Opaque
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
   disabledShaderPasses:
   - DistortionVectors
   - MOTIONVECTORS
@@ -176,6 +175,22 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Volume0:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Volume1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Volume2:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _VolumeMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -189,6 +204,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
+    - BAKERY_META_ALPHA_ENABLE: 1
     - _AORemapMax: 1
     - _AORemapMin: 0
     - _ATDistance: 1
@@ -205,6 +221,22 @@ Material:
     - _AlphaToMask: 0
     - _AlphaToMaskInspectorValue: 0
     - _Anisotropy: 0
+    - _BAKERY_2SIDED: 2
+    - _BAKERY_2SIDEDON: 0
+    - _BAKERY_BICUBIC: 0
+    - _BAKERY_LMSPEC: 0
+    - _BAKERY_LMSPECOCCLUSION: 0
+    - _BAKERY_MONOSH: 0
+    - _BAKERY_PROBESHNONLINEAR: 0
+    - _BAKERY_RNM: 0
+    - _BAKERY_SH: 0
+    - _BAKERY_SHNONLINEAR: 1
+    - _BAKERY_VERTEXLM: 0
+    - _BAKERY_VERTEXLMDIR: 0
+    - _BAKERY_VERTEXLMMASK: 0
+    - _BAKERY_VERTEXLMSH: 0
+    - _BAKERY_VOLROTATION: 0
+    - _BAKERY_VOLUME: 0
     - _Blend: 0
     - _BlendMode: 0
     - _BumpScale: 1
@@ -344,6 +376,7 @@ Material:
     - _ZTestModeDistortion: 4
     - _ZTestTransparent: 4
     - _ZWrite: 1
+    - intensity: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _BaseColorMap_MipInfo: {r: 0, g: 0, b: 0, a: 0}
@@ -365,4 +398,6 @@ Material:
     - _UVDetailsMappingMask: {r: 1, g: 0, b: 0, a: 0}
     - _UVMappingMask: {r: 1, g: 0, b: 0, a: 0}
     - _UVMappingMaskEmissive: {r: 1, g: 0, b: 0, a: 0}
+    - _VolumeInvSize: {r: 1000001, g: 1000001, b: 1000001, a: 1}
+    - _VolumeMin: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []

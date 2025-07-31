@@ -30,7 +30,7 @@ public class ftLightmaps {
 
     static List<int> lightmapRefCount;
     static List<LightmapAdditionalData> globalMapsAdditional;
-    static int directionalMode; // -1 undefined, 0 off, 1 on
+    static int directionalMode = -1; // -1 undefined, 0 off, 1 on
     //static List<ftLightmapsStorage> loadedStorages;
 
 #if UNITY_EDITOR
@@ -380,7 +380,8 @@ public class ftLightmaps {
     }
 #endif
 
-    public static void RefreshFull() {
+    public static void RefreshFull()
+    {
         var activeScene = SceneManager.GetActiveScene();
         var sceneCount = SceneManager.sceneCount;
 
@@ -388,13 +389,21 @@ public class ftLightmaps {
         {
             var scene = SceneManager.GetSceneAt(i);
             if (!scene.isLoaded) continue;
+#if UNITY_6000_0_OR_NEWER
+            if (scene.isSubScene) continue;
+#endif
             SceneManager.SetActiveScene(scene);
+            if (!FindInScene("!ftraceLightmaps", scene)) continue;
             LightmapSettings.lightmaps = new LightmapData[0];
         }
 
         for(int i=0; i<sceneCount; i++)
         {
-            RefreshScene(SceneManager.GetSceneAt(i), null, true);
+            var scene = SceneManager.GetSceneAt(i);
+#if UNITY_6000_0_OR_NEWER
+            if (scene.isSubScene) continue;
+#endif
+            RefreshScene(scene, null, true);
         }
         SceneManager.SetActiveScene(activeScene);
     }
@@ -427,7 +436,7 @@ public class ftLightmaps {
         return storage.emptyDirectionTex;
     }
 
-    public static void RefreshScene(Scene scene, ftLightmapsStorage storage = null, bool updateNonBaked = false) {
+    public static void RefreshScene(Scene scene, ftLightmapsStorage storage = null, bool updateNonBaked = false, bool incrementRefcount = false) {
         var sceneCount = SceneManager.sceneCount;
 
         if (globalMapsAdditional == null) globalMapsAdditional = new List<LightmapAdditionalData>();
@@ -829,8 +838,8 @@ public class ftLightmaps {
             else
             {
                 output.lightmapBakeType = LightmapBakeType.Mixed;
-                output.mixedLightingMode = channel > 100 ? MixedLightingMode.Subtractive : MixedLightingMode.Shadowmask;
-                output.occlusionMaskChannel = channel > 100 ? -1 : channel;
+                output.mixedLightingMode = channel >= 100 ? MixedLightingMode.Subtractive : MixedLightingMode.Shadowmask;
+                output.occlusionMaskChannel = channel >= 100 ? (channel-100) : channel;
                 output.probeOcclusionLightIndex  = storage.bakedLights[i].bakingOutput.probeOcclusionLightIndex;
             }
             storage.bakedLights[i].bakingOutput = output;
@@ -838,13 +847,16 @@ public class ftLightmaps {
         }
 
         // Increment lightmap refcounts
-        if (lightmapRefCount == null) lightmapRefCount = new List<int>();
-        for(int i=0; i<storage.idremap.Length; i++)
+        if (incrementRefcount)
         {
-            int currentID = storage.idremap[i];
-            while(lightmapRefCount.Count <= currentID) lightmapRefCount.Add(0);
-            if (lightmapRefCount[currentID] < 0) lightmapRefCount[currentID] = 0;
-            lightmapRefCount[currentID]++;
+            if (lightmapRefCount == null) lightmapRefCount = new List<int>();
+            for(int i=0; i<storage.idremap.Length; i++)
+            {
+                int currentID = storage.idremap[i];
+                while(lightmapRefCount.Count <= currentID) lightmapRefCount.Add(0);
+                if (lightmapRefCount[currentID] < 0) lightmapRefCount[currentID] = 0;
+                lightmapRefCount[currentID]++;
+            }
         }
         //if (loadedStorages == null) loadedStorages = new List<ftLightmapsStorage>();
         //if (loadedStorages.Contains(storage)) loadedStorages.Add(storage);

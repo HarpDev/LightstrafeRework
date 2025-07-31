@@ -41,6 +41,7 @@ public class BakeryVolumeTrigger : MonoBehaviour
         mb.SetVector(mVolumeMin, vol.GetMin());
         mb.SetVector(mVolumeInvSize, vol.GetInvSize());
         if (vol.supportRotationAfterBake) mb.SetMatrix("_VolumeMatrix", vol.GetMatrix());
+        if (vol.rotateAroundY) mb.SetVector("_VolumeRY", vol.GetRotationY());
     }
 
     // Apply MaterialPropertyBlock to renderers entering the trigger
