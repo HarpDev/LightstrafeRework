@@ -112,7 +112,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\FullSerializer.dll" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\Readme.txt" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Deinterleaving.cginc" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_AO.cginc" />
     <None Include="Assets\VolumetricLightBeamPackage\Readme.txt" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO.shader" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Composite.cginc" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Common.cginc" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Readme.txt" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_TemporalFilter.cginc" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Blur.cginc" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -697,9 +706,6 @@
     <Reference Include="Unity.VisualEffectGraph.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.VisualEffectGraph.Editor.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.ProBuilder.AddOns.Editor">
-      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.AddOns.Editor.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.VisualStudio.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.VisualStudio.Editor.dll</HintPath>
     </Reference>
@@ -718,14 +724,8 @@
     <Reference Include="Unity.2D.Sprite.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.2D.Sprite.Editor.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.ProBuilder">
-      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.RenderPipelines.HighDefinition.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.HighDefinition.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.ProBuilder.Editor">
-      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.Editor.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.UI">
       <HintPath>Library\ScriptAssemblies\UnityEditor.UI.dll</HintPath>
@@ -750,9 +750,6 @@
     </Reference>
     <Reference Include="Unity.ShaderGraph.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.ShaderGraph.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.ProBuilder.AssetIdRemapUtility">
-      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.AssetIdRemapUtility.dll</HintPath>
     </Reference>
     <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
       <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
@@ -784,8 +781,32 @@
     <Reference Include="Unity.RenderPipelines.Universal.Runtime">
       <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.ProBuilder">
+      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder.AddOns.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.AddOns.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder.AssetIdRemapUtility">
+      <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.AssetIdRemapUtility.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="HBAO.Demo.Runtime.csproj">
+      <Project>{5D73E60E-29F5-0E92-DA51-B663F1C3779E}</Project>
+      <Name>HBAO.Demo.Runtime</Name>
+    </ProjectReference>
+    <ProjectReference Include="HBAO.Editor.csproj">
+      <Project>{6A24CA85-B2B8-ECE8-387D-E3D20A4E15C7}</Project>
+      <Name>HBAO.Editor</Name>
+    </ProjectReference>
+    <ProjectReference Include="HBAO.Runtime.csproj">
+      <Project>{C7AF90EE-082F-4E9D-AC4E-A6AFF0E9BEC1}</Project>
+      <Name>HBAO.Runtime</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
