@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Rendering.HighDefinition;
 using Random = UnityEngine.Random;
 
 public class RandomGraffiti : MonoBehaviour
@@ -11,7 +10,7 @@ public class RandomGraffiti : MonoBehaviour
 
     private void Start()
     {
-        GetComponent<DecalProjector>().enabled = false;
+       // GetComponent<DecalProjector>().enabled = false;
         if (options.Length <= 0) return;
         if (Random.Range(0, 100) < noGraffitiChance) return;
         var pick = options[Random.Range(0, options.Length)];
