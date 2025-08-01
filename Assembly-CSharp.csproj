@@ -111,17 +111,24 @@
     <Compile Include="Assets\Scripts\FollowTransform.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\URP\Shaders\HBAO_Deinterleaving.hlsl" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\URP\Shaders\HBAO_AO.hlsl" />
     <None Include="Assets\FullSerializer.dll" />
     <None Include="Assets\Horizon Based Ambient Occlusion\SRP\Readme.txt" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\URP\Shaders\HBAO_Composite.hlsl" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Deinterleaving.cginc" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\URP\Shaders\HBAO_Blur.hlsl" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\URP\Shaders\HBAO_Common.hlsl" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_AO.cginc" />
     <None Include="Assets\VolumetricLightBeamPackage\Readme.txt" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO.shader" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\URP\Shaders\HBAO_TemporalFilter.hlsl" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Composite.cginc" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Common.cginc" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Readme.txt" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_TemporalFilter.cginc" />
     <None Include="Assets\Horizon Based Ambient Occlusion\Shaders\HBAO_Blur.cginc" />
+    <None Include="Assets\Horizon Based Ambient Occlusion\SRP\URP\Shaders\HBAO.shader" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -724,11 +731,11 @@
     <Reference Include="Unity.2D.Sprite.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.2D.Sprite.Editor.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.RenderPipelines.Core.Runtime">
-      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.ProBuilder">
       <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime">
+      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="Unity.ProBuilder.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.Editor.dll</HintPath>
@@ -780,9 +787,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="BakeryRuntimeAssembly.csproj">
+      <Project>{6187FA02-4B35-0B6F-34A9-A59C59AF4980}</Project>
+      <Name>BakeryRuntimeAssembly</Name>
+    </ProjectReference>
     <ProjectReference Include="HBAO.Demo.Runtime.csproj">
       <Project>{5D73E60E-29F5-0E92-DA51-B663F1C3779E}</Project>
       <Name>HBAO.Demo.Runtime</Name>
+    </ProjectReference>
+    <ProjectReference Include="BakeryECS.csproj">
+      <Project>{97836449-1DAE-4481-1590-652CB35F9ADE}</Project>
+      <Name>BakeryECS</Name>
     </ProjectReference>
     <ProjectReference Include="HBAO.Editor.csproj">
       <Project>{6A24CA85-B2B8-ECE8-387D-E3D20A4E15C7}</Project>
@@ -800,9 +815,17 @@
       <Project>{633CB35D-FCB4-F569-302B-8E96F4094B5B}</Project>
       <Name>BakeryAPV</Name>
     </ProjectReference>
-    <ProjectReference Include="BakeryECS.csproj">
-      <Project>{97836449-1DAE-4481-1590-652CB35F9ADE}</Project>
-      <Name>BakeryECS</Name>
+    <ProjectReference Include="HBAO.Universal.Editor.csproj">
+      <Project>{68375A14-AACD-CDF5-45DE-A4B85DE275A8}</Project>
+      <Name>HBAO.Universal.Editor</Name>
+    </ProjectReference>
+    <ProjectReference Include="HBAO.Universal.Runtime.csproj">
+      <Project>{A481DEF7-6760-5B75-B9C1-73EC924246E0}</Project>
+      <Name>HBAO.Universal.Runtime</Name>
+    </ProjectReference>
+    <ProjectReference Include="HBAO.Demo.Universal.Runtime.csproj">
+      <Project>{D7C5D660-8BF5-533A-2875-46DC2605913D}</Project>
+      <Name>HBAO.Demo.Universal.Runtime</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

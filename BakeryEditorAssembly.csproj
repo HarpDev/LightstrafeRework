@@ -63,6 +63,7 @@
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftExtendLightmapParameters.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftLightmappedPrefabInspector.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftSectorInspector.cs" />
+    <Compile Include="Assets\Editor\x64\Bakery\scripts\ftBatchSceneBake.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftClearMenu.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftCreateMenu.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\xatlas\xatlasEnable.cs" />
@@ -92,11 +93,10 @@
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftDirectLightInspector.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftFixResettingGlobalsOnSave.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftDDS.cs" />
+    <Compile Include="Assets\Editor\x64\Bakery\scripts\ftAPVSettings.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftLightmapsStorageInspector.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftAdditionalConfig.cs" />
     <Compile Include="Assets\Editor\x64\Bakery\scripts\ftLMGroupInspector.cs" />
-    <Compile Include="Assets\Editor\x64\Bakery\scripts\ftAPVSettings.cs" />
-    <Compile Include="Assets\Editor\x64\Bakery\scripts\ftBatchSceneBake.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Editor\x64\Bakery\scripts\xatlas\xatlas-license.txt" />
@@ -727,10 +727,6 @@
     <ProjectReference Include="BakeryRuntimeAssembly.csproj">
       <Project>{6187FA02-4B35-0B6F-34A9-A59C59AF4980}</Project>
       <Name>BakeryRuntimeAssembly</Name>
-    </ProjectReference>
-    <ProjectReference Include="BakeryAPV.csproj">
-      <Project>{633CB35D-FCB4-F569-302B-8E96F4094B5B}</Project>
-      <Name>BakeryAPV</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -60,6 +60,7 @@
     <Compile Include="Assets\Bakery\examples\scripts\BakeryVolumeTrigger.cs" />
     <Compile Include="Assets\Bakery\BakerySector.cs" />
     <Compile Include="Assets\Bakery\shader\Editor\BakeryShaderGUI.cs" />
+    <Compile Include="Assets\Bakery\BakerySharedLodUv.cs" />
     <Compile Include="Assets\Bakery\BakeryLightmapGroup.cs" />
     <Compile Include="Assets\Bakery\examples\scripts\BakeryVolumeReceiver.cs" />
     <Compile Include="Assets\Bakery\BakeryLightmappedPrefab.cs" />
@@ -67,6 +68,7 @@
     <Compile Include="Assets\Bakery\examples\scripts\VolumeTestScene2.cs" />
     <Compile Include="Assets\Bakery\BakeryDirectLight.cs" />
     <Compile Include="Assets\Bakery\BakeryAlwaysRender.cs" />
+    <Compile Include="Assets\Bakery\ftSettingsAsset.cs" />
     <Compile Include="Assets\Bakery\BakeryPointLight.cs" />
     <Compile Include="Assets\Bakery\BakeryProjectSettings.cs" />
     <Compile Include="Assets\Bakery\ftLightmapsStorage.cs" />
@@ -74,13 +76,11 @@
     <Compile Include="Assets\Bakery\BakeryVolume.cs" />
     <Compile Include="Assets\Bakery\BakeryPackAsSingleSquare.cs" />
     <Compile Include="Assets\Bakery\BakerySectorCapture.cs" />
+    <Compile Include="Assets\Bakery\ftUniqueIDRegistry.cs" />
     <Compile Include="Assets\Bakery\BakerySkyLight.cs" />
+    <Compile Include="Assets\Bakery\ftStorageAsset.cs" />
     <Compile Include="Assets\Bakery\BakeryLightmapGroupSelector.cs" />
     <Compile Include="Assets\Bakery\ftLightmaps.cs" />
-    <Compile Include="Assets\Bakery\ftStorageAsset.cs" />
-    <Compile Include="Assets\Bakery\ftUniqueIDRegistry.cs" />
-    <Compile Include="Assets\Bakery\BakerySharedLodUv.cs" />
-    <Compile Include="Assets\Bakery\ftSettingsAsset.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Bakery\ftUnlitTerrain.shader" />
@@ -101,7 +101,6 @@
     <None Include="Assets\Bakery\ftCubemap2StripExport.shader" />
     <None Include="Assets\Bakery\ftRGBM2Half.shader" />
     <None Include="Assets\Bakery\ftCubemap2Strip.shader" />
-    <None Include="Assets\Bakery\ftUnlitTerrainOpaque.shader" />
     <None Include="Assets\Bakery\ftUVNormalMap.shader" />
     <None Include="Assets\Bakery\shader\ShaderGraph\URP\BakeryDecodeLightmap.hlsl" />
     <None Include="Assets\Bakery\ftFarSphereRenderBase.cginc" />
@@ -110,6 +109,7 @@
     <None Include="Assets\Bakery\ftFarSphereRender.shader" />
     <None Include="Assets\Bakery\BakeryMetaPass.cginc" />
     <None Include="Assets\Bakery\ftSkybox.shader" />
+    <None Include="Assets\Bakery\ftUnlitTerrainOpaque.shader" />
     <None Include="Assets\Bakery\shader\Bakery.cginc" />
   </ItemGroup>
   <ItemGroup>
